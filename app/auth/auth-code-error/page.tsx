@@ -1,0 +1,54 @@
+'use client';
+
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default function AuthCodeError() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-wine-900 to-wine-950 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+          </div>
+          <CardTitle className="text-xl text-wine-900">
+            Authentication Error
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-center text-gray-600">
+            {errorDescription || error || 'The authentication link is invalid or has expired.'}
+          </p>
+          
+          <div className="space-y-2">
+            <Link href="/" className="block">
+              <Button className="w-full" variant="default">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </Link>
+            
+            <Link href="/" className="block">
+              <Button className="w-full" variant="outline">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+
+          <p className="text-center text-sm text-gray-500">
+            Magic links expire after a few minutes and can only be used once.
+            Please request a new link if needed.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

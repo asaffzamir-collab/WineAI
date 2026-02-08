@@ -1,0 +1,399 @@
+// No static import of 'openai' — package is loaded only when key exists, never at build time
+interface ChatCompletionResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+}
+interface OpenAIClientLike {
+  chat: { completions: { create: (opts: unknown) => Promise<ChatCompletionResponse> } };
+}
+
+let _openai: OpenAIClientLike | null = null;
+
+async function loadOpenAIClient(): Promise<OpenAIClientLike> {
+  const key = process.env.OPENAI_API_KEY?.trim();
+  if (!key) {
+    return new Proxy({} as OpenAIClientLike, {
+      get(_, prop) {
+        if (prop === 'chat') {
+          return {
+            completions: {
+              create: () =>
+                Promise.reject(new Error('OPENAI_API_KEY is not set. Add it in Vercel → Settings → Environment Variables.')),
+            },
+          };
+        }
+        return () => Promise.reject(new Error('OPENAI_API_KEY is not set.'));
+      },
+    });
+  }
+  const { default: OpenAI } = await import('openai');
+  return new OpenAI({ apiKey: key }) as unknown as OpenAIClientLike;
+}
+
+/** Lazy client. OpenAI package is only loaded when this runs (at request time), never at build. */
+async function getOpenAIClient(): Promise<OpenAIClientLike> {
+  if (!_openai) _openai = await loadOpenAIClient();
+  return _openai;
+}
+
+export interface WineData {
+  name: string;
+  winery: string;
+  vintage?: number;
+  vivino_rating?: number;
+  vivino_reviews?: number;
+  country: string;
+  region?: string;
+  grapes: string[];
+  alcohol?: number;
+  volume_ml?: number;
+  is_kosher?: boolean;
+  wine_type: 'red' | 'white' | 'rose' | 'sparkling' | 'dessert';
+  body?: 'light' | 'medium' | 'full';
+  sweetness?: 'dry' | 'off-dry' | 'sweet';
+  tasting_notes?: {
+    nose: string[];
+    palate: string[];
+    finish: string;
+  };
+  winery_description?: string;
+  serving?: {
+    drink_from?: number;
+    drink_until?: number;
+    decant_minutes?: number;
+    temperature_celsius?: string;
+  };
+  food_pairings?: string[];
+  price_range_usd?: string;
+  image_url?: string;
+}
+
+export interface ProfileMatchResult {
+  match_percentage: number;
+  positive_matches: string[];
+  mismatches: string[];
+  similar_wines_note?: string;
+}
+
+const WINE_SEARCH_SYSTEM_PROMPT = `You are a wine expert assistant with extensive knowledge of wines and their ratings. Given a wine query (either a name, description, or image of a wine label), return detailed information about the wine in JSON format.
+
+IMPORTANT: You must return ONLY valid JSON, no markdown, no code blocks, just the raw JSON object.
+
+For images: ALWAYS try your best to identify the wine. Read any text visible on the label including winery name, wine name, vintage year, region, grape varieties, etc. Even if you're not 100% certain about the exact wine, make your best educated guess based on what you can see. Use visual cues like label design, bottle shape, and any visible text.
+
+PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
+
+Vivino Rating: Provide vivino_rating (1.0-5.0) for every wine; you may set vivino_reviews to null if uncertain. Prefer accuracy over fake precision: use round numbers (e.g. 4.0, 4.5) when estimating. If you know the actual Vivino rating or a recent critic score, use it. Otherwise estimate conservatively from reputation (prestigious 4.0-4.6, good 3.5-4.0, everyday 3.0-3.5). For vivino_reviews use null when unknown, or a rough order of magnitude (e.g. 500, 2000, 10000) rather than a made-up exact number.
+
+Return this exact JSON structure:
+{
+  "name": "Wine name",
+  "winery": "Winery name",
+  "vintage": 2020,
+  "vivino_rating": 4.2,
+  "vivino_reviews": 1234,
+  "country": "Italy",
+  "region": "Tuscany",
+  "grapes": ["Sangiovese"],
+  "alcohol": 14.0,
+  "volume_ml": 750,
+  "is_kosher": false,
+  "wine_type": "red",
+  "body": "medium",
+  "sweetness": "dry",
+  "tasting_notes": {
+    "nose": ["cherry", "tobacco", "earth"],
+    "palate": ["bright acidity", "fine tannins"],
+    "finish": "long with dried herbs"
+  },
+  "winery_description": "Brief winery history...",
+  "serving": {
+    "drink_from": 2024,
+    "drink_until": 2030,
+    "decant_minutes": 60,
+    "temperature_celsius": "16-18"
+  },
+  "food_pairings": ["grilled lamb", "aged cheese", "pasta"],
+  "price_range_usd": "25-35",
+  "image_url": "https://images.vivino.com/thumbs/..."
+}
+
+For fields you cannot determine, use null. But ALWAYS return a wine object with at least the name, winery, country, wine_type, grapes, vivino_rating, and image_url fields filled in based on your best interpretation of the image or query. Only return { "error": "Could not identify wine" } if the image is completely unreadable, doesn't show a wine, or shows no useful information at all.`;
+
+const WINE_TEXT_SEARCH_SYSTEM_PROMPT = `You are a wine expert. The user is typing a wine name, winery, or partial description to find a wine.
+
+Your task: Return an array of possible wines that match the query. This improves success rate when the user makes typos or only remembers part of the name.
+
+Rules:
+- Return between 1 and 5 wines, ordered by relevance (best match first).
+- Be TOLERANT: treat the query as fuzzy. Consider typos, partial names, alternate spellings (e.g. "Brunello" vs "Brunello di Montalcino"), and different languages.
+- If the query could refer to multiple vintages of the same wine, include 2-3 different vintages as separate entries so the user can pick (e.g. "Château Margaux 2019" and "Château Margaux 2020").
+- If the query is very specific and matches one wine well, you may return just 1 wine. If it's ambiguous or could match several, return 3-5 options.
+- NEVER return an empty array. If truly unknown, return 1-2 best-guess wines that are close (same region, similar name, or popular wines that sound similar).
+- Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type, vivino_rating. Include vivino_reviews only when you have a reasonable estimate; otherwise null. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
+- For ratings: use round numbers (4.0, 4.5) when estimating; prefer vivino_reviews null over invented exact counts.
+- Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
+
+Example format:
+{"wines": [
+  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, ...},
+  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2018, ...}
+]}`;
+
+export async function searchWinesByText(query: string): Promise<WineData[]> {
+  try {
+    console.log('Searching wines by text (multi):', query);
+
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: WINE_TEXT_SEARCH_SYSTEM_PROMPT },
+        { role: 'user', content: `Find wines matching this query (be tolerant of typos and partial names): "${query}"` },
+      ],
+      temperature: 0.4,
+      max_tokens: 3000,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      console.error('No content in OpenAI text search response');
+      return [];
+    }
+
+    const data = parseJsonResponse(content) as { wines?: WineData[]; error?: string };
+    if (typeof data === 'object' && data !== null && 'error' in data) {
+      console.log('OpenAI text search returned error:', data.error);
+      return [];
+    }
+    const wines = Array.isArray(data?.wines) ? data.wines : [];
+    return wines.filter((w): w is WineData => typeof w === 'object' && w !== null && typeof (w as WineData).name === 'string' && typeof (w as WineData).winery === 'string');
+  } catch (error) {
+    console.error('Error searching wines by text:', error);
+    return [];
+  }
+}
+
+export async function searchWineByText(query: string): Promise<WineData | null> {
+  const wines = await searchWinesByText(query);
+  return wines.length > 0 ? wines[0] : null;
+}
+
+// Helper function to parse JSON from OpenAI response (handles markdown code blocks)
+function parseJsonResponse(content: string): unknown {
+  // Remove markdown code blocks if present
+  let cleanContent = content.trim();
+  
+  // Handle ```json ... ``` format
+  if (cleanContent.startsWith('```')) {
+    const lines = cleanContent.split('\n');
+    // Remove first line (```json or ```)
+    lines.shift();
+    // Remove last line (```)
+    if (lines[lines.length - 1]?.trim() === '```') {
+      lines.pop();
+    }
+    cleanContent = lines.join('\n').trim();
+  }
+  
+  return JSON.parse(cleanContent);
+}
+
+export async function searchWineByImage(base64Image: string, mimeType: string = 'image/jpeg'): Promise<WineData | null> {
+  try {
+    console.log('Searching wine by image, mime type:', mimeType, 'base64 length:', base64Image.length);
+    
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: WINE_SEARCH_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Look at this wine bottle/label image carefully. Read ALL text visible on the label including the winery name, wine name, vintage year, region, appellation, grape variety, and any other details. Based on what you can see, identify this wine and provide detailed information. Make your best guess even if you are not 100% certain - use the visual information available. When you identify the wine, try to provide a bottle image URL (e.g. from Vivino, images.vivino.com) in the image_url field if you know one.',
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 1500,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    console.log('OpenAI image response:', content?.substring(0, 200));
+    
+    if (!content) {
+      console.error('No content in OpenAI response');
+      return null;
+    }
+
+    const data = parseJsonResponse(content);
+    if (typeof data === 'object' && data !== null && 'error' in data) {
+      console.log('OpenAI returned error:', (data as { error: string }).error);
+      return null;
+    }
+    
+    return data as WineData;
+  } catch (error) {
+    console.error('Error searching wine by image:', error);
+    return null;
+  }
+}
+
+export async function matchWineToProfile(
+  wine: WineData,
+  profile: Record<string, unknown>
+): Promise<ProfileMatchResult> {
+  try {
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a wine sommelier. Compare the wine to the user's taste profile and provide a match analysis.
+          
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+
+Return this exact structure:
+{
+  "match_percentage": 85,
+  "positive_matches": ["High acidity matches your preference", "..."],
+  "mismatches": ["Dark fruit notes - you typically prefer red fruit", "..."],
+  "similar_wines_note": "Similar to wines you've enjoyed before"
+}`,
+        },
+        {
+          role: 'user',
+          content: `Wine: ${JSON.stringify(wine)}
+
+User Profile: ${JSON.stringify(profile)}`,
+        },
+      ],
+      temperature: 0.5,
+      max_tokens: 800,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      return {
+        match_percentage: 75,
+        positive_matches: ['Matches your general preferences'],
+        mismatches: [],
+      };
+    }
+
+    return JSON.parse(content) as ProfileMatchResult;
+  } catch (error) {
+    console.error('Error matching wine to profile:', error);
+    return {
+      match_percentage: 75,
+      positive_matches: ['Matches your general preferences'],
+      mismatches: [],
+    };
+  }
+}
+
+export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>) {
+  try {
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a wine sommelier. Based on the user's onboarding quiz answers, create taste profiles for red, white, and rosé wines.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+
+Return this structure for each wine type:
+{
+  "red": {
+    "overall_style": "Description of their red wine style preference",
+    "body_structure": "Light/Medium/Full with notes",
+    "fruit_profile": "Red fruits, dark fruits, etc.",
+    "style_notes": "Additional style characteristics",
+    "recommended_grapes": ["Pinot Noir", "Sangiovese"],
+    "recommended_regions": ["Burgundy", "Tuscany"],
+    "what_to_avoid": ["Very tannic wines", "Oak-heavy wines"],
+    "summary": "One sentence summary"
+  },
+  "white": { ... same structure ... },
+  "rose": { ... same structure ... }
+}`,
+        },
+        {
+          role: 'user',
+          content: `Create taste profiles based on these quiz answers: ${JSON.stringify(onboardingAnswers)}`,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Error generating taste profile:', error);
+    return null;
+  }
+}
+
+export async function updateTasteProfileFromWine(
+  wine: WineData,
+  currentProfile: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a wine sommelier. A user has indicated they like a specific wine. Update their taste profile to incorporate insights from this wine preference.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+
+The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed.
+
+Return this structure:
+{
+  "overall_style": "Updated description of their wine style preference",
+  "body_structure": "Light/Medium/Full with notes",
+  "fruit_profile": "Red fruits, dark fruits, tropical, citrus, etc.",
+  "style_notes": "Additional style characteristics they seem to prefer",
+  "recommended_grapes": ["Grape1", "Grape2"],
+  "recommended_regions": ["Region1", "Region2"],
+  "what_to_avoid": ["Style they might not enjoy"],
+  "summary": "One sentence summary of their taste",
+  "liked_wines": ["Wine names they've liked"]
+}`,
+        },
+        {
+          role: 'user',
+          content: `The user liked this wine: ${JSON.stringify(wine)}
+
+Their current profile (may be empty): ${JSON.stringify(currentProfile)}
+
+Update their profile to reflect that they enjoy this wine's characteristics.`,
+        },
+      ],
+      temperature: 0.5,
+      max_tokens: 1000,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    return parseJsonResponse(content) as Record<string, unknown>;
+  } catch (error) {
+    console.error('Error updating taste profile from wine:', error);
+    return null;
+  }
+}
