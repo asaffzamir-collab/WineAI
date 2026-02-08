@@ -36,7 +36,7 @@ export function AuthPage() {
           <p className="mt-2 text-wine-200">{t('subtitle')}</p>
         </div>
 
-        <Card>
+        <Card data-app="signin-screen" data-deploy-version="2025-02">
           <CardContent className="py-8">
             <Button
               type="button"

@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { OnboardingWelcome } from '@/components/onboarding-welcome';
 
+export const dynamic = 'force-dynamic';
+
 export default async function OnboardingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

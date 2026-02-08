@@ -1,6 +1,8 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { SettingsPage } from '@/components/pages/settings-page';
 
+export const dynamic = 'force-dynamic';
+
 const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default async function Page() {
