@@ -155,6 +155,29 @@ export function SearchPage({ userId }: SearchPageProps) {
     }
   };
 
+  /** Resize image on a canvas to keep payload small and API calls fast */
+  const compressImage = (file: File, maxDim = 1600, quality = 0.85): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,47 +191,43 @@ export function SearchPage({ userId }: SearchPageProps) {
     setIsAddingToProfile(false);
 
     try {
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataUrl = reader.result as string;
-        // Save the uploaded image URL for display
-        setUploadedImageUrl(dataUrl);
-        
-        // Extract mime type and base64 data
-        const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (!matches) {
-          setError('Invalid image format');
-          setIsSearching(false);
-          return;
-        }
-        const [, mimeType, base64] = matches;
-
-        const response = await fetch('/api/wine-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: base64,
-            imageMimeType: mimeType,
-            userId,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setWineResult(data.wine);
-          setMatchResult(data.match);
-          if (data.wine) {
-            addRecentSearch(userId, data.wine);
-            setRecentSearches(getRecentSearches(userId));
-          }
-        }
+      // Compress & resize the image before sending to keep payload under limits
+      const dataUrl = await compressImage(file);
+      // Save the uploaded image URL for display
+      setUploadedImageUrl(dataUrl);
+      
+      // Extract mime type and base64 data
+      const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        setError('Invalid image format');
         setIsSearching(false);
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+      const [, mimeType, base64] = matches;
+
+      const response = await fetch('/api/wine-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: base64,
+          imageMimeType: mimeType,
+          userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setWineResult(data.wine);
+        setMatchResult(data.match);
+        if (data.wine) {
+          addRecentSearch(userId, data.wine);
+          setRecentSearches(getRecentSearches(userId));
+        }
+      }
+      setIsSearching(false);
     } catch {
       setError('Image upload failed. Please try again.');
       setIsSearching(false);

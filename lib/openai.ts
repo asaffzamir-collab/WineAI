@@ -231,18 +231,26 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
         },
       ],
       temperature: 0.3,
-      max_tokens: 1500,
+      max_tokens: 4000,
     });
 
     const content = response.choices?.[0]?.message?.content;
-    console.log('OpenAI image response:', content?.substring(0, 200));
+    console.log('OpenAI image response (first 300 chars):', content?.substring(0, 300));
     
     if (!content) {
-      console.error('No content in OpenAI response');
+      console.error('No content in OpenAI image response');
       return null;
     }
 
-    const data = parseJsonResponse(content);
+    let data: unknown;
+    try {
+      data = parseJsonResponse(content);
+    } catch (parseErr) {
+      console.error('JSON parse failed for image search. Raw content (last 200 chars):', content.slice(-200));
+      console.error('Parse error:', parseErr);
+      return null;
+    }
+
     if (typeof data === 'object' && data !== null && 'error' in data) {
       console.log('OpenAI returned error:', (data as { error: string }).error);
       return null;
