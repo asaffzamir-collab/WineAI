@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Wine, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,6 @@ type AuthMode = 'login' | 'register';
 
 export function AuthPage() {
   const t = useTranslations('auth');
-  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,33 +25,33 @@ export function AuthPage() {
     setIsLoading(true);
 
     try {
-      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-      const body = mode === 'register'
-        ? { email, password, displayName: displayName || undefined }
-        : { email, password };
+      const supabase = createClient();
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        credentials: 'include',
-      });
+      if (mode === 'register') {
+        // Step 1: Create user via admin API (auto-confirms email)
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, displayName: displayName || undefined }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || t('genericError'));
+          setIsLoading(false);
+          return;
+        }
+      }
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || t('genericError'));
+      // Step 2: Sign in on the browser client to establish session cookies
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        setError(signInError.message || t('genericError'));
         setIsLoading(false);
         return;
       }
 
-      // Establish session on the client side so RootGate picks it up immediately
-      const supabase = createClient();
-      await supabase.auth.signInWithPassword({ email, password });
-
-      // Navigate to home (root gate will handle onboarding check)
-      router.push('/');
-      router.refresh();
+      // Step 3: Full page reload so RootGate re-initializes with the new session
+      window.location.href = '/';
     } catch {
       setError(t('genericError'));
       setIsLoading(false);

@@ -1,11 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/auth/register
- * Registers a new user with email and password.
+ * Registers a new user with email and password using the admin API
+ * so the user is auto-confirmed (no email verification required).
  * Creates a user_profile row automatically.
  */
 export async function POST(request: Request) {
@@ -26,21 +27,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    const { data, error } = await supabase.auth.signUp({
+    // Use admin API to create a pre-confirmed user (skips email verification)
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          display_name: displayName || email.split('@')[0],
-        },
-        // Skip email confirmation for simplicity
-        emailRedirectTo: undefined,
+      email_confirm: true,
+      user_metadata: {
+        display_name: displayName || email.split('@')[0],
       },
     });
 
     if (error) {
+      // Handle duplicate email
+      if (error.message?.includes('already been registered') || error.message?.includes('already exists')) {
+        return NextResponse.json({ error: 'A user with this email already exists' }, { status: 400 });
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
