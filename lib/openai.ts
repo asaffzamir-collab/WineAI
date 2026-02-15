@@ -82,7 +82,7 @@ For images: ALWAYS try your best to identify the wine. Read any text visible on 
 
 PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
 
-Vivino Rating: Provide vivino_rating (1.0-5.0) for every wine; you may set vivino_reviews to null if uncertain. Prefer accuracy over fake precision: use round numbers (e.g. 4.0, 4.5) when estimating. If you know the actual Vivino rating or a recent critic score, use it. Otherwise estimate conservatively from reputation (prestigious 4.0-4.6, good 3.5-4.0, everyday 3.0-3.5). For vivino_reviews use null when unknown, or a rough order of magnitude (e.g. 500, 2000, 10000) rather than a made-up exact number.
+Vivino Rating: For vivino_rating, ONLY provide a specific rating (1.0-5.0) if you are genuinely confident you know the real Vivino rating for this specific wine and vintage. Most wines on Vivino rate between 3.5-4.5. Do NOT invent or guess ratings — if you're not confident about the exact rating, set vivino_rating to null. It is better to return null than a wrong number. For very well-known wines (e.g. Opus One, Sassicaia, Château Margaux) where you're confident about the approximate Vivino rating, provide it. For lesser-known or regional wines, use null. For vivino_reviews, always use null unless you're very confident about the approximate number.
 
 Return this exact JSON structure:
 {
@@ -129,8 +129,8 @@ Rules:
 - If the query could refer to multiple vintages of the same wine, include 2-3 different vintages as separate entries so the user can pick (e.g. "Château Margaux 2019" and "Château Margaux 2020").
 - If the query is very specific and matches one wine well, you may return just 1 wine. If it's ambiguous or could match several, return 3-5 options.
 - NEVER return an empty array. If truly unknown, return 1-2 best-guess wines that are close (same region, similar name, or popular wines that sound similar).
-- Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type, vivino_rating. Include vivino_reviews only when you have a reasonable estimate; otherwise null. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
-- For ratings: use round numbers (4.0, 4.5) when estimating; prefer vivino_reviews null over invented exact counts.
+- Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
+- For vivino_rating: ONLY include a rating if you're genuinely confident about the real Vivino rating for this specific wine. Set to null if unsure — it is much better to return null than an inaccurate number. For vivino_reviews, always use null unless you're very confident.
 - Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
 
 Example format:
@@ -316,21 +316,31 @@ export async function generateTasteProfile(onboardingAnswers: Record<string, unk
       messages: [
         {
           role: 'system',
-          content: `You are a wine sommelier. Based on the user's onboarding quiz answers, create taste profiles for red, white, and rosé wines.
+          content: `You are an experienced wine sommelier and personal wine advisor. Based on the user's onboarding quiz answers, create detailed, insightful taste profiles for red, white, and rosé wines.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
+
+Guidelines for each field:
+- overall_style: 2-3 sentences describing their preferred wine style, what makes them tick, and what kind of wine experience they're drawn to.
+- body_structure: Describe their preferred body and structure with context (e.g. "Medium to full body with well-integrated tannins — you enjoy wines that have structure but don't overpower the fruit").
+- fruit_profile: Detailed description of fruit preferences with specific examples of flavors they'd enjoy.
+- style_notes: 2-3 sentences about secondary characteristics they'd appreciate (oak influence, minerality, earthiness, spice, etc.).
+- recommended_grapes: 4-6 specific grape varieties that match their preferences.
+- recommended_regions: 4-6 wine regions worldwide that produce wines matching their taste.
+- what_to_avoid: 3-5 specific wine styles or characteristics they probably won't enjoy, with brief explanations.
+- summary: A rich 3-5 sentence personal wine profile summary that reads like advice from a sommelier friend. Include insights about their palate personality, what patterns define their taste, and a specific wine recommendation to try.
 
 Return this structure for each wine type:
 {
   "red": {
-    "overall_style": "Description of their red wine style preference",
-    "body_structure": "Light/Medium/Full with notes",
-    "fruit_profile": "Red fruits, dark fruits, etc.",
-    "style_notes": "Additional style characteristics",
-    "recommended_grapes": ["Pinot Noir", "Sangiovese"],
-    "recommended_regions": ["Burgundy", "Tuscany"],
-    "what_to_avoid": ["Very tannic wines", "Oak-heavy wines"],
-    "summary": "One sentence summary"
+    "overall_style": "...",
+    "body_structure": "...",
+    "fruit_profile": "...",
+    "style_notes": "...",
+    "recommended_grapes": ["...", "..."],
+    "recommended_regions": ["...", "..."],
+    "what_to_avoid": ["...", "..."],
+    "summary": "..."
   },
   "white": { ... same structure ... },
   "rose": { ... same structure ... }
@@ -342,7 +352,7 @@ Return this structure for each wine type:
         },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 4000,
     });
 
     const content = response.choices?.[0]?.message?.content;
@@ -370,22 +380,33 @@ export async function updateTasteProfileFromWine(
       messages: [
         {
           role: 'system',
-          content: `You are a wine sommelier. A user has indicated they like a specific wine. Update their taste profile to incorporate insights from this wine preference.
+          content: `You are an experienced wine sommelier and personal wine advisor. A user has indicated they like a specific wine. Update their taste profile to incorporate insights from this wine preference.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
-The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed.
+The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed. Look at patterns across all wines they've liked.
+
+Guidelines for each field:
+- overall_style: 2-3 sentences describing their emerging/evolving wine style preferences based on the wines they've liked so far.
+- body_structure: Describe their preferred body and structure with context about what they seem drawn to.
+- fruit_profile: Detailed description of fruit preferences, noting patterns across their liked wines.
+- style_notes: 2-3 sentences about secondary characteristics (oak, minerality, earthiness, spice, etc.) that connect their liked wines.
+- recommended_grapes: 4-6 specific grape varieties that match the patterns in their preferences.
+- recommended_regions: 4-6 wine regions that produce wines similar to what they've enjoyed.
+- what_to_avoid: 3-5 wine styles or characteristics that seem opposite to their preferences, with brief explanations.
+- summary: A rich 3-5 sentence personal wine profile summary. Include insights about taste patterns across their liked wines, their palate personality, and a specific recommendation for what to try next.
+- liked_wines: Array of names of all wines they've liked (carry forward from existing profile + add the new one).
 
 Return this structure:
 {
-  "overall_style": "Updated description of their wine style preference",
-  "body_structure": "Light/Medium/Full with notes",
-  "fruit_profile": "Red fruits, dark fruits, tropical, citrus, etc.",
-  "style_notes": "Additional style characteristics they seem to prefer",
+  "overall_style": "...",
+  "body_structure": "...",
+  "fruit_profile": "...",
+  "style_notes": "...",
   "recommended_grapes": ["Grape1", "Grape2"],
   "recommended_regions": ["Region1", "Region2"],
-  "what_to_avoid": ["Style they might not enjoy"],
-  "summary": "One sentence summary of their taste",
+  "what_to_avoid": ["..."],
+  "summary": "...",
   "liked_wines": ["Wine names they've liked"]
 }`,
         },
@@ -399,7 +420,7 @@ Update their profile to reflect that they enjoy this wine's characteristics.`,
         },
       ],
       temperature: 0.5,
-      max_tokens: 1000,
+      max_tokens: 2000,
     });
 
     const content = response.choices?.[0]?.message?.content;

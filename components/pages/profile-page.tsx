@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface LikedWineDetail {
   wine_type?: string;
   vintage?: number;
   grapes?: string[];
+  image_url?: string;
   full_wine?: Record<string, unknown>;
 }
 
@@ -100,6 +102,7 @@ function hasFullWineData(w: Record<string, unknown>): boolean {
 
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
   const t = useTranslations('profile');
+  const router = useRouter();
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
@@ -167,7 +170,9 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   // Auto-refresh profiles on mount, visibility change, and window focus
   useEffect(() => {
-    // Fetch fresh data on mount
+    // Invalidate Next.js client-side router cache so server component re-renders with fresh data
+    router.refresh();
+    // Also fetch fresh data via API
     refreshProfiles();
 
     const handleVisibilityChange = () => {
@@ -186,7 +191,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshProfiles]);
+  }, [refreshProfiles, router]);
 
   const wineTypeLabels: Record<string, string> = {
     red: t('red'),
@@ -404,13 +409,34 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                     <div className="flex items-center gap-2 rounded-lg border border-wine-100 bg-white p-3 shadow-sm">
                                       <button
                                         type="button"
-                                        onClick={() => setSelectedWine(w.full_wine ?? { name: w.name, winery: w.winery, country: w.country ?? '', region: w.region, vintage: w.vintage, grapes: w.grapes ?? [], wine_type: (w.wine_type as WineData['wine_type']) ?? 'red' })}
+                                        onClick={() => setSelectedWine(w.full_wine ?? { name: w.name, winery: w.winery, country: w.country ?? '', region: w.region, vintage: w.vintage, grapes: w.grapes ?? [], wine_type: (w.wine_type as WineData['wine_type']) ?? 'red', image_url: w.image_url })}
                                         className={cn(
                                           'min-w-0 flex-1 cursor-pointer text-left',
-                                          'hover:opacity-80 transition-opacity flex items-center justify-between gap-2'
+                                          'hover:opacity-80 transition-opacity flex items-center gap-3'
                                         )}
                                       >
-                                        <div className="min-w-0">
+                                        {/* Wine thumbnail */}
+                                        {(w.image_url || w.full_wine?.image_url) ? (
+                                          <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100">
+                                            <img
+                                              src={w.image_url || String(w.full_wine?.image_url || '')}
+                                              alt={w.name}
+                                              className="h-full w-full object-contain"
+                                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className={cn(
+                                            'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded',
+                                            w.wine_type === 'white' ? 'bg-amber-100' : w.wine_type === 'rose' ? 'bg-pink-200' : 'bg-red-900/80'
+                                          )}>
+                                            <Wine className={cn(
+                                              'h-5 w-5',
+                                              w.wine_type === 'white' ? 'text-amber-700' : 'text-white/70'
+                                            )} />
+                                          </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
                                           <p className="font-semibold text-wine-900">{w.name}</p>
                                           <p className="text-sm text-gray-600">{w.winery}</p>
                                           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">

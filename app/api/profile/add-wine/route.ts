@@ -13,6 +13,7 @@ export interface LikedWineDetail {
   wine_type?: string;
   vintage?: number;
   grapes?: string[];
+  image_url?: string;
 }
 
 function wineToDetail(wine: Record<string, unknown>): LikedWineDetail {
@@ -24,6 +25,7 @@ function wineToDetail(wine: Record<string, unknown>): LikedWineDetail {
     wine_type: wine.wine_type ? String(wine.wine_type) : undefined,
     vintage: typeof wine.vintage === 'number' ? wine.vintage : undefined,
     grapes: Array.isArray(wine.grapes) ? wine.grapes.map(String) : undefined,
+    image_url: wine.image_url ? String(wine.image_url) : undefined,
   };
 }
 
