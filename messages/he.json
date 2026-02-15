@@ -106,7 +106,8 @@
     "spectrumSweetnessLeft": "יבש",
     "spectrumSweetnessRight": "מתוק",
     "spectrumAcidityLeft": "רך",
-    "spectrumAcidityRight": "חומצי"
+    "spectrumAcidityRight": "חומצי",
+    "spectrumMatch": "התאמה"
   },
   "profile": {
     "title": "פרופיל הטעם שלי",

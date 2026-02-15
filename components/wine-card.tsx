@@ -23,22 +23,33 @@ function ComparisonSpectrumBar({
   const clamp = (v: number) => Math.max(3, Math.min(97, v));
   const pLeft = clamp(profileValue);
   const wLeft = clamp(wineValue);
+  const isClose = Math.abs(profileValue - wineValue) <= 7;
 
   return (
     <div className="py-1">
       <div className="flex items-center gap-2">
         <span className="w-12 text-end text-[11px] font-medium text-gray-500">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
-          {/* Profile indicator (gold ring) */}
-          <div
-            className="absolute top-1/2 h-3 w-3 rounded-full border-[2.5px] border-gold-500 bg-white shadow-sm"
-            style={{ left: `${pLeft}%`, transform: 'translate(-50%, -50%)' }}
-          />
-          {/* Wine indicator (solid dot) */}
-          <div
-            className="absolute top-1/2 h-3 w-3 rounded-full bg-wine-700 shadow-sm z-[1]"
-            style={{ left: `${wLeft}%`, transform: 'translate(-50%, -50%)' }}
-          />
+          {isClose ? (
+            /* Merged "match" indicator — wine fill with gold ring */
+            <div
+              className="absolute top-1/2 h-4 w-4 rounded-full border-[2.5px] border-gold-500 bg-wine-700 shadow-sm z-[1]"
+              style={{ left: `${Math.round((pLeft + wLeft) / 2)}%`, transform: 'translate(-50%, -50%)' }}
+            />
+          ) : (
+            <>
+              {/* Profile indicator (gold ring) */}
+              <div
+                className="absolute top-1/2 h-3 w-3 rounded-full border-[2.5px] border-gold-500 bg-white shadow-sm"
+                style={{ left: `${pLeft}%`, transform: 'translate(-50%, -50%)' }}
+              />
+              {/* Wine indicator (solid dot) */}
+              <div
+                className="absolute top-1/2 h-3 w-3 rounded-full bg-wine-700 shadow-sm z-[1]"
+                style={{ left: `${wLeft}%`, transform: 'translate(-50%, -50%)' }}
+              />
+            </>
+          )}
         </div>
         <span className="w-12 text-[11px] font-medium text-gray-500">{rightLabel}</span>
       </div>
@@ -80,7 +91,7 @@ function MatchSpectrumChart({
         ))}
       </div>
       {/* Legend */}
-      <div className="mt-2.5 flex items-center justify-center gap-5 text-[11px] text-gray-500">
+      <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] text-gray-500">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-wine-700" />
           {t('wineSpectrum')}
@@ -88,6 +99,10 @@ function MatchSpectrumChart({
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full border-[2px] border-gold-500 bg-white" />
           {t('profileSpectrum')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full border-[2px] border-gold-500 bg-wine-700" />
+          {t('spectrumMatch')}
         </span>
       </div>
     </div>
