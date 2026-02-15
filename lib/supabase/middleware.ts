@@ -8,6 +8,8 @@ type CookieToSet = {
   options?: CookieOptions;
 };
 
+const COOKIE_NAME = 'sb-wineai-auth';
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -32,6 +34,12 @@ export async function updateSession(request: NextRequest) {
             supabaseResponse.cookies.set(name, value, options)
           );
         },
+      },
+      cookieOptions: {
+        name: COOKIE_NAME,
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 400,
       },
     }
   );

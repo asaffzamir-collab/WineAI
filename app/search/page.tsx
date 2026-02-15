@@ -1,12 +1,19 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { SearchPage } from '@/components/pages/search-page';
 
 export const dynamic = 'force-dynamic';
 
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default async function Page() {
-  const userId = MOCK_USER_ID;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/');
+  }
+
+  const userId = user.id;
   let tasteProfiles: Record<string, unknown> = {};
   try {
     tasteProfiles = await getTasteProfilesForUser(userId);

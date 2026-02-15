@@ -23,8 +23,8 @@ export default async function OnboardingPage() {
 
   const displayName =
     profile?.display_name
-    ?? (user.user_metadata as { given_name?: string })?.given_name
-    ?? (user.user_metadata as { full_name?: string })?.full_name?.split(/\s+/)[0]
+    ?? (user.user_metadata as { display_name?: string })?.display_name
+    ?? user.email?.split('@')[0]
     ?? null;
 
   return <OnboardingWelcome userId={user.id} displayName={displayName} />;

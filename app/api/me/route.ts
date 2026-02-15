@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/me
- * Returns current user id, email, and onboarding status. Creates user_profile if missing (e.g. anonymous).
+ * Returns current user id, email, and onboarding status. Creates user_profile if missing.
  * 401 if not signed in.
  */
 export async function GET() {
@@ -22,10 +22,8 @@ export async function GET() {
     .single();
 
   if (!profile) {
-    const displayName = (user as { is_anonymous?: boolean }).is_anonymous
-      ? 'Guest'
-      : (user.user_metadata as { given_name?: string })?.given_name
-        || (user.user_metadata as { full_name?: string })?.full_name?.split(/\s+/)[0]
+    const displayName =
+      (user.user_metadata as { display_name?: string })?.display_name
         || user.email?.split('@')[0]
         || 'Wine Lover';
     await supabase.from('user_profiles').insert({

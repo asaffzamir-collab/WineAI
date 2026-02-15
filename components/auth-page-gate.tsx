@@ -8,7 +8,7 @@ import { Wine, Loader2 } from 'lucide-react';
 
 /**
  * Wrapper for /auth: if user already has a session, redirect to home.
- * Otherwise show the sign-in form.
+ * Otherwise show the sign-in / register form.
  */
 export function AuthPageGate() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export function AuthPageGate() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (cancelled) return;
-        if (user && !(user as { is_anonymous?: boolean }).is_anonymous) {
+        if (user) {
           router.replace('/');
           return;
         }

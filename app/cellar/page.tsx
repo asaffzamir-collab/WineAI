@@ -1,18 +1,21 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { CellarPage, type CellarItem } from '@/components/pages/cellar-page';
 
 export const dynamic = 'force-dynamic';
 
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default async function Page() {
-  const userId = MOCK_USER_ID;
   const supabase = await createClient();
-  const client = userId === MOCK_USER_ID ? createAdminClient() : supabase;
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect('/');
+  }
+
+  const userId = user.id;
   let cellarItems: CellarItem[] = [];
   try {
-    const { data } = await client
+    const { data } = await supabase
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,

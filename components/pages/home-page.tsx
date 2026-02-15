@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Wine, Search, Sparkles, TrendingUp } from 'lucide-react';
@@ -11,6 +11,8 @@ import { formatCurrency } from '@/lib/utils';
 
 interface HomePageProps {
   userId: string;
+  /** Display name from /api/me; used for greeting until stats load, then stats can override */
+  displayName?: string;
 }
 
 interface Stats {
@@ -22,7 +24,7 @@ interface Stats {
   displayName?: string;
 }
 
-export function HomePage({ userId }: HomePageProps) {
+export function HomePage({ userId, displayName: initialDisplayName }: HomePageProps) {
   const t = useTranslations('home');
   const [stats, setStats] = useState<Stats>({
     winesTasted: 0,
@@ -30,30 +32,45 @@ export function HomePage({ userId }: HomePageProps) {
     wishlistCount: 0,
     readyToDrink: 0,
     totalSpent: 0,
+    displayName: initialDisplayName,
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(`/api/stats?userId=${encodeURIComponent(userId)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setStats({
-          displayName: data.displayName ?? undefined,
-          winesTasted: data.winesTasted ?? 0,
-          bottlesInCellar: data.bottlesInCellar ?? 0,
-          wishlistCount: data.wishlistCount ?? 0,
-          readyToDrink: data.readyToDrink ?? 0,
-          totalSpent: data.totalSpent ?? 0,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/stats?userId=${encodeURIComponent(userId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setStats({
+        displayName: data.displayName ?? initialDisplayName ?? undefined,
+        winesTasted: data.winesTasted ?? 0,
+        bottlesInCellar: data.bottlesInCellar ?? 0,
+        wishlistCount: data.wishlistCount ?? 0,
+        readyToDrink: data.readyToDrink ?? 0,
+        totalSpent: data.totalSpent ?? 0,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, initialDisplayName]);
 
+  useEffect(() => {
     fetchStats();
-  }, [userId]);
+  }, [fetchStats]);
+
+  // Re-fetch stats when user returns to the tab or window so dashboard stays in sync (e.g. after adding a wine)
+  useEffect(() => {
+    const refresh = () => fetchStats();
+    window.addEventListener('focus', refresh);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [fetchStats]);
 
   const statCards = [
     {
@@ -85,8 +102,8 @@ export function HomePage({ userId }: HomePageProps) {
       <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-12 pt-8">
         <div className="mx-auto max-w-lg">
           <h1 className="text-2xl font-bold text-white">
-            {stats.displayName
-              ? t('welcome', { name: stats.displayName })
+            {(stats.displayName || initialDisplayName)
+              ? t('welcome', { name: stats.displayName || initialDisplayName || '' })
               : t('welcomeGuest')}
           </h1>
           <p className="mt-1 text-wine-200">WineJourney</p>

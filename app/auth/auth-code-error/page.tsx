@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -24,29 +24,15 @@ export default function AuthCodeError() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-center text-gray-600">
-            {errorDescription || error || 'The authentication link is invalid or has expired.'}
+            {errorDescription || error || 'Something went wrong during authentication. Please try again.'}
           </p>
           
-          <div className="space-y-2">
-            <Link href="/" className="block">
-              <Button className="w-full" variant="default">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try Again
-              </Button>
-            </Link>
-            
-            <Link href="/" className="block">
-              <Button className="w-full" variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-
-          <p className="text-center text-sm text-gray-500">
-            Magic links expire after a few minutes and can only be used once.
-            Please request a new link if needed.
-          </p>
+          <Link href="/" className="block">
+            <Button className="w-full" variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Sign In
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

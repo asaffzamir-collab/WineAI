@@ -1,26 +1,28 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { SettingsPage } from '@/components/pages/settings-page';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default async function Page() {
-  const userId = MOCK_USER_ID;
   const supabase = await createClient();
-  const client = userId === MOCK_USER_ID ? createAdminClient() : supabase;
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: profile } = await client
+  if (!user) {
+    redirect('/');
+  }
+
+  const { data: profile } = await supabase
     .from('user_profiles')
     .select('*')
-    .eq('id', userId)
+    .eq('id', user.id)
     .single();
 
   return (
     <SettingsPage
-      userId={userId}
+      userId={user.id}
       profile={profile}
-      userEmail="test@example.com"
+      userEmail={user.email || ''}
     />
   );
 }

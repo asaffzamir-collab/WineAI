@@ -18,13 +18,23 @@
   "auth": {
     "welcome": "ברוכים הבאים ל-WineJourney",
     "subtitle": "גלו עולם של יינות מותאם אישית לטעם שלכם",
+    "loginTab": "התחברות",
+    "registerTab": "הרשמה",
     "emailLabel": "כתובת אימייל",
     "emailPlaceholder": "your@email.com",
-    "sendMagicLink": "שלח לי קישור כניסה",
-    "checkEmail": "בדוק את האימייל שלך",
-    "magicLinkSent": "שלחנו קישור כניסה אל {email}",
-    "signOut": "התנתק",
-    "signInWithGoogle": "התחבר עם Google"
+    "passwordLabel": "סיסמה",
+    "passwordPlaceholder": "הזן את הסיסמה שלך",
+    "passwordHint": "לפחות 6 תווים",
+    "displayNameLabel": "שם תצוגה",
+    "displayNamePlaceholder": "איך לקרוא לך?",
+    "loginButton": "התחבר",
+    "registerButton": "צור חשבון",
+    "noAccount": "אין לך חשבון?",
+    "hasAccount": "כבר יש לך חשבון?",
+    "registerLink": "הרשם",
+    "loginLink": "התחבר",
+    "genericError": "משהו השתבש. נסה שוב.",
+    "signOut": "התנתק"
   },
   "home": {
     "welcome": "שלום, {name}",

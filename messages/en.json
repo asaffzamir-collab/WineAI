@@ -18,13 +18,23 @@
   "auth": {
     "welcome": "Welcome to WineJourney",
     "subtitle": "Discover a world of wines tailored to your taste",
+    "loginTab": "Sign In",
+    "registerTab": "Sign Up",
     "emailLabel": "Email address",
     "emailPlaceholder": "your@email.com",
-    "sendMagicLink": "Send me a login link",
-    "checkEmail": "Check your email",
-    "magicLinkSent": "We sent a login link to {email}",
-    "signOut": "Sign out",
-    "signInWithGoogle": "Sign in with Google"
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "passwordHint": "At least 6 characters",
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "How should we call you?",
+    "loginButton": "Sign In",
+    "registerButton": "Create Account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "registerLink": "Sign up",
+    "loginLink": "Sign in",
+    "genericError": "Something went wrong. Please try again.",
+    "signOut": "Sign out"
   },
   "home": {
     "welcome": "Hello, {name}",

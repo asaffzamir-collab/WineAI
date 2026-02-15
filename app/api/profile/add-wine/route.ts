@@ -71,8 +71,9 @@ function mergeLikedWineDetail(
   currentProfileData: Record<string, unknown> | undefined,
   newWine: Record<string, unknown>
 ): void {
-  const existing = (profileData.liked_wines_detail as LikedWineEntry[] | undefined) ||
-    (currentProfileData?.liked_wines_detail as LikedWineEntry[] | undefined) ||
+  // Always start from existing DB state so we keep all previously liked wines; AI often returns only the new wine
+  const existing = (currentProfileData?.liked_wines_detail as LikedWineEntry[] | undefined) ||
+    (profileData.liked_wines_detail as LikedWineEntry[] | undefined) ||
     [];
   const entry: LikedWineEntry = { ...wineToDetail(newWine), full_wine: newWine };
   const seen = new Set(existing.map((w) => `${w.name}|${w.winery}`));

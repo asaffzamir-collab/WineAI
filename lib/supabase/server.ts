@@ -8,6 +8,8 @@ type CookieToSet = {
   options?: CookieOptions;
 };
 
+const COOKIE_NAME = 'sb-wineai-auth';
+
 function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -42,6 +44,12 @@ export async function createClient() {
             // user sessions.
           }
         },
+      },
+      cookieOptions: {
+        name: COOKIE_NAME,
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 400,
       },
     }
   );

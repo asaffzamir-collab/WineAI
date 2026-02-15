@@ -7,15 +7,16 @@ import { HomePage } from '@/components/pages/home-page';
 import { AuthPage } from '@/components/pages/auth-page';
 import { Wine, Loader2 } from 'lucide-react';
 
-type Me = { id: string; email: string | null; onboardingCompleted: boolean };
+type Me = { id: string; email: string | null; onboardingCompleted: boolean; displayName: string | null };
 
 /**
- * Google-only sign-in. If no session, show auth page. Otherwise onboarding or home.
+ * Root gate: check session → show auth form or home page.
  */
 export function RootGate() {
   const router = useRouter();
   const [state, setState] = useState<'loading' | 'auth' | 'home'>('loading');
   const [userId, setUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +45,7 @@ export function RootGate() {
           return;
         }
         setUserId(me.id);
+        setDisplayName(me.displayName ?? null);
         setState('home');
       } catch (e) {
         console.error('RootGate error:', e);
@@ -70,7 +72,7 @@ export function RootGate() {
   }
 
   if (userId) {
-    return <HomePage userId={userId} />;
+    return <HomePage userId={userId} displayName={displayName ?? undefined} />;
   }
 
   return null;
