@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { data: profiles, error } = await supabase
       .from('taste_profiles')
       .select('wine_type, profile_data, updated_at')

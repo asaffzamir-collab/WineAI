@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     if (!userId || !wine?.name || !wine?.winery) {
       return NextResponse.json({ error: 'Missing userId or wine name and winery' }, { status: 400 });
     }
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const wineRow = normalizeWineForDb(wine);
 
     let { data: existingWine } = await supabase.from('wines').select('id').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
   try {
     const { id, bottlePhotoUrl } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { error } = await supabase.from('cellar_items').update({ bottle_photo_url: bottlePhotoUrl ?? null }).eq('id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });
@@ -85,7 +85,7 @@ export async function DELETE(request: Request) {
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { error } = await supabase.from('cellar_items').delete().eq('id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
-    const supabase = createAdminClient();
+    const supabase = await createClient();
 
     const [profileRes, tastingsRes, cellarRes, wishlistRes] = await Promise.all([
       supabase.from('user_profiles').select('display_name').eq('id', userId).single(),

@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (!userId || !answers) {
       return NextResponse.json({ error: 'userId and answers required' }, { status: 400 });
     }
-    const supabase = createAdminClient();
+    const supabase = await createClient();
 
     const { generateTasteProfile } = await import('@/lib/openai');
     const profiles = await generateTasteProfile(answers);

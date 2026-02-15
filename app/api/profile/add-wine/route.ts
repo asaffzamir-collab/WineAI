@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
 
@@ -68,7 +68,6 @@ function mergeLikedWineDetail(
   currentProfileData: Record<string, unknown> | undefined,
   newWine: Record<string, unknown>
 ): void {
-  // Always start from existing DB state so we keep all previously liked wines; AI often returns only the new wine
   const existing = (currentProfileData?.liked_wines_detail as LikedWineEntry[] | undefined) ||
     (profileData.liked_wines_detail as LikedWineEntry[] | undefined) ||
     [];
@@ -93,36 +92,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'userId and wine (with name, winery) required' }, { status: 400 });
   }
 
-  let supabase;
-  try {
-    supabase = createAdminClient();
-  } catch (e) {
-    return NextResponse.json({ error: 'Admin client creation failed', details: e instanceof Error ? e.message : String(e) }, { status: 500 });
-  }
+  const supabase = await createClient();
 
   try {
-
     // First, upsert the wine data
-    const { data: existingWine, error: findError } = await supabase
+    const { data: existingWine } = await supabase
       .from('wines')
       .select('id')
       .eq('name', wine.name)
       .eq('winery', wine.winery)
       .single();
-
-    if (findError && findError.code !== 'PGRST116') {
-      // PGRST116 = "no rows" which is expected
-      const keyHint = process.env.SUPABASE_SERVICE_ROLE_KEY
-        ? `key starts with: ${process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...`
-        : 'SUPABASE_SERVICE_ROLE_KEY is NOT SET';
-      return NextResponse.json({
-        error: 'Wine lookup failed',
-        details: findError.message,
-        code: findError.code,
-        debug: keyHint,
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'NOT SET',
-      }, { status: 500 });
-    }
 
     let wineId = existingWine?.id;
 
@@ -146,7 +125,7 @@ export async function POST(request: Request) {
         .single();
 
       if (wineError) {
-        return NextResponse.json({ error: 'Wine insert failed', details: wineError.message, code: wineError.code }, { status: 500 });
+        return NextResponse.json({ error: 'Wine insert failed', details: wineError.message }, { status: 500 });
       }
       wineId = newWine.id;
     }
@@ -162,7 +141,6 @@ export async function POST(request: Request) {
 
     if (tastingError) {
       console.error('Tasting insert error:', tastingError);
-      // Continue even if tasting insert fails (might be duplicate)
     }
 
     // taste_profiles only allows red, white, rose — normalize for DB
@@ -225,16 +203,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error('Add wine to profile error:', error);
-    let message = 'Unknown error';
-    if (error instanceof Error) {
-      message = error.message;
-    } else if (error && typeof error === 'object' && 'message' in error) {
-      message = String((error as { message: unknown }).message);
-    } else if (typeof error === 'string') {
-      message = error;
-    } else {
-      try { message = JSON.stringify(error); } catch { message = String(error); }
-    }
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: 'Failed to add wine to profile', details: message },
       { status: 500 }

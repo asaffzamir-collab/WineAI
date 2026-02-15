@@ -2,7 +2,7 @@
  * Server-side: get taste profiles for a user in the shape expected by wine search (matching).
  */
 
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 function reduceToMap(
   rows: Array<{ wine_type: string; profile_data: Record<string, unknown> }>
@@ -15,7 +15,7 @@ function reduceToMap(
 
 export async function getTasteProfilesForUser(userId: string): Promise<Record<string, unknown>> {
   try {
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { data: profiles } = await supabase
       .from('taste_profiles')
       .select('wine_type, profile_data')

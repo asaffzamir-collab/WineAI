@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (!userId || !wine?.name || !wine?.winery) {
       return NextResponse.json({ error: 'userId and wine (name, winery) required' }, { status: 400 });
     }
-    const supabase = createAdminClient();
+    const supabase = await createClient();
 
     let { data: existingWine } = await supabase.from('wines').select('id').eq('name', wine.name).eq('winery', wine.winery).single();
     let wineId = existingWine?.id;
@@ -48,7 +48,7 @@ export async function DELETE(request: Request) {
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-    const supabase = createAdminClient();
+    const supabase = await createClient();
     const { error } = await supabase.from('wishlist_items').delete().eq('id', id);
     if (error) throw error;
     return NextResponse.json({ success: true });
