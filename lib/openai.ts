@@ -462,3 +462,65 @@ Update their profile to reflect that they enjoy this wine's characteristics.`,
     return null;
   }
 }
+
+/**
+ * Generate taste_spectrum values from an existing text-based profile.
+ * Used to backfill profiles created before spectrum was added.
+ */
+export async function generateSpectrumFromProfile(
+  profileData: Record<string, unknown>,
+  wineType: string
+): Promise<{ body: number; tannin: number; sweetness: number; acidity: number } | null> {
+  try {
+    const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a wine sommelier. Given an existing taste profile description for a ${wineType} wine drinker, produce numeric spectrum values.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+
+Return exactly this structure:
+{
+  "body": <0-100>,
+  "tannin": <0-100>,
+  "sweetness": <0-100>,
+  "acidity": <0-100>
+}
+
+Where:
+- body: 0 = Light, 100 = Bold/Full-bodied
+- tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
+- sweetness: 0 = Bone Dry, 100 = Sweet
+- acidity: 0 = Soft/Round, 100 = Crisp/Acidic
+
+Be precise and use the full 0-100 range. Derive values from the text descriptions provided.`,
+        },
+        {
+          role: 'user',
+          content: `Generate taste spectrum values for this ${wineType} wine profile:\n${JSON.stringify(profileData)}`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    const parsed = parseJsonResponse(content) as { body: number; tannin: number; sweetness: number; acidity: number };
+    if (
+      typeof parsed.body === 'number' &&
+      typeof parsed.tannin === 'number' &&
+      typeof parsed.sweetness === 'number' &&
+      typeof parsed.acidity === 'number'
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error generating spectrum from profile:', error);
+    return null;
+  }
+}

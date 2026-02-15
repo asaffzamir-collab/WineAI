@@ -259,6 +259,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
   const [expandedInfos, setExpandedInfos] = useState<Set<string>>(new Set());
   const fetchingRef = useRef(false);
+  const backfillRequestedRef = useRef<Set<string>>(new Set());
 
   const toggleInfo = useCallback((key: string) => {
     setExpandedInfos((prev) => {
@@ -268,6 +269,38 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       return next;
     });
   }, []);
+
+  // Backfill taste_spectrum for profiles that don't have it yet
+  useEffect(() => {
+    for (const p of profiles) {
+      const pd = p.profile_data;
+      const hasContent = pd.overall_style || pd.body_structure || pd.summary;
+      const hasSpectrum = pd.taste_spectrum && typeof pd.taste_spectrum.body === 'number';
+      const key = `${userId}:${p.wine_type}`;
+
+      if (hasContent && !hasSpectrum && !backfillRequestedRef.current.has(key)) {
+        backfillRequestedRef.current.add(key);
+        fetch('/api/profile/backfill-spectrum', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, wineType: p.wine_type }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.spectrum) {
+              setProfiles((prev) =>
+                prev.map((pr) =>
+                  pr.wine_type === p.wine_type
+                    ? { ...pr, profile_data: { ...pr.profile_data, taste_spectrum: data.spectrum } }
+                    : pr
+                )
+              );
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [profiles, userId]);
 
   // Reusable fetch function for profiles — always bypass cache
   const refreshProfiles = useCallback(async () => {
