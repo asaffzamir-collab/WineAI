@@ -28,29 +28,39 @@ export function AuthPage() {
       const supabase = createClient();
 
       if (mode === 'register') {
-        // Step 1: Create user via admin API (auto-confirms email)
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, displayName: displayName || undefined }),
+        // Sign up directly via the browser Supabase client.
+        // This automatically establishes the session and sets cookies.
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              display_name: displayName || email.split('@')[0],
+            },
+          },
         });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || t('genericError'));
+
+        if (signUpError) {
+          setError(signUpError.message || t('genericError'));
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Login directly via browser Supabase client
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(signInError.message || t('genericError'));
           setIsLoading(false);
           return;
         }
       }
 
-      // Step 2: Sign in on the browser client to establish session cookies
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        setError(signInError.message || t('genericError'));
-        setIsLoading(false);
-        return;
-      }
-
-      // Step 3: Full page reload so RootGate re-initializes with the new session
+      // Full page reload so RootGate re-initializes with the new session.
+      // The /api/me endpoint (called by RootGate) auto-creates the user profile if missing.
       window.location.href = '/';
     } catch {
       setError(t('genericError'));
