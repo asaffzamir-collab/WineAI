@@ -158,24 +158,42 @@ export function SearchPage({ userId }: SearchPageProps) {
   /** Resize image on a canvas to keep payload small and API calls fast */
   const compressImage = (file: File, maxDim = 1600, quality = 0.85): Promise<string> =>
     new Promise((resolve, reject) => {
-      const img = new Image();
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
       img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          const scale = maxDim / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
+        URL.revokeObjectURL(url);
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            const scale = maxDim / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject(new Error('Canvas not supported')); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (err) {
+          reject(err);
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Canvas not supported')); return; }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
+      img.src = url;
+    });
+
+  /** Read file as data URL (fallback when compression fails, e.g. HEIC) */
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
     });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,8 +209,13 @@ export function SearchPage({ userId }: SearchPageProps) {
     setIsAddingToProfile(false);
 
     try {
-      // Compress & resize the image before sending to keep payload under limits
-      const dataUrl = await compressImage(file);
+      // Try to compress; fall back to raw base64 if compression fails (e.g. HEIC format)
+      let dataUrl: string;
+      try {
+        dataUrl = await compressImage(file);
+      } catch {
+        dataUrl = await readFileAsDataUrl(file);
+      }
       // Save the uploaded image URL for display
       setUploadedImageUrl(dataUrl);
       
