@@ -93,17 +93,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'userId and wine (with name, winery) required' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
+  let supabase;
+  try {
+    supabase = createAdminClient();
+  } catch (e) {
+    return NextResponse.json({ error: 'Admin client creation failed', details: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  }
 
   try {
 
     // First, upsert the wine data
-    const { data: existingWine } = await supabase
+    const { data: existingWine, error: findError } = await supabase
       .from('wines')
       .select('id')
       .eq('name', wine.name)
       .eq('winery', wine.winery)
       .single();
+
+    if (findError && findError.code !== 'PGRST116') {
+      // PGRST116 = "no rows" which is expected
+      return NextResponse.json({ error: 'Wine lookup failed', details: findError.message, code: findError.code }, { status: 500 });
+    }
 
     let wineId = existingWine?.id;
 
@@ -126,7 +136,9 @@ export async function POST(request: Request) {
         .select('id')
         .single();
 
-      if (wineError) throw wineError;
+      if (wineError) {
+        return NextResponse.json({ error: 'Wine insert failed', details: wineError.message, code: wineError.code }, { status: 500 });
+      }
       wineId = newWine.id;
     }
 
@@ -162,11 +174,17 @@ export async function POST(request: Request) {
 
     // Update taste profile based on the liked wine (always create/update when liked)
     if (liked) {
-      const { updateTasteProfileFromWine } = await import('@/lib/openai');
-      let profileData: Record<string, unknown> | null = await updateTasteProfileFromWine(
-        wine as unknown as WineData,
-        currentProfile?.profile_data || {}
-      );
+      let profileData: Record<string, unknown> | null = null;
+
+      try {
+        const { updateTasteProfileFromWine } = await import('@/lib/openai');
+        profileData = await updateTasteProfileFromWine(
+          wine as unknown as WineData,
+          currentProfile?.profile_data || {}
+        );
+      } catch (aiErr) {
+        console.error('OpenAI profile update error (using fallback):', aiErr);
+      }
 
       // If AI didn't return a profile (e.g. API error), build a minimal one from the wine
       if (!profileData || Object.keys(profileData).length === 0) {
