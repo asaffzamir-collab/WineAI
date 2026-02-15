@@ -1,8 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { runProfileMigrationIfNeeded, isLikelyFkError } from '@/lib/run-profile-migration';
-import { saveProfileToStorage } from '@/lib/profile-storage';
-import { setMockProfile, MOCK_USER_ID } from '@/lib/mock-profile-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,8 +86,6 @@ export async function POST(request: Request) {
       );
     }
 
-    setMockProfile(userId, profileWineType, newProfileData!);
-
     const { error: profileError } = await supabase
       .from('taste_profiles')
       .update({
@@ -100,29 +95,8 @@ export async function POST(request: Request) {
       .eq('user_id', userId)
       .eq('wine_type', profileWineType);
 
-    if (profileError && isLikelyFkError(profileError.message)) {
-      const migrated = await runProfileMigrationIfNeeded();
-      if (migrated) {
-        const retry = await supabase
-          .from('taste_profiles')
-          .update({
-            profile_data: newProfileData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId)
-          .eq('wine_type', profileWineType);
-        if (!retry.error) {
-          return NextResponse.json({ success: true });
-        }
-      }
-    }
-
     if (profileError) {
       console.error('Profile remove-wine update error:', profileError.message);
-      const savedToStorage = await saveProfileToStorage(userId, profileWineType, newProfileData!);
-      if (userId === MOCK_USER_ID || savedToStorage) {
-        return NextResponse.json({ success: true });
-      }
       return NextResponse.json(
         { error: 'Failed to update profile', details: profileError.message },
         { status: 500 }

@@ -3,9 +3,6 @@ import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
 
 export const dynamic = 'force-dynamic';
-import { runProfileMigrationIfNeeded, isLikelyFkError } from '@/lib/run-profile-migration';
-import { saveProfileToStorage } from '@/lib/profile-storage';
-import { setMockProfile, MOCK_USER_ID } from '@/lib/mock-profile-store';
 
 export interface LikedWineDetail {
   name: string;
@@ -178,9 +175,7 @@ export async function POST(request: Request) {
 
       mergeLikedWineDetail(profileData, currentProfile?.profile_data as Record<string, unknown> | undefined, wine as Record<string, unknown>);
 
-      setMockProfile(userId, profileWineType, profileData);
-
-      let { error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('taste_profiles')
         .upsert({
           user_id: userId,
@@ -191,32 +186,10 @@ export async function POST(request: Request) {
           onConflict: 'user_id,wine_type'
         });
 
-      if (profileError && isLikelyFkError(profileError.message)) {
-        const migrated = await runProfileMigrationIfNeeded();
-        if (migrated) {
-          const retry = await supabase
-            .from('taste_profiles')
-            .upsert({
-              user_id: userId,
-              wine_type: profileWineType,
-              profile_data: profileData,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id,wine_type' });
-          profileError = retry.error;
-        }
-      }
-
       if (profileError) {
-        console.error('Profile update error (DB), trying Storage fallback:', profileError.message);
-        const savedToStorage = await saveProfileToStorage(userId, profileWineType, profileData);
-        if (userId === MOCK_USER_ID || savedToStorage) {
-          return NextResponse.json({ success: true });
-        }
-        const hint = isLikelyFkError(profileError.message) && !process.env.DATABASE_URL && !process.env.SUPABASE_DB_URL
-          ? ' Run the SQL in supabase/migrations/20260206180000_allow_mock_user_profiles.sql in Supabase SQL Editor.'
-          : '';
+        console.error('Profile update error:', profileError.message);
         return NextResponse.json(
-          { error: 'Profile update failed', details: profileError.message + hint },
+          { error: 'Profile update failed', details: profileError.message },
           { status: 500 }
         );
       }
@@ -225,14 +198,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Add wine to profile error:', error);
-    if (userId === MOCK_USER_ID && wine && typeof wine === 'object') {
-      const wt = String((wine as { wine_type?: string }).wine_type ?? '');
-      const profileWineType = ['red', 'white', 'rose'].includes(wt) ? wt : wt === 'sparkling' ? 'white' : 'red';
-      setMockProfile(userId, profileWineType, buildMinimalProfile(wine as Parameters<typeof buildMinimalProfile>[0]));
-      return NextResponse.json({ success: true });
-    }
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to add wine to profile' },
+      { error: 'Failed to add wine to profile', details: message },
       { status: 500 }
     );
   }
