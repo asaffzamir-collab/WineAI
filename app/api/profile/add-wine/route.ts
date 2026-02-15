@@ -196,9 +196,18 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Add wine to profile error:', error);
-    const message = error instanceof Error ? error.message : String(error);
+    let message = 'Unknown error';
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      message = String((error as { message: unknown }).message);
+    } else if (typeof error === 'string') {
+      message = error;
+    } else {
+      try { message = JSON.stringify(error); } catch { message = String(error); }
+    }
     return NextResponse.json(
       { error: 'Failed to add wine to profile', details: message },
       { status: 500 }
