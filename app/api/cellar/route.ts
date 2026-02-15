@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         .from('cellar_items')
         .select(`
           id, quantity, purchase_price, purchase_date, storage_location, notes,
-          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -117,11 +117,26 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { id, bottlePhotoUrl } = await request.json();
+    const body = await request.json();
+    const { id } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     const supabase = await createClient();
-    const { error } = await supabase.from('cellar_items').update({ bottle_photo_url: bottlePhotoUrl ?? null }).eq('id', id);
-    // Silently ignore if the column doesn't exist
+
+    // Build update object from allowed fields
+    const updates: Record<string, unknown> = {};
+    if ('bottlePhotoUrl' in body) updates.bottle_photo_url = body.bottlePhotoUrl ?? null;
+    if ('purchasePrice' in body) updates.purchase_price = body.purchasePrice ?? null;
+    if ('quantity' in body) updates.quantity = Math.max(1, Math.floor(Number(body.quantity)) || 1);
+    if ('notes' in body) updates.notes = body.notes ?? null;
+    if ('storageLocation' in body) updates.storage_location = body.storageLocation ?? null;
+    if ('purchaseDate' in body) updates.purchase_date = body.purchaseDate ?? null;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    const { error } = await supabase.from('cellar_items').update(updates).eq('id', id);
+    // Silently ignore if a column doesn't exist (e.g. bottle_photo_url)
     if (error && !error.message?.includes('bottle_photo_url')) throw error;
     return NextResponse.json({ success: true });
   } catch (error) {

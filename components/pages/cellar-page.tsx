@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight } from 'lucide-react';
+import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight, Pencil, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
 import { WineCard } from '@/components/wine-card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -21,6 +22,14 @@ interface CellarWineData {
   region?: string;
   grapes?: string[];
   vivino_rating?: number;
+  vivino_reviews?: number;
+  alcohol?: number;
+  tasting_notes?: {
+    nose?: string[];
+    palate?: string[];
+    finish?: string;
+  } | null;
+  ai_description?: string | null;
   image_url?: string;
 }
 
@@ -62,6 +71,16 @@ function toWineData(wine: CellarWineData): WineData {
     region: wine.region,
     grapes: wine.grapes || [],
     vivino_rating: wine.vivino_rating,
+    vivino_reviews: wine.vivino_reviews,
+    alcohol: wine.alcohol,
+    tasting_notes: wine.tasting_notes
+      ? {
+          nose: wine.tasting_notes.nose || [],
+          palate: wine.tasting_notes.palate || [],
+          finish: wine.tasting_notes.finish || '',
+        }
+      : undefined,
+    winery_description: wine.ai_description || undefined,
     image_url: wine.image_url,
   };
 }
@@ -78,6 +97,13 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
   const [selectedItem, setSelectedItem] = useState<CellarItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // Inline editing state for cellar details
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPrice, setEditPrice] = useState('');
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Track broken images per item id
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
@@ -224,6 +250,58 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
     setBrokenImages((prev) => new Set(prev).add(itemId));
   };
 
+  const startEditing = () => {
+    if (!selectedItem) return;
+    setEditPrice(selectedItem.purchase_price != null ? String(selectedItem.purchase_price) : '');
+    setEditQuantity(String(selectedItem.quantity || 1));
+    setEditNotes(selectedItem.notes || '');
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+  };
+
+  const handleSaveDetails = async () => {
+    if (!selectedItem) return;
+    setIsSaving(true);
+    try {
+      const priceStr = editPrice.trim().replace(/,/g, '.');
+      const purchasePrice = priceStr === '' ? null : parseFloat(priceStr);
+      const quantity = Math.max(1, Math.floor(Number(editQuantity)) || 1);
+
+      const res = await fetch('/api/cellar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedItem.id,
+          purchasePrice: purchasePrice != null && !Number.isNaN(purchasePrice) ? purchasePrice : null,
+          quantity,
+          notes: editNotes.trim() || null,
+        }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        const updated = {
+          ...selectedItem,
+          purchase_price: purchasePrice != null && !Number.isNaN(purchasePrice) ? purchasePrice : undefined,
+          quantity,
+          notes: editNotes.trim() || undefined,
+        };
+        setSelectedItem(updated);
+        setItems((prev) =>
+          prev.map((item) => (item.id === selectedItem.id ? updated : item))
+        );
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error('Failed to update cellar item:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-cream-50 pb-20">
       {/* Header */}
@@ -343,12 +421,28 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
                     {wine?.name || 'Unknown Wine'}
                   </p>
                   <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
+                  {/* Region & country */}
+                  {(wine?.region || wine?.country) && (
+                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1 flex items-center gap-0.5">
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      {[wine?.region, wine?.country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {/* Grapes */}
+                  {wine?.grapes && wine.grapes.length > 0 && (
+                    <p className="text-xs text-gray-400 line-clamp-1">
+                      {wine.grapes.join(', ')}
+                    </p>
+                  )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
                         {Number(wine.vivino_rating).toFixed(1)}
                       </span>
+                    )}
+                    {wine?.alcohol != null && (
+                      <span>{wine.alcohol}%</span>
                     )}
                     {item.purchase_price != null && item.purchase_price > 0 && (
                       <span>{formatCurrency(item.purchase_price)}</span>
@@ -391,6 +485,7 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
           if (!open) {
             setSelectedItem(null);
             setDetailWine(null);
+            setIsEditing(false);
           }
         }}
       >
@@ -398,6 +493,7 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
           onClose={() => {
             setSelectedItem(null);
             setDetailWine(null);
+            setIsEditing(false);
           }}
           className="max-w-lg"
         >
@@ -418,35 +514,129 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
                   {/* Cellar-specific details below the wine card */}
                   <Card className="border-wine-100">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-wine-900">
-                        {t('cellarDetails')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-500">{t('quantityLabel')}</span>
-                        <span className="font-semibold text-wine-900">{selectedItem.quantity}</span>
+                        <CardTitle className="text-sm font-semibold text-wine-900">
+                          {t('cellarDetails')}
+                        </CardTitle>
+                        {!isEditing ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={startEditing}
+                            className="h-7 gap-1 text-xs text-wine-700 hover:text-wine-900"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            {t('edit')}
+                          </Button>
+                        ) : (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelEditing}
+                              disabled={isSaving}
+                              className="h-7 text-xs text-gray-500"
+                            >
+                              {t('cancelEdit')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSaveDetails}
+                              disabled={isSaving}
+                              className="h-7 gap-1 text-xs"
+                            >
+                              {isSaving ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                              {t('save')}
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      {selectedItem.purchase_price != null && selectedItem.purchase_price > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500">{t('priceLabel')}</span>
-                          <span className="font-medium">{formatCurrency(selectedItem.purchase_price)}</span>
-                        </div>
-                      )}
-                      {selectedItem.purchase_date && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500">{t('dateLabel')}</span>
-                          <span className="font-medium">{formatDate(selectedItem.purchase_date)}</span>
-                        </div>
-                      )}
-                      {selectedItem.storage_location && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500">{t('locationLabel')}</span>
-                          <span className="font-medium">{selectedItem.storage_location}</span>
-                        </div>
-                      )}
-                      {selectedItem.notes && (
-                        <p className="italic text-gray-400 pt-1">{selectedItem.notes}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      {isEditing ? (
+                        <>
+                          {/* Editable quantity */}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                              {t('quantityLabel')}
+                            </label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={editQuantity}
+                              onChange={(e) => setEditQuantity(e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+                          {/* Editable price */}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                              {t('purchasePriceNis')}
+                            </label>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+                          {/* Editable notes */}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                              {t('notes')}
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder={t('notesPlaceholder')}
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              className="h-9"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500">{t('quantityLabel')}</span>
+                            <span className="font-semibold text-wine-900">{selectedItem.quantity}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500">{t('priceLabel')}</span>
+                            <span className="font-medium">
+                              {selectedItem.purchase_price != null && selectedItem.purchase_price > 0
+                                ? formatCurrency(selectedItem.purchase_price)
+                                : <button
+                                    type="button"
+                                    onClick={startEditing}
+                                    className="text-wine-600 hover:text-wine-800 underline underline-offset-2"
+                                  >
+                                    {t('addPrice')}
+                                  </button>
+                              }
+                            </span>
+                          </div>
+                          {selectedItem.purchase_date && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-500">{t('dateLabel')}</span>
+                              <span className="font-medium">{formatDate(selectedItem.purchase_date)}</span>
+                            </div>
+                          )}
+                          {selectedItem.storage_location && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-500">{t('locationLabel')}</span>
+                              <span className="font-medium">{selectedItem.storage_location}</span>
+                            </div>
+                          )}
+                          {selectedItem.notes && (
+                            <p className="italic text-gray-400 pt-1">{selectedItem.notes}</p>
+                          )}
+                        </>
                       )}
                     </CardContent>
                   </Card>

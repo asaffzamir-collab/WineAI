@@ -144,7 +144,12 @@
     "priceLabel": "מחיר קנייה",
     "dateLabel": "תאריך קנייה",
     "locationLabel": "מיקום אחסון",
-    "removeFromCellar": "הסר מהמרתף"
+    "removeFromCellar": "הסר מהמרתף",
+    "edit": "עריכה",
+    "save": "שמור",
+    "cancelEdit": "ביטול",
+    "addPrice": "הוסף מחיר",
+    "notesPlaceholder": "הערות על היין..."
   },
   "wishlist": {
     "title": "רשימת המשאלות שלי",

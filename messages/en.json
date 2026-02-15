@@ -144,7 +144,12 @@
     "priceLabel": "Purchase Price",
     "dateLabel": "Purchase Date",
     "locationLabel": "Storage Location",
-    "removeFromCellar": "Remove from Cellar"
+    "removeFromCellar": "Remove from Cellar",
+    "edit": "Edit",
+    "save": "Save",
+    "cancelEdit": "Cancel",
+    "addPrice": "Add price",
+    "notesPlaceholder": "Notes about this wine..."
   },
   "wishlist": {
     "title": "My Wishlist",
