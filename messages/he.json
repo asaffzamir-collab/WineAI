@@ -138,7 +138,13 @@
     "priceOptional": "אופציונלי — למעקב הוצאות",
     "purchaseDate": "תאריך קנייה",
     "storageLocation": "מיקום אחסון",
-    "notes": "הערות"
+    "notes": "הערות",
+    "cellarDetails": "פרטי המרתף",
+    "quantityLabel": "כמות",
+    "priceLabel": "מחיר קנייה",
+    "dateLabel": "תאריך קנייה",
+    "locationLabel": "מיקום אחסון",
+    "removeFromCellar": "הסר מהמרתף"
   },
   "wishlist": {
     "title": "רשימת המשאלות שלי",

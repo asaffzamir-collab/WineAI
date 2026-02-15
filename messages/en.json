@@ -138,7 +138,13 @@
     "priceOptional": "Optional — for your cost tracking",
     "purchaseDate": "Purchase date",
     "storageLocation": "Storage location",
-    "notes": "Notes"
+    "notes": "Notes",
+    "cellarDetails": "Cellar Details",
+    "quantityLabel": "Quantity",
+    "priceLabel": "Purchase Price",
+    "dateLabel": "Purchase Date",
+    "locationLabel": "Storage Location",
+    "removeFromCellar": "Remove from Cellar"
   },
   "wishlist": {
     "title": "My Wishlist",

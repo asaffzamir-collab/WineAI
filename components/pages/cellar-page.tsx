@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Wine, MapPin, Calendar, Star, Trash2, Camera } from 'lucide-react';
+import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/bottom-nav';
+import { WineCard } from '@/components/wine-card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import type { WineData } from '@/lib/openai';
 
-interface WineData {
+interface CellarWineData {
   id: string;
   name: string;
   winery: string;
@@ -30,7 +32,7 @@ export interface CellarItem {
   storage_location?: string;
   notes?: string;
   bottle_photo_url?: string | null;
-  wines: WineData | WineData[] | null;
+  wines: CellarWineData | CellarWineData[] | null;
 }
 
 interface CellarPageProps {
@@ -38,14 +40,47 @@ interface CellarPageProps {
   initialItems: CellarItem[];
 }
 
+const wineTypeColors: Record<string, string> = {
+  red: 'bg-red-900',
+  white: 'bg-amber-100',
+  rose: 'bg-pink-300',
+  sparkling: 'bg-amber-50',
+  dessert: 'bg-amber-600',
+};
+
+function getWine(item: CellarItem): CellarWineData | null {
+  return Array.isArray(item.wines) ? item.wines[0] ?? null : item.wines;
+}
+
+/** Convert cellar wine DB row to the WineData shape that WineCard expects */
+function toWineData(wine: CellarWineData): WineData {
+  return {
+    name: wine.name,
+    winery: wine.winery,
+    wine_type: (wine.wine_type || 'red') as WineData['wine_type'],
+    country: wine.country || '',
+    region: wine.region,
+    grapes: wine.grapes || [],
+    vivino_rating: wine.vivino_rating,
+    image_url: wine.image_url,
+  };
+}
+
 export function CellarPage({ userId, initialItems }: CellarPageProps) {
   const t = useTranslations('cellar');
   const tSearch = useTranslations('search');
-  const router = useRouter();
   const [items, setItems] = useState<CellarItem[]>(initialItems);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState<string | null>(null);
   const fetchingRef = useRef(false);
+
+  // Detail modal state
+  const [selectedItem, setSelectedItem] = useState<CellarItem | null>(null);
+  const [detailWine, setDetailWine] = useState<WineData | null>(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // Track broken images per item id
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
   // Fetch fresh cellar items from the server
   const refreshCellar = useCallback(async () => {
@@ -88,27 +123,60 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
     };
   }, [refreshCellar]);
 
+  // When an item is selected, fetch full wine details via search API
+  useEffect(() => {
+    if (!selectedItem) {
+      setDetailWine(null);
+      return;
+    }
+    const wine = getWine(selectedItem);
+    if (!wine) return;
+
+    let cancelled = false;
+    setIsFetchingDetails(true);
+    setDetailWine(null);
+
+    const query = `${wine.name} ${wine.winery}`;
+    fetch('/api/wine-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, userId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.wine) {
+          setDetailWine(data.wine);
+        } else {
+          // Fallback to basic wine data from DB
+          setDetailWine(toWineData(wine));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDetailWine(toWineData(wine));
+      })
+      .finally(() => {
+        if (!cancelled) setIsFetchingDetails(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedItem, userId]);
+
   const totalBottles = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
   const totalValue = items.reduce(
     (sum, item) => sum + (item.purchase_price || 0) * (item.quantity || 0),
     0
   );
 
-  const wineTypeColors: Record<string, string> = {
-    red: 'bg-red-900',
-    white: 'bg-amber-100',
-    rose: 'bg-pink-300',
-    sparkling: 'bg-amber-50',
-    dessert: 'bg-amber-600',
-  };
-
-  const handleDelete = async (itemId: string) => {
+  const handleDelete = async (itemId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setIsDeleting(itemId);
     try {
-      await fetch(`/api/cellar?id=${itemId}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/cellar?id=${itemId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((item) => item.id !== itemId));
+      if (selectedItem?.id === itemId) {
+        setSelectedItem(null);
+      }
     } catch (error) {
       console.error('Failed to delete:', error);
     } finally {
@@ -135,6 +203,12 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
               item.id === itemId ? { ...item, bottle_photo_url: dataUrl } : item
             )
           );
+          // Clear broken image flag for this item
+          setBrokenImages((prev) => {
+            const next = new Set(prev);
+            next.delete(itemId);
+            return next;
+          });
         }
       } catch (err) {
         console.error('Failed to save bottle photo:', err);
@@ -144,6 +218,10 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleImageError = (itemId: string) => {
+    setBrokenImages((prev) => new Set(prev).add(itemId));
   };
 
   return (
@@ -193,117 +271,206 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
         )}
 
         {/* Cellar Items */}
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-3">
           {items.map((item) => {
-            const wine = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+            const wine = getWine(item);
+            const imageUrl = item.bottle_photo_url || wine?.image_url;
+            const isImageBroken = brokenImages.has(item.id);
+
             return (
-            <Card key={item.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start gap-3">
-                  <div className="relative flex-shrink-0">
-                    {(item.bottle_photo_url || (wine as WineData)?.image_url) ? (
-                      <div className="h-14 w-12 overflow-hidden rounded-lg bg-gray-100">
-                        <img
-                          src={item.bottle_photo_url || (wine as WineData)?.image_url}
-                          alt={wine?.name || ''}
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={cn(
-                          'h-14 w-12 rounded-lg',
-                          wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
-                        )}
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedItem(item)}
+                className={cn(
+                  'w-full rounded-xl border border-wine-100 bg-white p-3 text-left shadow-sm',
+                  'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
+                  'flex items-center gap-3'
+                )}
+              >
+                {/* Wine image / color fallback */}
+                <div className="relative flex-shrink-0">
+                  {imageUrl && !isImageBroken ? (
+                    <div className="h-16 w-12 overflow-hidden rounded-lg bg-gray-100">
+                      <img
+                        src={imageUrl}
+                        alt={wine?.name || ''}
+                        className="h-full w-full object-contain"
+                        onError={() => handleImageError(item.id)}
                       />
-                    )}
-                    <input
-                      id={`cellar-photo-${item.id}`}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="sr-only"
-                      aria-label={tSearch('takePhoto')}
-                      onChange={(e) => handleBottlePhoto(item.id, e)}
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="icon"
-                      className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full shadow"
-                      onClick={() => document.getElementById(`cellar-photo-${item.id}`)?.click()}
-                      disabled={isUpdatingPhoto === item.id}
-                      title={tSearch('takePhoto')}
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        'flex h-16 w-12 items-center justify-center rounded-lg',
+                        wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
+                      )}
                     >
-                      <Camera className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base line-clamp-1">
-                      {wine?.name || 'Unknown Wine'}
-                    </CardTitle>
-                    <p className="text-sm text-gray-500">{wine?.winery}</p>
-                    {wine?.vivino_rating && (
-                      <div className="mt-1 flex items-center gap-1">
+                      <Wine className={cn(
+                        'h-6 w-6',
+                        wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
+                          ? 'text-gray-600' : 'text-white/70'
+                      )} />
+                    </div>
+                  )}
+                  {/* Camera button overlay */}
+                  <input
+                    id={`cellar-photo-${item.id}`}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    aria-label={tSearch('takePhoto')}
+                    onChange={(e) => handleBottlePhoto(item.id, e)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute -bottom-1 -end-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow border border-gray-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      document.getElementById(`cellar-photo-${item.id}`)?.click();
+                    }}
+                    disabled={isUpdatingPhoto === item.id}
+                    title={tSearch('takePhoto')}
+                  >
+                    <Camera className="h-2.5 w-2.5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Wine info */}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-wine-900 line-clamp-1">
+                    {wine?.name || 'Unknown Wine'}
+                  </p>
+                  <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                    {wine?.vivino_rating != null && (
+                      <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
-                        <span className="text-xs text-gray-500">
-                          {wine.vivino_rating.toFixed(1)}
-                        </span>
-                      </div>
+                        {Number(wine.vivino_rating).toFixed(1)}
+                      </span>
+                    )}
+                    {item.purchase_price != null && item.purchase_price > 0 && (
+                      <span>{formatCurrency(item.purchase_price)}</span>
+                    )}
+                    {item.purchase_date && (
+                      <span className="flex items-center gap-0.5">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(item.purchase_date)}
+                      </span>
+                    )}
+                    {item.storage_location && (
+                      <span className="flex items-center gap-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {item.storage_location}
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 rounded-full bg-wine-100 px-3 py-1">
-                    <Wine className="h-4 w-4 text-wine-900" />
-                    <span className="font-semibold text-wine-900">
+                </div>
+
+                {/* Quantity badge + arrow */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1 rounded-full bg-wine-100 px-2.5 py-1">
+                    <Wine className="h-3.5 w-3.5 text-wine-900" />
+                    <span className="text-sm font-semibold text-wine-900">
                       {item.quantity}
                     </span>
                   </div>
+                  <ChevronRight className="h-4 w-4 text-wine-400" />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {wine?.country && (
-                  <p className="text-gray-600">
-                    {wine.country}
-                    {wine.region && ` · ${wine.region}`}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-4 text-gray-500">
-                  {item.purchase_price && (
-                    <span>{formatCurrency(item.purchase_price)}</span>
-                  )}
-                  {item.purchase_date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(item.purchase_date)}
-                    </span>
-                  )}
-                  {item.storage_location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {item.storage_location}
-                    </span>
-                  )}
-                </div>
-                {item.notes && (
-                  <p className="italic text-gray-400">{item.notes}</p>
-                )}
-                <div className="flex justify-end pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={isDeleting === item.id}
-                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
+              </button>
+            );
           })}
         </div>
       </div>
+
+      {/* Detail Modal */}
+      <Dialog
+        open={!!selectedItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedItem(null);
+            setDetailWine(null);
+          }
+        }}
+      >
+        <DialogContent
+          onClose={() => {
+            setSelectedItem(null);
+            setDetailWine(null);
+          }}
+          className="max-w-lg"
+        >
+          {selectedItem && (
+            <>
+              {isFetchingDetails && !detailWine ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-10 w-10 animate-spin text-wine-600" />
+                  <p className="mt-4 text-sm text-gray-500">{tSearch('analyzing')}</p>
+                </div>
+              ) : detailWine ? (
+                <div className="space-y-4">
+                  <WineCard
+                    wine={detailWine}
+                    uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
+                  />
+
+                  {/* Cellar-specific details below the wine card */}
+                  <Card className="border-wine-100">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-wine-900">
+                        {t('cellarDetails')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">{t('quantityLabel')}</span>
+                        <span className="font-semibold text-wine-900">{selectedItem.quantity}</span>
+                      </div>
+                      {selectedItem.purchase_price != null && selectedItem.purchase_price > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">{t('priceLabel')}</span>
+                          <span className="font-medium">{formatCurrency(selectedItem.purchase_price)}</span>
+                        </div>
+                      )}
+                      {selectedItem.purchase_date && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">{t('dateLabel')}</span>
+                          <span className="font-medium">{formatDate(selectedItem.purchase_date)}</span>
+                        </div>
+                      )}
+                      {selectedItem.storage_location && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">{t('locationLabel')}</span>
+                          <span className="font-medium">{selectedItem.storage_location}</span>
+                        </div>
+                      )}
+                      {selectedItem.notes && (
+                        <p className="italic text-gray-400 pt-1">{selectedItem.notes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Delete button */}
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => handleDelete(selectedItem.id)}
+                    disabled={isDeleting === selectedItem.id}
+                  >
+                    {isDeleting === selectedItem.id ? (
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="me-2 h-4 w-4" />
+                    )}
+                    {t('removeFromCellar')}
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
