@@ -108,12 +108,15 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
   // Track broken images per item id
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
-  // Fetch fresh cellar items from the server
+  // Fetch fresh cellar items from the server — always bypass cache
   const refreshCellar = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const res = await fetch(`/api/cellar?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch(
+        `/api/cellar?userId=${encodeURIComponent(userId)}&_t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.items)) {

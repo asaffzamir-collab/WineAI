@@ -97,7 +97,7 @@ function toWineData(raw: Record<string, unknown>): WineData {
 }
 
 function hasFullWineData(w: Record<string, unknown>): boolean {
-  return !!(w.tasting_notes || w.winery_description || w.vivino_rating);
+  return !!(w.tasting_notes && w.winery_description);
 }
 
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
@@ -121,12 +121,15 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
   const fetchingRef = useRef(false);
 
-  // Reusable fetch function for profiles
+  // Reusable fetch function for profiles — always bypass cache
   const refreshProfiles = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const res = await fetch(`/api/profile?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch(
+        `/api/profile?userId=${encodeURIComponent(userId)}&_t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
       if (res.ok) {
         const data = await res.json();
         setProfiles(Array.isArray(data) ? data : []);

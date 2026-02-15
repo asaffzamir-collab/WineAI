@@ -32,7 +32,9 @@ export async function GET(request: Request) {
       error = retry.error;
     }
     if (error) throw error;
-    return NextResponse.json({ items: data || [] });
+    const resp = NextResponse.json({ items: data || [] });
+    resp.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return resp;
   } catch (error) {
     console.error('Cellar GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch cellar items' }, { status: 500 });

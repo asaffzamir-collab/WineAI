@@ -21,7 +21,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
     }
 
-    return NextResponse.json(profiles || []);
+    const resp = NextResponse.json(profiles || []);
+    resp.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return resp;
   } catch (error) {
     console.error('Profile API error:', error);
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });

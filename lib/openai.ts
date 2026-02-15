@@ -131,16 +131,20 @@ Rules:
 - If the query could refer to multiple vintages of the same wine, include 2-3 different vintages as separate entries so the user can pick (e.g. "Château Margaux 2019" and "Château Margaux 2020").
 - If the query is very specific and matches one wine well, you may return just 1 wine. If it's ambiguous or could match several, return 3-5 options.
 - NEVER return an empty array. If truly unknown, return 1-2 best-guess wines that are close (same region, similar name, or popular wines that sound similar).
-- Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
-- For vivino_rating: ALWAYS include a rating (1.0-5.0). Use the real rating if you know it, otherwise estimate conservatively (prestigious 4.0-4.6, good 3.8-4.2, everyday 3.3-3.8). For vivino_reviews, use null unless confident.
 - Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
+
+IMPORTANT: Each wine MUST include ALL of the following fields (use null for unknown values):
+name, winery, vintage, vivino_rating, vivino_reviews, country, region, grapes, alcohol, volume_ml, is_kosher, wine_type, body, sweetness, tasting_notes (with nose, palate, finish), winery_description, serving (with drink_from, drink_until, decant_minutes, temperature_celsius), food_pairings, price_range_usd, image_url.
+
+PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
+
+Vivino Rating: ALWAYS provide a vivino_rating (1.0-5.0). Use the real Vivino rating if you know it. Otherwise, provide your best estimate based on wine reputation, region, and producer quality. Use conservative round numbers when estimating (e.g. 3.5, 3.8, 4.0, 4.2). Typical ranges: prestigious/iconic wines 4.0-4.6, well-regarded wines 3.8-4.2, solid everyday wines 3.3-3.8, basic wines 3.0-3.3. For vivino_reviews use null unless you know an approximate count.
 
 LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This includes: winery_description, tasting_notes (nose, palate, finish), food_pairings, and the finish field. Wine names, winery names, grape names, region names, and country names should stay in their original language.
 
 Example format:
 {"wines": [
-  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, ...},
-  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2018, ...}
+  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": "https://images.vivino.com/thumbs/..."}
 ]}`;
 
 export async function searchWinesByText(query: string): Promise<WineData[]> {
@@ -154,7 +158,7 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
         { role: 'user', content: `Find wines matching this query (be tolerant of typos and partial names): "${query}"` },
       ],
       temperature: 0.4,
-      max_tokens: 3000,
+      max_tokens: 5000,
     });
 
     const content = response.choices?.[0]?.message?.content;
