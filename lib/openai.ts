@@ -345,6 +345,12 @@ Guidelines for each field:
 - recommended_regions: 4-6 wine regions worldwide that produce wines matching their taste.
 - what_to_avoid: 3-5 specific wine styles or characteristics they probably won't enjoy, with brief explanations.
 - summary: A rich 3-5 sentence personal wine profile summary that reads like advice from a sommelier friend. Include insights about their palate personality, what patterns define their taste, and a specific wine recommendation to try.
+- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's preference falls on each spectrum:
+  - body: 0 = Light, 100 = Bold/Full-bodied
+  - tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
+  - sweetness: 0 = Bone Dry, 100 = Sweet
+  - acidity: 0 = Soft/Round, 100 = Crisp/Acidic
+  Be precise — use the full 0-100 range. For example, someone who likes medium-bodied reds might get body: 55.
 
 Return this structure for each wine type:
 {
@@ -356,7 +362,8 @@ Return this structure for each wine type:
     "recommended_grapes": ["...", "..."],
     "recommended_regions": ["...", "..."],
     "what_to_avoid": ["...", "..."],
-    "summary": "..."
+    "summary": "...",
+    "taste_spectrum": { "body": 72, "tannin": 55, "sweetness": 15, "acidity": 60 }
   },
   "white": { ... same structure ... },
   "rose": { ... same structure ... }
@@ -412,6 +419,12 @@ Guidelines for each field:
 - what_to_avoid: 3-5 wine styles or characteristics that seem opposite to their preferences, with brief explanations.
 - summary: A rich 3-5 sentence personal wine profile summary. Include insights about taste patterns across their liked wines, their palate personality, and a specific recommendation for what to try next.
 - liked_wines: Array of names of all wines they've liked (carry forward from existing profile + add the new one).
+- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's preference falls on each spectrum based on ALL their liked wines:
+  - body: 0 = Light, 100 = Bold/Full-bodied
+  - tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
+  - sweetness: 0 = Bone Dry, 100 = Sweet
+  - acidity: 0 = Soft/Round, 100 = Crisp/Acidic
+  Be precise — use the full 0-100 range. Average across all liked wines, weighted towards the latest addition.
 
 Return this structure:
 {
@@ -423,7 +436,8 @@ Return this structure:
   "recommended_regions": ["Region1", "Region2"],
   "what_to_avoid": ["..."],
   "summary": "...",
-  "liked_wines": ["Wine names they've liked"]
+  "liked_wines": ["Wine names they've liked"],
+  "taste_spectrum": { "body": 72, "tannin": 55, "sweetness": 15, "acidity": 60 }
 }`,
         },
         {

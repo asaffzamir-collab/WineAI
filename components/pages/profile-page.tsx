@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2 } from 'lucide-react';
+import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,13 @@ interface LikedWineDetail {
   full_wine?: Record<string, unknown>;
 }
 
+interface TasteSpectrum {
+  body: number;
+  tannin: number;
+  sweetness: number;
+  acidity: number;
+}
+
 export interface TasteProfile {
   wine_type: string;
   profile_data: {
@@ -39,6 +46,7 @@ export interface TasteProfile {
     summary?: string;
     liked_wines?: string[];
     liked_wines_detail?: LikedWineDetail[];
+    taste_spectrum?: TasteSpectrum;
   };
   updated_at: string;
 }
@@ -100,6 +108,136 @@ function hasFullWineData(w: Record<string, unknown>): boolean {
   return !!(w.tasting_notes && w.winery_description);
 }
 
+/* ─── Spectrum bar: single horizontal indicator on a track ─── */
+function SpectrumBar({
+  value,
+  leftLabel,
+  rightLabel,
+  explanation,
+  isExpanded,
+  onToggle,
+}: {
+  value: number;
+  leftLabel: string;
+  rightLabel: string;
+  explanation: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const clamped = Math.max(0, Math.min(100, value));
+  const halfWidth = 5;
+  const left = Math.max(halfWidth, Math.min(100 - halfWidth, clamped));
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-3">
+        <span className="w-16 text-end text-sm font-medium text-gray-600">{leftLabel}</span>
+        <div className="relative flex-1 h-2 rounded-full bg-cream-200">
+          <div
+            className="absolute top-0 h-2 rounded-full bg-wine-800"
+            style={{
+              left: `${left - halfWidth}%`,
+              width: `${halfWidth * 2}%`,
+            }}
+          />
+        </div>
+        <span className="w-16 text-sm font-medium text-gray-600">{rightLabel}</span>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex-shrink-0 rounded-full p-0.5 text-gray-400 hover:text-wine-700 hover:bg-wine-50 transition-colors"
+          aria-label="More info"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {isExpanded && (
+        <p className="ms-[calc(4rem+0.75rem)] me-[calc(4rem+0.75rem+1.5rem)] rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
+          {explanation}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Taste spectrum chart: 4 bars ─── */
+function TasteSpectrumChart({
+  spectrum,
+  t,
+  expandedInfos,
+  toggleInfo,
+}: {
+  spectrum: TasteSpectrum;
+  t: (key: string) => string;
+  expandedInfos: Set<string>;
+  toggleInfo: (key: string) => void;
+}) {
+  const axes: { key: string; value: number; leftKey: string; rightKey: string; explainKey: string }[] = [
+    { key: 'body', value: spectrum.body, leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight', explainKey: 'spectrumBodyExplain' },
+    { key: 'tannin', value: spectrum.tannin, leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight', explainKey: 'spectrumTanninExplain' },
+    { key: 'sweetness', value: spectrum.sweetness, leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight', explainKey: 'spectrumSweetnessExplain' },
+    { key: 'acidity', value: spectrum.acidity, leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight', explainKey: 'spectrumAcidityExplain' },
+  ];
+
+  return (
+    <section className="rounded-xl border border-wine-100 bg-white p-4 shadow-sm">
+      <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-wine-900">
+        {t('tasteSpectrumTitle')}
+      </h3>
+      <div className="space-y-4">
+        {axes.map((axis) => (
+          <SpectrumBar
+            key={axis.key}
+            value={axis.value}
+            leftLabel={t(axis.leftKey)}
+            rightLabel={t(axis.rightKey)}
+            explanation={t(axis.explainKey)}
+            isExpanded={expandedInfos.has(`spectrum_${axis.key}`)}
+            onToggle={() => toggleInfo(`spectrum_${axis.key}`)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Section heading with optional info toggle ─── */
+function SectionHeading({
+  icon,
+  title,
+  explanation,
+  isExpanded,
+  onToggle,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  explanation: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="font-semibold text-wine-900">{title}</h3>
+        <button
+          type="button"
+          onClick={onToggle}
+          className="rounded-full p-0.5 text-gray-400 hover:text-wine-700 hover:bg-wine-50 transition-colors"
+          aria-label="More info"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {isExpanded && (
+        <p className="rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
+          {explanation}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
   const t = useTranslations('profile');
 
@@ -119,7 +257,17 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const [addToCellarPriceNis, setAddToCellarPriceNis] = useState('');
   const [addToCellarError, setAddToCellarError] = useState('');
   const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
+  const [expandedInfos, setExpandedInfos] = useState<Set<string>>(new Set());
   const fetchingRef = useRef(false);
+
+  const toggleInfo = useCallback((key: string) => {
+    setExpandedInfos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // Reusable fetch function for profiles — always bypass cache
   const refreshProfiles = useCallback(async () => {
@@ -354,54 +502,79 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                       </div>
                     ) : (
                       <>
+                        {/* Taste Spectrum Chart */}
+                        {profile.taste_spectrum && (
+                          <TasteSpectrumChart
+                            spectrum={profile.taste_spectrum}
+                            t={t}
+                            expandedInfos={expandedInfos}
+                            toggleInfo={toggleInfo}
+                          />
+                        )}
+
                         {/* Overall Style */}
                         {profile.overall_style && (
                           <section>
-                            <h3 className="mb-2 font-semibold text-wine-900">
-                              {t('overallStyle')}
-                            </h3>
-                            <p className="text-gray-600">{profile.overall_style}</p>
+                            <SectionHeading
+                              title={t('overallStyle')}
+                              explanation={t('overallStyleExplain')}
+                              isExpanded={expandedInfos.has('overallStyle')}
+                              onToggle={() => toggleInfo('overallStyle')}
+                            />
+                            <p className="mt-2 text-gray-600">{profile.overall_style}</p>
                           </section>
                         )}
 
                         {/* Body & Structure */}
                         {profile.body_structure && (
                           <section>
-                            <h3 className="mb-2 font-semibold text-wine-900">
-                              {t('bodyStructure')}
-                            </h3>
-                            <p className="text-gray-600">{profile.body_structure}</p>
+                            <SectionHeading
+                              title={t('bodyStructure')}
+                              explanation={t('bodyStructureExplain')}
+                              isExpanded={expandedInfos.has('bodyStructure')}
+                              onToggle={() => toggleInfo('bodyStructure')}
+                            />
+                            <p className="mt-2 text-gray-600">{profile.body_structure}</p>
                           </section>
                         )}
 
                         {/* Fruit Profile */}
                         {profile.fruit_profile && (
                           <section>
-                            <h3 className="mb-2 font-semibold text-wine-900">
-                              {t('fruitProfile')}
-                            </h3>
-                            <p className="text-gray-600">{profile.fruit_profile}</p>
+                            <SectionHeading
+                              title={t('fruitProfile')}
+                              explanation={t('fruitProfileExplain')}
+                              isExpanded={expandedInfos.has('fruitProfile')}
+                              onToggle={() => toggleInfo('fruitProfile')}
+                            />
+                            <p className="mt-2 text-gray-600">{profile.fruit_profile}</p>
                           </section>
                         )}
 
                         {/* Style Notes */}
                         {profile.style_notes && (
                           <section>
-                            <h3 className="mb-2 font-semibold text-wine-900">
-                              {t('styleNotes')}
-                            </h3>
-                            <p className="text-gray-600">{profile.style_notes}</p>
+                            <SectionHeading
+                              title={t('styleNotes')}
+                              explanation={t('styleNotesExplain')}
+                              isExpanded={expandedInfos.has('styleNotes')}
+                              onToggle={() => toggleInfo('styleNotes')}
+                            />
+                            <p className="mt-2 text-gray-600">{profile.style_notes}</p>
                           </section>
                         )}
 
                         {/* Recommended Grapes */}
                         {profile.recommended_grapes && profile.recommended_grapes.length > 0 && (
                           <section>
-                            <h3 className="mb-2 flex items-center gap-2 font-semibold text-wine-900">
-                              <Grape className="h-4 w-4" />
-                              {t('recommendedGrapes')}
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
+                            <SectionHeading
+                              icon={<Grape className="h-4 w-4" />}
+                              title={t('recommendedGrapes')}
+                              explanation={t('recommendedGrapesExplain')}
+                              isExpanded={expandedInfos.has('recommendedGrapes')}
+                              onToggle={() => toggleInfo('recommendedGrapes')}
+                            />
+                            <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_grapes.map((grape, idx) => (
                                 <span
                                   key={idx}
@@ -417,11 +590,14 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         {/* Recommended Regions */}
                         {profile.recommended_regions && profile.recommended_regions.length > 0 && (
                           <section>
-                            <h3 className="mb-2 flex items-center gap-2 font-semibold text-wine-900">
-                              <MapPin className="h-4 w-4" />
-                              {t('recommendedRegions')}
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
+                            <SectionHeading
+                              icon={<MapPin className="h-4 w-4" />}
+                              title={t('recommendedRegions')}
+                              explanation={t('recommendedRegionsExplain')}
+                              isExpanded={expandedInfos.has('recommendedRegions')}
+                              onToggle={() => toggleInfo('recommendedRegions')}
+                            />
+                            <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_regions.map((region, idx) => (
                                 <span
                                   key={idx}
@@ -437,11 +613,14 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         {/* What to Avoid */}
                         {profile.what_to_avoid && profile.what_to_avoid.length > 0 && (
                           <section>
-                            <h3 className="mb-2 flex items-center gap-2 font-semibold text-wine-900">
-                              <AlertCircle className="h-4 w-4" />
-                              {t('whatToAvoid')}
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
+                            <SectionHeading
+                              icon={<AlertCircle className="h-4 w-4" />}
+                              title={t('whatToAvoid')}
+                              explanation={t('whatToAvoidExplain')}
+                              isExpanded={expandedInfos.has('whatToAvoid')}
+                              onToggle={() => toggleInfo('whatToAvoid')}
+                            />
+                            <div className="mt-2 flex flex-wrap gap-2">
                               {profile.what_to_avoid.map((avoid, idx) => (
                                 <span
                                   key={idx}
@@ -457,10 +636,13 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         {/* Summary */}
                         {profile.summary && (
                           <section className="rounded-lg bg-cream-100 p-4">
-                            <h3 className="mb-2 font-semibold text-wine-900">
-                              {t('summary')}
-                            </h3>
-                            <p className="italic text-gray-600">{profile.summary}</p>
+                            <SectionHeading
+                              title={t('summary')}
+                              explanation={t('summaryExplain')}
+                              isExpanded={expandedInfos.has('summary')}
+                              onToggle={() => toggleInfo('summary')}
+                            />
+                            <p className="mt-2 italic text-gray-600">{profile.summary}</p>
                           </section>
                         )}
 
