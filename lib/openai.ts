@@ -65,6 +65,7 @@ export interface WineData {
   food_pairings?: string[];
   price_range_usd?: string;
   image_url?: string;
+  taste_spectrum?: TasteSpectrum;
 }
 
 export interface TasteSpectrum {
@@ -126,8 +127,15 @@ Return this exact JSON structure:
   },
   "food_pairings": ["grilled lamb", "aged cheese", "pasta"],
   "price_range_usd": "25-35",
-  "image_url": "https://images.vivino.com/thumbs/..."
+  "image_url": "https://images.vivino.com/thumbs/...",
+  "taste_spectrum": { "body": 72, "tannin": 65, "sweetness": 8, "acidity": 55 }
 }
+
+taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST reflect the wine's actual, well-known characteristics as they would appear on Vivino's taste profile — NOT your personal opinion. Use these calibration anchors:
+- body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz, Petite Sirah).
+- tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
+- sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
+- acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
 
 For fields you cannot determine, use null. But ALWAYS return a wine object with at least the name, winery, country, wine_type, grapes, vivino_rating, and image_url fields filled in based on your best interpretation of the image or query. Only return { "error": "Could not identify wine" } if the image is completely unreadable, doesn't show a wine, or shows no useful information at all.`;
 
@@ -144,7 +152,13 @@ Rules:
 - Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
 
 IMPORTANT: Each wine MUST include ALL of the following fields (use null for unknown values):
-name, winery, vintage, vivino_rating, vivino_reviews, country, region, grapes, alcohol, volume_ml, is_kosher, wine_type, body, sweetness, tasting_notes (with nose, palate, finish), winery_description, serving (with drink_from, drink_until, decant_minutes, temperature_celsius), food_pairings, price_range_usd, image_url.
+name, winery, vintage, vivino_rating, vivino_reviews, country, region, grapes, alcohol, volume_ml, is_kosher, wine_type, body, sweetness, tasting_notes (with nose, palate, finish), winery_description, serving (with drink_from, drink_until, decant_minutes, temperature_celsius), food_pairings, price_range_usd, image_url, taste_spectrum.
+
+taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST reflect the wine's actual, well-known characteristics as they would appear on Vivino's taste profile — NOT your personal opinion. Use these calibration anchors:
+- body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz, Petite Sirah).
+- tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
+- sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
+- acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
 
 PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
 
@@ -154,7 +168,7 @@ LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This include
 
 Example format:
 {"wines": [
-  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": "https://images.vivino.com/thumbs/..."}
+  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": "https://images.vivino.com/thumbs/...", "taste_spectrum": {"body": 80, "tannin": 70, "sweetness": 5, "acidity": 65}}
 ]}`;
 
 export async function searchWinesByText(query: string): Promise<WineData[]> {
@@ -282,6 +296,24 @@ export async function matchWineToProfile(
   const langInstruction = lang === 'he'
     ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, similar_wines_note) in Hebrew.'
     : '';
+
+  // Build a sanitised copy of profile for the prompt — remove taste_spectrum
+  // so the AI doesn't confuse it with the wine's spectrum or hallucinate profile_spectrum.
+  const { taste_spectrum: _strip, ...profileForPrompt } = profile;
+
+  // If wine already has taste_spectrum from search, include it; otherwise ask AI to estimate.
+  const hasWineSpectrum = wine.taste_spectrum &&
+    typeof wine.taste_spectrum.body === 'number' &&
+    typeof wine.taste_spectrum.tannin === 'number';
+
+  const spectrumInstruction = hasWineSpectrum
+    ? `\nThe wine's taste_spectrum is already provided in the wine data. Use those exact values for wine_spectrum in your response. Do NOT re-estimate them.`
+    : `\nwine_spectrum: Estimate the wine's OBJECTIVE characteristics on 4 axes (0-100), as they would appear on Vivino's taste profile. Use these calibration anchors:
+- body: 0 = Very Light (Vinho Verde). 30 = Light (Pinot Grigio). 50 = Medium (Chianti). 70 = Medium-Full (Cabernet Sauvignon). 90+ = Very Bold (Amarone, Shiraz).
+- tannin: 0 = None (whites). 20 = Low (Pinot Noir). 45 = Medium (Merlot). 65 = Medium-High (Cabernet Sauvignon). 85+ = Very High (Nebbiolo/Barolo).
+- sweetness: 0-5 = Bone Dry (most reds). 10-20 = Off-Dry. 40-60 = Medium Sweet. 80+ = Very Sweet (Sauternes, Port).
+- acidity: 15-25 = Very Low (oaked Chardonnay). 40-50 = Medium (Merlot). 60-70 = Medium-High (Sangiovese). 80+ = Very High (Riesling).`;
+
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -292,7 +324,7 @@ export async function matchWineToProfile(
           
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
-Return this exact structure:
+Return this EXACT structure — NO extra keys:
 {
   "match_percentage": 85,
   "explanation": "A concise 1-2 sentence explanation of why this wine matches or doesn't match the user's profile.",
@@ -301,19 +333,15 @@ Return this exact structure:
   "mismatches": ["Dark fruit notes - you typically prefer red fruit", "..."],
   "similar_wines_note": "Similar to wines you've enjoyed before"
 }
+${spectrumInstruction}
 
-wine_spectrum: Estimate the wine's characteristics on 4 axes (0-100):
-- body: 0 = Light, 100 = Bold/Full-bodied
-- tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
-- sweetness: 0 = Bone Dry, 100 = Sweet
-- acidity: 0 = Soft/Round, 100 = Crisp/Acidic
-Be precise and use the full 0-100 range based on the wine's actual characteristics.`,
+CRITICAL: Do NOT include "profile_spectrum" in your response. Only return the keys listed above.`,
         },
         {
           role: 'user',
           content: `Wine: ${JSON.stringify(wine)}
 
-User Profile: ${JSON.stringify(profile)}`,
+User Profile: ${JSON.stringify(profileForPrompt)}`,
         },
       ],
       temperature: 0.5,
@@ -329,7 +357,12 @@ User Profile: ${JSON.stringify(profile)}`,
       };
     }
 
-    return parseJsonResponse(content) as ProfileMatchResult;
+    const result = parseJsonResponse(content) as ProfileMatchResult;
+
+    // Sanitise: always delete any AI-hallucinated profile_spectrum
+    delete result.profile_spectrum;
+
+    return result;
   } catch (error) {
     console.error('Error matching wine to profile:', error);
     return {

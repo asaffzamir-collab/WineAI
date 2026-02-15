@@ -64,9 +64,18 @@ export async function POST(request: Request) {
     }
 
     const match = await matchWineToProfile(wine as WineData, p, locale);
-    // Attach the user's profile spectrum for comparison display
-    if (match && p.taste_spectrum && typeof p.taste_spectrum === 'object') {
-      match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };
+
+    if (match) {
+      // Prefer wine's own taste_spectrum (from search) over AI match-time estimate
+      const ws = (wine as WineData).taste_spectrum;
+      if (ws && typeof ws.body === 'number') {
+        match.wine_spectrum = ws;
+      }
+      // Always use real DB profile spectrum — never AI-generated
+      delete match.profile_spectrum;
+      if (p.taste_spectrum && typeof p.taste_spectrum === 'object') {
+        match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };
+      }
     }
     return NextResponse.json({ match });
   } catch (error) {

@@ -42,6 +42,7 @@ function normalizeStoredWine(raw: unknown): WineData | null {
     ...(Array.isArray(o.food_pairings) && { food_pairings: o.food_pairings.map(String) }),
     ...(typeof o.price_range_usd === 'string' && { price_range_usd: o.price_range_usd }),
     ...(o.serving && typeof o.serving === 'object' ? { serving: o.serving as WineData['serving'] } : {}),
+    ...(o.taste_spectrum && typeof o.taste_spectrum === 'object' ? { taste_spectrum: o.taste_spectrum as WineData['taste_spectrum'] } : {}),
   };
 }
 
