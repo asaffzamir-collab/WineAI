@@ -1,18 +1,38 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import type { WineData } from '@/lib/openai';
+import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const { matchWineToProfile } = await import('@/lib/openai');
-    const { wine, tasteProfiles } = await request.json();
+    const { wine, userId, tasteProfiles: clientProfiles } = await request.json();
     if (!wine || typeof wine !== 'object') {
       return NextResponse.json(
         { error: 'Wine object required' },
         { status: 400 }
       );
     }
+
+    // Determine locale from cookie
+    const cookieStore = await cookies();
+    const locale = cookieStore.get('locale')?.value || 'he';
+
+    // Fetch fresh taste profiles from DB when userId is provided; fall back to client-provided profiles
+    let tasteProfiles: Record<string, unknown> = clientProfiles || {};
+    if (userId) {
+      try {
+        const dbProfiles = await getTasteProfilesForUser(userId);
+        if (dbProfiles && Object.keys(dbProfiles).length > 0) {
+          tasteProfiles = dbProfiles;
+        }
+      } catch (e) {
+        console.error('Failed to fetch taste profiles from DB:', e);
+      }
+    }
+
     if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
       return NextResponse.json({ match: null });
     }
@@ -34,7 +54,7 @@ export async function POST(request: Request) {
     if (!hasProfileContent) {
       return NextResponse.json({ match: null });
     }
-    const match = await matchWineToProfile(wine as WineData, p);
+    const match = await matchWineToProfile(wine as WineData, p, locale);
     return NextResponse.json({ match });
   } catch (error) {
     console.error('Wine match error:', error);

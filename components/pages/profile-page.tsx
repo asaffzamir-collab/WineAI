@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Wine, Grape, MapPin, AlertCircle, RefreshCw, Search, ChevronRight, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/bottom-nav';
@@ -102,11 +102,28 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const t = useTranslations('profile');
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
   const [displayWine, setDisplayWine] = useState<Record<string, unknown> | null>(null);
   const [isFetchingWineDetails, setIsFetchingWineDetails] = useState(false);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+
+  // Reusable fetch function for profiles
+  const refreshProfiles = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const res = await fetch(`/api/profile?userId=${encodeURIComponent(userId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProfiles(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // Keep current profiles on error
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [userId]);
 
   // When modal opens with a wine, fetch full details from search API so we show the same as search
   useEffect(() => {
@@ -126,7 +143,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     fetch('/api/wine-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, tasteProfiles: {} }),
+      body: JSON.stringify({ query }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -143,22 +160,33 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     return () => { cancelled = true; };
   }, [selectedWine]);
 
-  // Refetch profiles on mount so we show fresh data after adding wines (no longer depends on onboarding)
+  // Sync initialProfiles from server when they change (e.g. on navigation)
   useEffect(() => {
-    let cancelled = false;
-    const fetchProfiles = async () => {
-      try {
-        const res = await fetch(`/api/profile?userId=${encodeURIComponent(userId)}`);
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (!cancelled) setProfiles(Array.isArray(data) ? data : []);
-      } catch {
-        // Keep initial profiles on error
+    setProfiles(initialProfiles);
+  }, [initialProfiles]);
+
+  // Auto-refresh profiles on mount, visibility change, and window focus
+  useEffect(() => {
+    // Fetch fresh data on mount
+    refreshProfiles();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshProfiles();
       }
     };
-    fetchProfiles();
-    return () => { cancelled = true; };
-  }, [userId]);
+    const handleFocus = () => {
+      refreshProfiles();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshProfiles]);
 
   const wineTypeLabels: Record<string, string> = {
     red: t('red'),
@@ -174,19 +202,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   const getProfile = (type: string) =>
     profiles.find((p) => p.wine_type === type)?.profile_data || {};
-
-  const handleRefreshProfile = async () => {
-    setIsRefreshing(true);
-    try {
-      const res = await fetch(`/api/profile?userId=${encodeURIComponent(userId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProfiles(Array.isArray(data) ? data : []);
-      }
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const handleRemoveFromProfile = async (w: LikedWineDetail) => {
     const key = `${w.name}|${w.winery}`;
@@ -209,11 +224,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         setSelectedWine(null);
         setDisplayWine(null);
       }
-      const refreshRes = await fetch(`/api/profile?userId=${encodeURIComponent(userId)}`);
-      if (refreshRes.ok) {
-        const list = await refreshRes.json();
-        setProfiles(Array.isArray(list) ? list : []);
-      }
+      await refreshProfiles();
     } finally {
       setRemovingKey(null);
     }
@@ -477,20 +488,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
           </Tabs>
         </Card>
 
-        {/* Update Profile Button */}
-        <Button
-          variant="outline"
-          className="mt-6 w-full"
-          onClick={handleRefreshProfile}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? (
-            <RefreshCw className="me-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="me-2 h-4 w-4" />
-          )}
-          {t('updateProfile')}
-        </Button>
       </div>
 
       {/* Full wine details modal */}

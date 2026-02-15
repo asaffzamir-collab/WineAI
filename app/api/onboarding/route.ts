@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +13,22 @@ export async function POST(request: Request) {
     }
     const supabase = await createClient();
 
+    // Determine locale from cookie or user profile
+    const cookieStore = await cookies();
+    let locale = cookieStore.get('locale')?.value || 'he';
+    try {
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('preferred_language')
+        .eq('id', userId)
+        .single();
+      if (userProfile?.preferred_language) {
+        locale = userProfile.preferred_language;
+      }
+    } catch { /* use cookie locale */ }
+
     const { generateTasteProfile } = await import('@/lib/openai');
-    const profiles = await generateTasteProfile(answers);
+    const profiles = await generateTasteProfile(answers, locale);
     if (!profiles) {
       return NextResponse.json({ error: 'Failed to generate taste profile' }, { status: 500 });
     }

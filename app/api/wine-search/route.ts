@@ -1,11 +1,30 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { query, image, imageMimeType, tasteProfiles } = await request.json();
+    const { query, image, imageMimeType, userId, tasteProfiles: clientProfiles } = await request.json();
+
+    // Determine locale from cookie
+    const cookieStore = await cookies();
+    const locale = cookieStore.get('locale')?.value || 'he';
+
+    // Fetch fresh taste profiles from DB when userId is provided; fall back to client-provided profiles
+    let tasteProfiles: Record<string, unknown> = clientProfiles || {};
+    if (userId) {
+      try {
+        const dbProfiles = await getTasteProfilesForUser(userId);
+        if (dbProfiles && Object.keys(dbProfiles).length > 0) {
+          tasteProfiles = dbProfiles;
+        }
+      } catch (e) {
+        console.error('Failed to fetch taste profiles from DB:', e);
+      }
+    }
 
     // Dynamic import so OpenAI is not loaded at build time
     const { searchWinesByText, searchWineByImage, matchWineToProfile } = await import('@/lib/openai');
@@ -18,7 +37,7 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles);
+      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
       return NextResponse.json({ wine, match });
     }
 
@@ -31,7 +50,7 @@ export async function POST(request: Request) {
         );
       }
       if (wines.length === 1) {
-        const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles);
+        const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
         return NextResponse.json({ wine: wines[0], match });
       }
       return NextResponse.json({ wines });
@@ -51,9 +70,10 @@ export async function POST(request: Request) {
 }
 
 async function getMatchForWine(
-  matchWineToProfile: (wine: WineData, profile: Record<string, unknown>) => Promise<ProfileMatchResult>,
+  matchWineToProfile: (wine: WineData, profile: Record<string, unknown>, language?: string) => Promise<ProfileMatchResult>,
   wine: WineData,
-  tasteProfiles: Record<string, unknown> | undefined
+  tasteProfiles: Record<string, unknown> | undefined,
+  locale?: string
 ) {
   if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
     return null;
@@ -74,5 +94,5 @@ async function getMatchForWine(
       (typeof p.overall_style === 'string' && p.overall_style.length > 0) ||
       (typeof p.summary === 'string' && p.summary.length > 0));
   if (!hasProfileContent) return null;
-  return matchWineToProfile(wine, p);
+  return matchWineToProfile(wine, p, locale);
 }

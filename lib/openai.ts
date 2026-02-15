@@ -249,8 +249,13 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
 
 export async function matchWineToProfile(
   wine: WineData,
-  profile: Record<string, unknown>
+  profile: Record<string, unknown>,
+  language?: string
 ): Promise<ProfileMatchResult> {
+  const lang = language || 'he';
+  const langInstruction = lang === 'he'
+    ? '\n\nIMPORTANT: Write ALL text values (positive_matches, mismatches, similar_wines_note) in Hebrew.'
+    : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -259,7 +264,7 @@ export async function matchWineToProfile(
           role: 'system',
           content: `You are a wine sommelier. Compare the wine to the user's taste profile and provide a match analysis.
           
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
 Return this exact structure:
 {
@@ -300,7 +305,11 @@ User Profile: ${JSON.stringify(profile)}`,
   }
 }
 
-export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>) {
+export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>, language?: string) {
+  const lang = language || 'he';
+  const langInstruction = lang === 'he'
+    ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
+    : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -309,7 +318,7 @@ export async function generateTasteProfile(onboardingAnswers: Record<string, unk
           role: 'system',
           content: `You are a wine sommelier. Based on the user's onboarding quiz answers, create taste profiles for red, white, and rosé wines.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
 Return this structure for each wine type:
 {
@@ -348,8 +357,13 @@ Return this structure for each wine type:
 
 export async function updateTasteProfileFromWine(
   wine: WineData,
-  currentProfile: Record<string, unknown>
+  currentProfile: Record<string, unknown>,
+  language?: string
 ): Promise<Record<string, unknown> | null> {
+  const lang = language || 'he';
+  const langInstruction = lang === 'he'
+    ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
+    : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -358,7 +372,7 @@ export async function updateTasteProfileFromWine(
           role: 'system',
           content: `You are a wine sommelier. A user has indicated they like a specific wine. Update their taste profile to incorporate insights from this wine preference.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
 The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed.
 

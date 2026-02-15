@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
 
@@ -161,13 +162,28 @@ export async function POST(request: Request) {
 
     // Update taste profile based on the liked wine (always create/update when liked)
     if (liked) {
+      // Determine locale from cookie or user profile
+      const cookieStore = await cookies();
+      let locale = cookieStore.get('locale')?.value || 'he';
+      try {
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('preferred_language')
+          .eq('id', userId)
+          .single();
+        if (userProfile?.preferred_language) {
+          locale = userProfile.preferred_language;
+        }
+      } catch { /* use cookie locale */ }
+
       let profileData: Record<string, unknown> | null = null;
 
       try {
         const { updateTasteProfileFromWine } = await import('@/lib/openai');
         profileData = await updateTasteProfileFromWine(
           wine as unknown as WineData,
-          currentProfile?.profile_data || {}
+          currentProfile?.profile_data || {},
+          locale
         );
       } catch (aiErr) {
         console.error('OpenAI profile update error (using fallback):', aiErr);

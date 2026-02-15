@@ -15,12 +15,11 @@ import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 interface SearchPageProps {
   userId: string;
-  tasteProfiles: Record<string, unknown>;
 }
 
 const MAX_RECENT = 20;
 
-export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
+export function SearchPage({ userId }: SearchPageProps) {
   const t = useTranslations('search');
   const tProfile = useTranslations('profile');
   const tCellar = useTranslations('cellar');
@@ -68,7 +67,7 @@ export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
     fetch('/api/wine-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, tasteProfiles }),
+      body: JSON.stringify({ query: q, userId }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -87,7 +86,7 @@ export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
         if (!cancelled) setIsFetchingDetails(false);
       });
     return () => { cancelled = true; };
-  }, [selectedRecentWine, tasteProfiles]);
+  }, [selectedRecentWine, userId]);
 
   const handleTextSearch = async () => {
     if (!query.trim()) return;
@@ -108,7 +107,7 @@ export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          tasteProfiles,
+          userId,
         }),
       });
 
@@ -139,7 +138,7 @@ export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
       const response = await fetch('/api/wine-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wine, tasteProfiles }),
+        body: JSON.stringify({ wine, userId }),
       });
       const data = await response.json();
       setWineResult(wine);
@@ -191,7 +190,7 @@ export function SearchPage({ userId, tasteProfiles }: SearchPageProps) {
           body: JSON.stringify({
             image: base64,
             imageMimeType: mimeType,
-            tasteProfiles,
+            userId,
           }),
         });
 
