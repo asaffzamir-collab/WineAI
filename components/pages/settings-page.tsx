@@ -51,8 +51,8 @@ export function SettingsPage({ userId, profile, userEmail }: SettingsPageProps) 
     setIsLoggingOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    // Full page reload to ensure all session state is cleared
+    window.location.href = '/';
   };
 
   return (
