@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2, Info } from 'lucide-react';
+import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -113,6 +113,7 @@ function SpectrumBar({
   value,
   leftLabel,
   rightLabel,
+  hint,
   explanation,
   isExpanded,
   onToggle,
@@ -120,6 +121,7 @@ function SpectrumBar({
   value: number;
   leftLabel: string;
   rightLabel: string;
+  hint: string;
   explanation: string;
   isExpanded: boolean;
   onToggle: () => void;
@@ -129,34 +131,31 @@ function SpectrumBar({
   const left = Math.max(halfWidth, Math.min(100 - halfWidth, clamped));
 
   return (
-    <div className="space-y-1">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full text-start rounded-lg px-1 py-2 -mx-1 hover:bg-cream-100/60 transition-colors"
+    >
+      <p className="mb-1.5 text-xs text-gray-400 italic">{hint}</p>
       <div className="flex items-center gap-3">
-        <span className="w-16 text-end text-sm font-medium text-gray-600">{leftLabel}</span>
-        <div className="relative flex-1 h-2 rounded-full bg-cream-200">
+        <span className="w-14 text-end text-sm font-semibold text-wine-900">{leftLabel}</span>
+        <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
           <div
-            className="absolute top-0 h-2 rounded-full bg-wine-800"
+            className="absolute top-0 h-[7px] rounded-full bg-wine-800"
             style={{
               left: `${left - halfWidth}%`,
               width: `${halfWidth * 2}%`,
             }}
           />
         </div>
-        <span className="w-16 text-sm font-medium text-gray-600">{rightLabel}</span>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex-shrink-0 rounded-full p-0.5 text-gray-400 hover:text-wine-700 hover:bg-wine-50 transition-colors"
-          aria-label="More info"
-        >
-          <Info className="h-3.5 w-3.5" />
-        </button>
+        <span className="w-14 text-sm font-semibold text-wine-900">{rightLabel}</span>
       </div>
       {isExpanded && (
-        <p className="ms-[calc(4rem+0.75rem)] me-[calc(4rem+0.75rem+1.5rem)] rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
+        <p className="mt-2 rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
           {explanation}
         </p>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -172,25 +171,29 @@ function TasteSpectrumChart({
   expandedInfos: Set<string>;
   toggleInfo: (key: string) => void;
 }) {
-  const axes: { key: string; value: number; leftKey: string; rightKey: string; explainKey: string }[] = [
-    { key: 'body', value: spectrum.body, leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight', explainKey: 'spectrumBodyExplain' },
-    { key: 'tannin', value: spectrum.tannin, leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight', explainKey: 'spectrumTanninExplain' },
-    { key: 'sweetness', value: spectrum.sweetness, leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight', explainKey: 'spectrumSweetnessExplain' },
-    { key: 'acidity', value: spectrum.acidity, leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight', explainKey: 'spectrumAcidityExplain' },
+  const axes: { key: string; value: number; leftKey: string; rightKey: string; hintKey: string; explainKey: string }[] = [
+    { key: 'body', value: spectrum.body, leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight', hintKey: 'spectrumBodyHint', explainKey: 'spectrumBodyExplain' },
+    { key: 'tannin', value: spectrum.tannin, leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight', hintKey: 'spectrumTanninHint', explainKey: 'spectrumTanninExplain' },
+    { key: 'sweetness', value: spectrum.sweetness, leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight', hintKey: 'spectrumSweetnessHint', explainKey: 'spectrumSweetnessExplain' },
+    { key: 'acidity', value: spectrum.acidity, leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight', hintKey: 'spectrumAcidityHint', explainKey: 'spectrumAcidityExplain' },
   ];
 
   return (
-    <section className="rounded-xl border border-wine-100 bg-white p-4 shadow-sm">
-      <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-wine-900">
+    <section className="rounded-xl border border-wine-100 bg-white p-5 shadow-sm">
+      <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wide text-wine-900">
         {t('tasteSpectrumTitle')}
       </h3>
-      <div className="space-y-4">
+      <p className="mb-4 text-center text-xs text-gray-400">
+        {t('spectrumTapToLearn')}
+      </p>
+      <div className="space-y-1">
         {axes.map((axis) => (
           <SpectrumBar
             key={axis.key}
             value={axis.value}
             leftLabel={t(axis.leftKey)}
             rightLabel={t(axis.rightKey)}
+            hint={t(axis.hintKey)}
             explanation={t(axis.explainKey)}
             isExpanded={expandedInfos.has(`spectrum_${axis.key}`)}
             onToggle={() => toggleInfo(`spectrum_${axis.key}`)}
@@ -201,39 +204,23 @@ function TasteSpectrumChart({
   );
 }
 
-/* ─── Section heading with optional info toggle ─── */
+/* ─── Section heading with always-visible subtitle explanation ─── */
 function SectionHeading({
   icon,
   title,
-  explanation,
-  isExpanded,
-  onToggle,
+  subtitle,
 }: {
   icon?: React.ReactNode;
   title: string;
-  explanation: string;
-  isExpanded: boolean;
-  onToggle: () => void;
+  subtitle: string;
 }) {
   return (
-    <div className="space-y-1">
+    <div>
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-wine-900">{title}</h3>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="rounded-full p-0.5 text-gray-400 hover:text-wine-700 hover:bg-wine-50 transition-colors"
-          aria-label="More info"
-        >
-          <Info className="h-3.5 w-3.5" />
-        </button>
       </div>
-      {isExpanded && (
-        <p className="rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
-          {explanation}
-        </p>
-      )}
+      <p className="mt-0.5 text-xs text-gray-400 italic">{subtitle}</p>
     </div>
   );
 }
@@ -550,9 +537,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('overallStyle')}
-                              explanation={t('overallStyleExplain')}
-                              isExpanded={expandedInfos.has('overallStyle')}
-                              onToggle={() => toggleInfo('overallStyle')}
+                              subtitle={t('overallStyleExplain')}
                             />
                             <p className="mt-2 text-gray-600">{profile.overall_style}</p>
                           </section>
@@ -563,9 +548,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('bodyStructure')}
-                              explanation={t('bodyStructureExplain')}
-                              isExpanded={expandedInfos.has('bodyStructure')}
-                              onToggle={() => toggleInfo('bodyStructure')}
+                              subtitle={t('bodyStructureExplain')}
                             />
                             <p className="mt-2 text-gray-600">{profile.body_structure}</p>
                           </section>
@@ -576,9 +559,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('fruitProfile')}
-                              explanation={t('fruitProfileExplain')}
-                              isExpanded={expandedInfos.has('fruitProfile')}
-                              onToggle={() => toggleInfo('fruitProfile')}
+                              subtitle={t('fruitProfileExplain')}
                             />
                             <p className="mt-2 text-gray-600">{profile.fruit_profile}</p>
                           </section>
@@ -589,9 +570,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('styleNotes')}
-                              explanation={t('styleNotesExplain')}
-                              isExpanded={expandedInfos.has('styleNotes')}
-                              onToggle={() => toggleInfo('styleNotes')}
+                              subtitle={t('styleNotesExplain')}
                             />
                             <p className="mt-2 text-gray-600">{profile.style_notes}</p>
                           </section>
@@ -603,9 +582,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             <SectionHeading
                               icon={<Grape className="h-4 w-4" />}
                               title={t('recommendedGrapes')}
-                              explanation={t('recommendedGrapesExplain')}
-                              isExpanded={expandedInfos.has('recommendedGrapes')}
-                              onToggle={() => toggleInfo('recommendedGrapes')}
+                              subtitle={t('recommendedGrapesExplain')}
                             />
                             <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_grapes.map((grape, idx) => (
@@ -626,9 +603,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             <SectionHeading
                               icon={<MapPin className="h-4 w-4" />}
                               title={t('recommendedRegions')}
-                              explanation={t('recommendedRegionsExplain')}
-                              isExpanded={expandedInfos.has('recommendedRegions')}
-                              onToggle={() => toggleInfo('recommendedRegions')}
+                              subtitle={t('recommendedRegionsExplain')}
                             />
                             <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_regions.map((region, idx) => (
@@ -649,9 +624,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             <SectionHeading
                               icon={<AlertCircle className="h-4 w-4" />}
                               title={t('whatToAvoid')}
-                              explanation={t('whatToAvoidExplain')}
-                              isExpanded={expandedInfos.has('whatToAvoid')}
-                              onToggle={() => toggleInfo('whatToAvoid')}
+                              subtitle={t('whatToAvoidExplain')}
                             />
                             <div className="mt-2 flex flex-wrap gap-2">
                               {profile.what_to_avoid.map((avoid, idx) => (
@@ -671,9 +644,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section className="rounded-lg bg-cream-100 p-4">
                             <SectionHeading
                               title={t('summary')}
-                              explanation={t('summaryExplain')}
-                              isExpanded={expandedInfos.has('summary')}
-                              onToggle={() => toggleInfo('summary')}
+                              subtitle={t('summaryExplain')}
                             />
                             <p className="mt-2 italic text-gray-600">{profile.summary}</p>
                           </section>
