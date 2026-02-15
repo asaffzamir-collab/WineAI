@@ -36,10 +36,12 @@ export async function POST(request: Request) {
     const wineTypes = ['red', 'white', 'rose'] as const;
     for (const wineType of wineTypes) {
       if (profiles[wineType]) {
+        // Mark as originating from onboarding so matching logic knows this profile has real context
+        const profileData = { ...profiles[wineType], from_onboarding: true };
         await supabase.from('taste_profiles').upsert({
           user_id: userId,
           wine_type: wineType,
-          profile_data: profiles[wineType],
+          profile_data: profileData,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id,wine_type' });
       }

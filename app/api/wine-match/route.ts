@@ -55,6 +55,14 @@ export async function POST(request: Request) {
     if (!hasProfileContent) {
       return NextResponse.json({ match: null });
     }
+
+    // Skip matching if profile is built from ≤1 liked wines and NOT from onboarding.
+    // A profile built from a single wine can't meaningfully match other wines yet.
+    const likedWines = Array.isArray(p.liked_wines_detail) ? p.liked_wines_detail : [];
+    if (!p.from_onboarding && likedWines.length <= 1) {
+      return NextResponse.json({ match: null });
+    }
+
     const match = await matchWineToProfile(wine as WineData, p, locale);
     return NextResponse.json({ match });
   } catch (error) {

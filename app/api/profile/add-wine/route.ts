@@ -123,6 +123,7 @@ export async function POST(request: Request) {
           wine_type: wine.wine_type,
           tasting_notes: wine.tasting_notes,
           ai_description: wine.winery_description,
+          image_url: wine.image_url ?? null,
         })
         .select('id')
         .single();

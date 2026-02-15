@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Wine, MapPin, Calendar, Star, Trash2, Camera } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,9 +41,52 @@ interface CellarPageProps {
 export function CellarPage({ userId, initialItems }: CellarPageProps) {
   const t = useTranslations('cellar');
   const tSearch = useTranslations('search');
+  const router = useRouter();
   const [items, setItems] = useState<CellarItem[]>(initialItems);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+
+  // Fetch fresh cellar items from the server
+  const refreshCellar = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const res = await fetch(`/api/cellar?userId=${encodeURIComponent(userId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items)) {
+          setItems(data.items);
+        }
+      }
+    } catch {
+      // Keep current items on error
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [userId]);
+
+  // Auto-refresh on mount and on visibility/focus changes
+  useEffect(() => {
+    refreshCellar();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshCellar();
+      }
+    };
+    const handleFocus = () => {
+      refreshCellar();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshCellar]);
 
   const totalBottles = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
   const totalValue = items.reduce(

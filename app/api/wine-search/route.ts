@@ -94,5 +94,13 @@ async function getMatchForWine(
       (typeof p.overall_style === 'string' && p.overall_style.length > 0) ||
       (typeof p.summary === 'string' && p.summary.length > 0));
   if (!hasProfileContent) return null;
+
+  // Skip matching if profile is built from ≤1 liked wines and NOT from onboarding.
+  // A profile built from a single wine can't meaningfully match other wines yet.
+  const likedWines = Array.isArray(p.liked_wines_detail) ? p.liked_wines_detail : [];
+  if (!p.from_onboarding && likedWines.length <= 1) {
+    return null;
+  }
+
   return matchWineToProfile(wine, p, locale);
 }

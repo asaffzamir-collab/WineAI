@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Wine, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { createClient } from '@/lib/supabase/client';
 
 type AuthMode = 'login' | 'register';
 
@@ -46,7 +47,11 @@ export function AuthPage() {
         return;
       }
 
-      // Successfully authenticated — navigate to home (root gate will handle onboarding check)
+      // Establish session on the client side so RootGate picks it up immediately
+      const supabase = createClient();
+      await supabase.auth.signInWithPassword({ email, password });
+
+      // Navigate to home (root gate will handle onboarding check)
       router.push('/');
       router.refresh();
     } catch {

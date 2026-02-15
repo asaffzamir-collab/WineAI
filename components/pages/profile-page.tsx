@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2 } from 'lucide-react';
@@ -103,7 +102,7 @@ function hasFullWineData(w: Record<string, unknown>): boolean {
 
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
   const t = useTranslations('profile');
-  const router = useRouter();
+
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
   const tCellar = useTranslations('cellar');
@@ -193,16 +192,9 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     return () => { cancelled = true; };
   }, [selectedWine, userId]);
 
-  // Sync initialProfiles from server when they change (e.g. on navigation)
-  useEffect(() => {
-    setProfiles(initialProfiles);
-  }, [initialProfiles]);
-
   // Auto-refresh profiles on mount, visibility change, and window focus
   useEffect(() => {
-    // Invalidate Next.js client-side router cache so server component re-renders with fresh data
-    router.refresh();
-    // Also fetch fresh data via API
+    // Always fetch fresh data from API on mount (don't rely on server cache)
     refreshProfiles();
 
     const handleVisibilityChange = () => {
@@ -221,7 +213,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshProfiles, router]);
+  }, [refreshProfiles]);
 
   const wineTypeLabels: Record<string, string> = {
     red: t('red'),

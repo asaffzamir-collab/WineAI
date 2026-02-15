@@ -78,6 +78,8 @@ const WINE_SEARCH_SYSTEM_PROMPT = `You are a wine expert assistant with extensiv
 
 IMPORTANT: You must return ONLY valid JSON, no markdown, no code blocks, just the raw JSON object.
 
+LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This includes: winery_description, tasting_notes (nose, palate, finish), food_pairings, and the finish field. Wine names, winery names, grape names, region names, and country names should stay in their original language.
+
 For images: ALWAYS try your best to identify the wine. Read any text visible on the label including winery name, wine name, vintage year, region, grape varieties, etc. Even if you're not 100% certain about the exact wine, make your best educated guess based on what you can see. Use visual cues like label design, bottle shape, and any visible text.
 
 PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
@@ -132,6 +134,8 @@ Rules:
 - Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
 - For vivino_rating: ALWAYS include a rating (1.0-5.0). Use the real rating if you know it, otherwise estimate conservatively (prestigious 4.0-4.6, good 3.8-4.2, everyday 3.3-3.8). For vivino_reviews, use null unless confident.
 - Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
+
+LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This includes: winery_description, tasting_notes (nose, palate, finish), food_pairings, and the finish field. Wine names, winery names, grape names, region names, and country names should stay in their original language.
 
 Example format:
 {"wines": [

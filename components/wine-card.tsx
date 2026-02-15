@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -34,6 +34,11 @@ export function WineCard({
 }: WineCardProps) {
   const t = useTranslations('wineCard');
   const [imageError, setImageError] = useState(false);
+
+  // Reset image error when the wine or image URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url]);
 
   const wineTypeColors = {
     red: 'bg-red-900',

@@ -3,6 +3,42 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET(request: Request) {
+  try {
+    const userId = new URL(request.url).searchParams.get('userId');
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    }
+    const supabase = await createClient();
+    // Try with bottle_photo_url first; if the column doesn't exist, retry without it
+    let { data, error } = await supabase
+      .from('cellar_items')
+      .select(`
+        id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error && error.message?.includes('bottle_photo_url')) {
+      const retry = await supabase
+        .from('cellar_items')
+        .select(`
+          id, quantity, purchase_price, purchase_date, storage_location, notes,
+          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      data = retry.data as typeof data;
+      error = retry.error;
+    }
+    if (error) throw error;
+    return NextResponse.json({ items: data || [] });
+  } catch (error) {
+    console.error('Cellar GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch cellar items' }, { status: 500 });
+  }
+}
+
 function normalizeWineForDb(wine: Record<string, unknown>) {
   const wineType = wine.wine_type;
   const normalizedType =
@@ -27,6 +63,7 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
     wine_type: safeWineType,
     tasting_notes: wine.tasting_notes ?? null,
     ai_description: wine.winery_description ?? wine.ai_description ?? null,
+    image_url: wine.image_url ?? null,
   };
 }
 
