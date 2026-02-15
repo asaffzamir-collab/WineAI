@@ -174,7 +174,7 @@
     "creatingProfile": "Creating your taste profile...",
     "welcomeTitle": "Welcome, {name}!",
     "welcomeTitleFallback": "Welcome!",
-    "welcomeBody": "We're glad you're here. Search for your first wine — by name, winery, or even a photo of the label.",
+    "welcomeBody": "Search for your first wine — by name, winery, or even a photo of the label.",
     "welcomeValue": "When you add wines you like to your profile, we learn your taste and give you better recommendations and a personal wine journey.",
     "findFirstWine": "Find my first wine"
   },
