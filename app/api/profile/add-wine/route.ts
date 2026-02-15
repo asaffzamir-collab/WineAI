@@ -112,7 +112,16 @@ export async function POST(request: Request) {
 
     if (findError && findError.code !== 'PGRST116') {
       // PGRST116 = "no rows" which is expected
-      return NextResponse.json({ error: 'Wine lookup failed', details: findError.message, code: findError.code }, { status: 500 });
+      const keyHint = process.env.SUPABASE_SERVICE_ROLE_KEY
+        ? `key starts with: ${process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...`
+        : 'SUPABASE_SERVICE_ROLE_KEY is NOT SET';
+      return NextResponse.json({
+        error: 'Wine lookup failed',
+        details: findError.message,
+        code: findError.code,
+        debug: keyHint,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'NOT SET',
+      }, { status: 500 });
     }
 
     let wineId = existingWine?.id;
