@@ -103,5 +103,10 @@ async function getMatchForWine(
     return null;
   }
 
-  return matchWineToProfile(wine, p, locale);
+  const match = await matchWineToProfile(wine, p, locale);
+  // Attach the user's profile spectrum for comparison display
+  if (match && p.taste_spectrum && typeof p.taste_spectrum === 'object') {
+    match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };
+  }
+  return match;
 }

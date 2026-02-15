@@ -95,7 +95,18 @@
     "addedToCellar": "נוסף למרתף!",
     "addedToWishlist": "נוסף לרשימת המשאלות!",
     "likeThisWine": "אני אוהב את היין הזה",
-    "addedToProfile": "נוסף לפרופיל!"
+    "addedToProfile": "נוסף לפרופיל!",
+    "spectrumCompareTitle": "השוואת ספקטרום טעם",
+    "wineSpectrum": "היין הזה",
+    "profileSpectrum": "הפרופיל שלך",
+    "spectrumBodyLeft": "קל",
+    "spectrumBodyRight": "כבד",
+    "spectrumTanninLeft": "חלק",
+    "spectrumTanninRight": "טאני",
+    "spectrumSweetnessLeft": "יבש",
+    "spectrumSweetnessRight": "מתוק",
+    "spectrumAcidityLeft": "רך",
+    "spectrumAcidityRight": "חומצי"
   },
   "profile": {
     "title": "פרופיל הטעם שלי",

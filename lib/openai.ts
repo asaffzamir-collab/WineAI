@@ -67,11 +67,21 @@ export interface WineData {
   image_url?: string;
 }
 
+export interface TasteSpectrum {
+  body: number;
+  tannin: number;
+  sweetness: number;
+  acidity: number;
+}
+
 export interface ProfileMatchResult {
   match_percentage: number;
+  explanation?: string;
   positive_matches: string[];
   mismatches: string[];
   similar_wines_note?: string;
+  wine_spectrum?: TasteSpectrum;
+  profile_spectrum?: TasteSpectrum;
 }
 
 const WINE_SEARCH_SYSTEM_PROMPT = `You are a wine expert assistant with extensive knowledge of wines and their ratings. Given a wine query (either a name, description, or image of a wine label), return detailed information about the wine in JSON format.
@@ -270,7 +280,7 @@ export async function matchWineToProfile(
 ): Promise<ProfileMatchResult> {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
-    ? '\n\nIMPORTANT: Write ALL text values (positive_matches, mismatches, similar_wines_note) in Hebrew.'
+    ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, similar_wines_note) in Hebrew.'
     : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
@@ -285,10 +295,19 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction
 Return this exact structure:
 {
   "match_percentage": 85,
+  "explanation": "A concise 1-2 sentence explanation of why this wine matches or doesn't match the user's profile.",
+  "wine_spectrum": { "body": 75, "tannin": 60, "sweetness": 10, "acidity": 50 },
   "positive_matches": ["High acidity matches your preference", "..."],
   "mismatches": ["Dark fruit notes - you typically prefer red fruit", "..."],
   "similar_wines_note": "Similar to wines you've enjoyed before"
-}`,
+}
+
+wine_spectrum: Estimate the wine's characteristics on 4 axes (0-100):
+- body: 0 = Light, 100 = Bold/Full-bodied
+- tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
+- sweetness: 0 = Bone Dry, 100 = Sweet
+- acidity: 0 = Soft/Round, 100 = Crisp/Acidic
+Be precise and use the full 0-100 range based on the wine's actual characteristics.`,
         },
         {
           role: 'user',
@@ -298,7 +317,7 @@ User Profile: ${JSON.stringify(profile)}`,
         },
       ],
       temperature: 0.5,
-      max_tokens: 800,
+      max_tokens: 1000,
     });
 
     const content = response.choices?.[0]?.message?.content;
@@ -310,7 +329,7 @@ User Profile: ${JSON.stringify(profile)}`,
       };
     }
 
-    return JSON.parse(content) as ProfileMatchResult;
+    return parseJsonResponse(content) as ProfileMatchResult;
   } catch (error) {
     console.error('Error matching wine to profile:', error);
     return {

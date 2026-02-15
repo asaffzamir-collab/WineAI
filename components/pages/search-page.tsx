@@ -60,31 +60,22 @@ export function SearchPage({ userId }: SearchPageProps) {
       return;
     }
     let cancelled = false;
-    setDisplayWine(null);
+    // Use stored wine data directly — no need to re-search from OpenAI
+    setDisplayWine(selectedRecentWine);
     setDisplayMatch(null);
-    setIsFetchingDetails(true);
-    const q = `${selectedRecentWine.name} ${selectedRecentWine.winery}`;
-    fetch('/api/wine-search', {
+    setIsFetchingDetails(false);
+
+    // Only fetch the profile match (single fast API call)
+    fetch('/api/wine-match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, userId }),
+      body: JSON.stringify({ wine: selectedRecentWine, userId }),
     })
       .then((r) => r.json())
       .then((data) => {
-        if (cancelled) return;
-        if (data.wine) {
-          setDisplayWine(data.wine);
-          setDisplayMatch(data.match || null);
-        } else {
-          setDisplayWine(selectedRecentWine);
-        }
+        if (!cancelled) setDisplayMatch(data.match ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setDisplayWine(selectedRecentWine);
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetchingDetails(false);
-      });
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [selectedRecentWine, userId]);
 

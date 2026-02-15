@@ -350,6 +350,20 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         if (data.wine) {
           setDisplayWine(data.wine);
           setDisplayMatch(data.match ?? null);
+        } else if (Array.isArray(data.wines) && data.wines.length > 0) {
+          // Multiple results — use the best match and fetch match separately
+          const bestWine = data.wines[0];
+          setDisplayWine(bestWine);
+          fetch('/api/wine-match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wine: bestWine, userId }),
+          })
+            .then((r2) => r2.json())
+            .then((matchData) => {
+              if (!cancelled) setDisplayMatch(matchData.match ?? null);
+            })
+            .catch(() => {});
         } else {
           setDisplayWine(selectedWine);
         }

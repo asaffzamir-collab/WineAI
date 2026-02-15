@@ -5,9 +5,94 @@ import { useTranslations } from 'next-intl';
 import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import type { WineData, ProfileMatchResult, TasteSpectrum } from '@/lib/openai';
+
+/* ─── Comparison spectrum bar: two indicators on one track ─── */
+function ComparisonSpectrumBar({
+  profileValue,
+  wineValue,
+  leftLabel,
+  rightLabel,
+}: {
+  profileValue: number;
+  wineValue: number;
+  leftLabel: string;
+  rightLabel: string;
+}) {
+  const clamp = (v: number) => Math.max(3, Math.min(97, v));
+  const pLeft = clamp(profileValue);
+  const wLeft = clamp(wineValue);
+
+  return (
+    <div className="py-1">
+      <div className="flex items-center gap-2">
+        <span className="w-12 text-end text-[11px] font-medium text-gray-500">{leftLabel}</span>
+        <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
+          {/* Profile indicator (gold ring) */}
+          <div
+            className="absolute top-1/2 h-3 w-3 rounded-full border-[2.5px] border-gold-500 bg-white shadow-sm"
+            style={{ left: `${pLeft}%`, transform: 'translate(-50%, -50%)' }}
+          />
+          {/* Wine indicator (solid dot) */}
+          <div
+            className="absolute top-1/2 h-3 w-3 rounded-full bg-wine-700 shadow-sm z-[1]"
+            style={{ left: `${wLeft}%`, transform: 'translate(-50%, -50%)' }}
+          />
+        </div>
+        <span className="w-12 text-[11px] font-medium text-gray-500">{rightLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Match spectrum chart: 4 comparison bars with legend ─── */
+function MatchSpectrumChart({
+  wineSpectrum,
+  profileSpectrum,
+  t,
+}: {
+  wineSpectrum: TasteSpectrum;
+  profileSpectrum: TasteSpectrum;
+  t: (key: string) => string;
+}) {
+  const axes = [
+    { key: 'body', leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight' },
+    { key: 'tannin', leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight' },
+    { key: 'sweetness', leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight' },
+    { key: 'acidity', leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight' },
+  ] as const;
+
+  return (
+    <div className="mb-2 rounded-lg bg-cream-50 p-3">
+      <p className="mb-2 text-center text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        {t('spectrumCompareTitle')}
+      </p>
+      <div className="space-y-0.5">
+        {axes.map((axis) => (
+          <ComparisonSpectrumBar
+            key={axis.key}
+            profileValue={profileSpectrum[axis.key]}
+            wineValue={wineSpectrum[axis.key]}
+            leftLabel={t(axis.leftKey)}
+            rightLabel={t(axis.rightKey)}
+          />
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="mt-2.5 flex items-center justify-center gap-5 text-[11px] text-gray-500">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-wine-700" />
+          {t('wineSpectrum')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full border-[2px] border-gold-500 bg-white" />
+          {t('profileSpectrum')}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 interface WineCardProps {
   wine: WineData;
@@ -255,30 +340,62 @@ export function WineCard({
           </section>
         )}
 
-        {/* Profile Match - below wine profile */}
+        {/* Profile Match - spectrum comparison */}
         {matchResult && (
-          <section className="rounded-lg border-2 border-wine-100 p-4">
-            <h3 className="mb-3 font-semibold text-wine-900">{t('matchToProfile')}</h3>
-            <div className="mb-4 flex items-center gap-3">
-              <Progress value={matchResult.match_percentage} className="flex-1" />
-              <span className="text-lg font-bold text-wine-900">
-                {matchResult.match_percentage}% {t('match')}
-              </span>
+          <section className="rounded-xl border-2 border-wine-100 bg-white p-5 shadow-sm">
+            {/* Header with match percentage circle */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-wine-900">{t('matchToProfile')}</h3>
+              <div className="relative h-14 w-14 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f3e8e8" strokeWidth="2.5" />
+                  <circle
+                    cx="18" cy="18" r="15.9" fill="none"
+                    stroke={matchResult.match_percentage >= 70 ? '#4a1d1f' : matchResult.match_percentage >= 40 ? '#c2410c' : '#dc2626'}
+                    strokeWidth="2.5"
+                    strokeDasharray={`${matchResult.match_percentage} ${100 - matchResult.match_percentage}`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-wine-900">
+                  {matchResult.match_percentage}%
+                </span>
+              </div>
             </div>
-            <ul className="space-y-2 text-sm">
-              {matchResult.positive_matches.map((match, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-green-700">
-                  <Check className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <span>{match}</span>
-                </li>
-              ))}
-              {matchResult.mismatches.map((mismatch, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-orange-600">
-                  <X className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <span>{mismatch}</span>
-                </li>
-              ))}
-            </ul>
+
+            {/* Explanation */}
+            {matchResult.explanation && (
+              <p className="mb-4 text-sm text-gray-600">{matchResult.explanation}</p>
+            )}
+
+            {/* Spectrum comparison chart */}
+            {matchResult.wine_spectrum && matchResult.profile_spectrum && (
+              <MatchSpectrumChart
+                wineSpectrum={matchResult.wine_spectrum}
+                profileSpectrum={matchResult.profile_spectrum}
+                t={t}
+              />
+            )}
+
+            {/* Positive matches & mismatches */}
+            {(matchResult.positive_matches.length > 0 || matchResult.mismatches.length > 0) && (
+              <ul className="mt-4 space-y-2 text-sm">
+                {matchResult.positive_matches.map((match, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-green-700">
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <span>{match}</span>
+                  </li>
+                ))}
+                {matchResult.mismatches.map((mismatch, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-orange-600">
+                    <X className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <span>{mismatch}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Similar wines note */}
             {matchResult.similar_wines_note && (
               <p className="mt-3 text-sm italic text-gray-600">
                 {matchResult.similar_wines_note}

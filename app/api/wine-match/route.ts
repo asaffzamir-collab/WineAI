@@ -64,6 +64,10 @@ export async function POST(request: Request) {
     }
 
     const match = await matchWineToProfile(wine as WineData, p, locale);
+    // Attach the user's profile spectrum for comparison display
+    if (match && p.taste_spectrum && typeof p.taste_spectrum === 'object') {
+      match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };
+    }
     return NextResponse.json({ match });
   } catch (error) {
     console.error('Wine match error:', error);

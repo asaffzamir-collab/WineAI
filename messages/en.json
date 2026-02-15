@@ -95,7 +95,18 @@
     "addedToCellar": "Added to cellar!",
     "addedToWishlist": "Added to wishlist!",
     "likeThisWine": "I like this wine",
-    "addedToProfile": "Added to profile!"
+    "addedToProfile": "Added to profile!",
+    "spectrumCompareTitle": "Taste Spectrum Comparison",
+    "wineSpectrum": "This wine",
+    "profileSpectrum": "Your profile",
+    "spectrumBodyLeft": "Light",
+    "spectrumBodyRight": "Bold",
+    "spectrumTanninLeft": "Smooth",
+    "spectrumTanninRight": "Tannic",
+    "spectrumSweetnessLeft": "Dry",
+    "spectrumSweetnessRight": "Sweet",
+    "spectrumAcidityLeft": "Soft",
+    "spectrumAcidityRight": "Acidic"
   },
   "profile": {
     "title": "My Taste Profile",
