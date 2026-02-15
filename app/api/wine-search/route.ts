@@ -78,12 +78,12 @@ async function getMatchForWine(
   if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
     return null;
   }
-  const relevantProfile =
-    tasteProfiles[wine.wine_type ?? ''] ||
-    tasteProfiles.white ||
-    tasteProfiles.rose ||
-    tasteProfiles.red ||
-    {};
+  // Only match against the profile for the SAME wine type — no cross-category fallbacks
+  const wineType = wine.wine_type ?? '';
+  // Normalize: sparkling → white, dessert → white
+  const profileKey = wineType === 'sparkling' || wineType === 'dessert' ? 'white' : wineType;
+  const relevantProfile = tasteProfiles[profileKey];
+  if (!relevantProfile) return null;
   const p = relevantProfile as Record<string, unknown>;
   const hasProfileContent =
     typeof p === 'object' &&

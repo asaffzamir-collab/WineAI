@@ -36,12 +36,13 @@ export async function POST(request: Request) {
     if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
       return NextResponse.json({ match: null });
     }
-    const relevantProfile =
-      tasteProfiles[(wine as WineData).wine_type ?? ''] ||
-      tasteProfiles.white ||
-      tasteProfiles.rose ||
-      tasteProfiles.red ||
-      {};
+    // Only match against the profile for the SAME wine type — no cross-category fallbacks
+    const wineType = (wine as WineData).wine_type ?? '';
+    const profileKey = wineType === 'sparkling' || wineType === 'dessert' ? 'white' : wineType;
+    const relevantProfile = tasteProfiles[profileKey];
+    if (!relevantProfile) {
+      return NextResponse.json({ match: null });
+    }
     const p = relevantProfile as Record<string, unknown>;
     const hasProfileContent =
       typeof p === 'object' &&

@@ -46,7 +46,8 @@ export async function POST(request: Request) {
       if (wineError) throw wineError;
       wineId = newWine.id;
     }
-    const { error: cellarError } = await supabase.from('cellar_items').insert({
+    // Build cellar insert — bottle_photo_url is optional (column may not exist if migration wasn't run)
+    const cellarRow: Record<string, unknown> = {
       user_id: userId,
       wine_id: wineId,
       quantity: quantity || 1,
@@ -54,8 +55,18 @@ export async function POST(request: Request) {
       purchase_date: purchaseDate,
       storage_location: storageLocation,
       notes,
-      bottle_photo_url: bottlePhotoUrl ?? null,
-    });
+    };
+    // Try with bottle_photo_url first; if the column doesn't exist, retry without it
+    if (bottlePhotoUrl) {
+      cellarRow.bottle_photo_url = bottlePhotoUrl;
+    }
+    let { error: cellarError } = await supabase.from('cellar_items').insert(cellarRow);
+    if (cellarError && cellarError.message?.includes('bottle_photo_url')) {
+      // Column doesn't exist — retry without it
+      delete cellarRow.bottle_photo_url;
+      const retry = await supabase.from('cellar_items').insert(cellarRow);
+      cellarError = retry.error;
+    }
     if (cellarError) throw cellarError;
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
@@ -73,7 +84,8 @@ export async function PATCH(request: Request) {
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     const supabase = await createClient();
     const { error } = await supabase.from('cellar_items').update({ bottle_photo_url: bottlePhotoUrl ?? null }).eq('id', id);
-    if (error) throw error;
+    // Silently ignore if the column doesn't exist
+    if (error && !error.message?.includes('bottle_photo_url')) throw error;
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Cellar PATCH error:', error);

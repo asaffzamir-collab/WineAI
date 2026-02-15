@@ -301,25 +301,29 @@ export function WineCard({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            onClick={onAddToCellar}
-            disabled={isAddingToCellar}
-            className={cn("flex-1", isAddingToCellar && "bg-green-600 hover:bg-green-600")}
-          >
-            {isAddingToCellar ? t('addedToCellar') : t('addToCellar')}
-          </Button>
-          {onAddToWishlist != null && (
-            <Button
-              variant="outline"
-              onClick={onAddToWishlist}
-              disabled={isAddingToWishlist}
-              className={cn("flex-1", isAddingToWishlist && "border-pink-400 bg-pink-50 text-pink-700")}
-            >
-              {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist')}
-            </Button>
-          )}
-        </div>
+        {(onAddToCellar || onAddToWishlist) && (
+          <div className="flex gap-3 pt-2">
+            {onAddToCellar && (
+              <Button
+                onClick={onAddToCellar}
+                disabled={isAddingToCellar}
+                className={cn("flex-1", isAddingToCellar && "bg-green-600 hover:bg-green-600")}
+              >
+                {isAddingToCellar ? t('addedToCellar') : t('addToCellar')}
+              </Button>
+            )}
+            {onAddToWishlist != null && (
+              <Button
+                variant="outline"
+                onClick={onAddToWishlist}
+                disabled={isAddingToWishlist}
+                className={cn("flex-1", isAddingToWishlist && "border-pink-400 bg-pink-50 text-pink-700")}
+              >
+                {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist')}
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

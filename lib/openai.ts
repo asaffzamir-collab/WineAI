@@ -82,7 +82,7 @@ For images: ALWAYS try your best to identify the wine. Read any text visible on 
 
 PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
 
-Vivino Rating: For vivino_rating, ONLY provide a specific rating (1.0-5.0) if you are genuinely confident you know the real Vivino rating for this specific wine and vintage. Most wines on Vivino rate between 3.5-4.5. Do NOT invent or guess ratings — if you're not confident about the exact rating, set vivino_rating to null. It is better to return null than a wrong number. For very well-known wines (e.g. Opus One, Sassicaia, Château Margaux) where you're confident about the approximate Vivino rating, provide it. For lesser-known or regional wines, use null. For vivino_reviews, always use null unless you're very confident about the approximate number.
+Vivino Rating: ALWAYS provide a vivino_rating (1.0-5.0). Use the real Vivino rating if you know it. Otherwise, provide your best estimate based on wine reputation, region, and producer quality. Use conservative round numbers when estimating (e.g. 3.5, 3.8, 4.0, 4.2). Typical ranges: prestigious/iconic wines 4.0-4.6, well-regarded wines 3.8-4.2, solid everyday wines 3.3-3.8, basic wines 3.0-3.3. For vivino_reviews use null unless you know an approximate count.
 
 Return this exact JSON structure:
 {
@@ -130,7 +130,7 @@ Rules:
 - If the query is very specific and matches one wine well, you may return just 1 wine. If it's ambiguous or could match several, return 3-5 options.
 - NEVER return an empty array. If truly unknown, return 1-2 best-guess wines that are close (same region, similar name, or popular wines that sound similar).
 - Each wine must have: name, winery, vintage (if known), country, region (if known), grapes, wine_type. Include image_url when you know a Vivino or other bottle image URL (e.g. images.vivino.com); otherwise null.
-- For vivino_rating: ONLY include a rating if you're genuinely confident about the real Vivino rating for this specific wine. Set to null if unsure — it is much better to return null than an inaccurate number. For vivino_reviews, always use null unless you're very confident.
+- For vivino_rating: ALWAYS include a rating (1.0-5.0). Use the real rating if you know it, otherwise estimate conservatively (prestigious 4.0-4.6, good 3.8-4.2, everyday 3.3-3.8). For vivino_reviews, use null unless confident.
 - Return ONLY valid JSON: a single object with one key "wines" whose value is an array of wine objects. No markdown, no code blocks.
 
 Example format:

@@ -4,15 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
+import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { WineCard } from '@/components/wine-card';
 import { cn } from '@/lib/utils';
-import type { WineData } from '@/lib/openai';
+import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 interface LikedWineDetail {
   name: string;
@@ -105,10 +106,20 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const router = useRouter();
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
+  const tCellar = useTranslations('cellar');
+  const tCommon = useTranslations('common');
+  const tWineCard = useTranslations('wineCard');
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
   const [displayWine, setDisplayWine] = useState<Record<string, unknown> | null>(null);
+  const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
   const [isFetchingWineDetails, setIsFetchingWineDetails] = useState(false);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const [isAddingToCellar, setIsAddingToCellar] = useState(false);
+  const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
+  const [addToCellarQuantity, setAddToCellarQuantity] = useState(1);
+  const [addToCellarPriceNis, setAddToCellarPriceNis] = useState('');
+  const [addToCellarError, setAddToCellarError] = useState('');
+  const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
   const fetchingRef = useRef(false);
 
   // Reusable fetch function for profiles
@@ -128,31 +139,50 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     }
   }, [userId]);
 
-  // When modal opens with a wine, fetch full details from search API so we show the same as search
+  // When modal opens with a wine, fetch full details + profile match from search API
   useEffect(() => {
     if (!selectedWine?.name || !selectedWine?.winery) {
       setDisplayWine(null);
-      return;
-    }
-    if (hasFullWineData(selectedWine)) {
-      setDisplayWine(selectedWine);
-      setIsFetchingWineDetails(false);
+      setDisplayMatch(null);
       return;
     }
     let cancelled = false;
     setDisplayWine(null);
+    setDisplayMatch(null);
+
+    // If we already have full data, use it but still fetch match
+    if (hasFullWineData(selectedWine)) {
+      setDisplayWine(selectedWine);
+      // Still fetch match from API
+      fetch('/api/wine-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wine: selectedWine, userId }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!cancelled) setDisplayMatch(data.match ?? null);
+        })
+        .catch(() => {});
+      return () => { cancelled = true; };
+    }
+
     setIsFetchingWineDetails(true);
     const query = `${String(selectedWine.name)} ${String(selectedWine.winery)}`;
     fetch('/api/wine-search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, userId }),
     })
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
-        if (data.wine) setDisplayWine(data.wine);
-        else setDisplayWine(selectedWine);
+        if (data.wine) {
+          setDisplayWine(data.wine);
+          setDisplayMatch(data.match ?? null);
+        } else {
+          setDisplayWine(selectedWine);
+        }
       })
       .catch(() => {
         if (!cancelled) setDisplayWine(selectedWine);
@@ -161,7 +191,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         if (!cancelled) setIsFetchingWineDetails(false);
       });
     return () => { cancelled = true; };
-  }, [selectedWine]);
+  }, [selectedWine, userId]);
 
   // Sync initialProfiles from server when they change (e.g. on navigation)
   useEffect(() => {
@@ -207,6 +237,52 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   const getProfile = (type: string) =>
     profiles.find((p) => p.wine_type === type)?.profile_data || {};
+
+  const openAddToCellarModal = (wine: WineData) => {
+    setAddToCellarWine(wine);
+    setAddToCellarQuantity(1);
+    setAddToCellarPriceNis('');
+    setAddToCellarError('');
+    setIsSubmittingToCellar(false);
+  };
+
+  const handleConfirmAddToCellar = async () => {
+    if (!addToCellarWine) return;
+    setAddToCellarError('');
+    setIsSubmittingToCellar(true);
+    try {
+      const quantity = Math.max(1, Math.floor(Number(addToCellarQuantity)) || 1);
+      const priceStr = addToCellarPriceNis.trim().replace(/,/g, '.');
+      const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
+      const body: { userId: string; wine: WineData; quantity: number; purchasePrice?: number } = {
+        userId,
+        wine: addToCellarWine,
+        quantity,
+      };
+      if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
+        body.purchasePrice = purchasePrice;
+      }
+      const response = await fetch('/api/cellar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = typeof data?.error === 'string' ? data.error : 'Failed to add to cellar';
+        setAddToCellarError(message);
+        return;
+      }
+      setAddToCellarWine(null);
+      setIsAddingToCellar(true);
+      setTimeout(() => setIsAddingToCellar(false), 2000);
+    } catch (err) {
+      console.error('Failed to add to cellar:', err);
+      setAddToCellarError('Network error. Please try again.');
+    } finally {
+      setIsSubmittingToCellar(false);
+    }
+  };
 
   const handleRemoveFromProfile = async (w: LikedWineDetail) => {
     const key = `${w.name}|${w.winery}`;
@@ -555,6 +631,9 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                   <>
                     <WineCard
                       wine={toWineData(displayWine ?? selectedWine)}
+                      matchResult={displayMatch || undefined}
+                      onAddToCellar={() => openAddToCellarModal(toWineData(displayWine ?? selectedWine))}
+                      isAddingToCellar={isAddingToCellar}
                       uploadedImageUrl={(displayWine ?? selectedWine).image_url ? String((displayWine ?? selectedWine).image_url) : undefined}
                     />
                     {isInProfile && (
@@ -580,6 +659,84 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Add to cellar with optional price */}
+      <Dialog
+        open={!!addToCellarWine}
+        onOpenChange={(open) => {
+          if (!open) setAddToCellarWine(null);
+        }}
+      >
+        <DialogContent
+          onClose={() => setAddToCellarWine(null)}
+          className="max-w-sm z-[100]"
+        >
+          {addToCellarWine && (
+            <>
+              <h3 className="text-lg font-semibold text-wine-900">
+                {tCellar('addWine')}: {addToCellarWine.name}
+              </h3>
+              <p className="text-sm text-gray-500">{addToCellarWine.winery}</p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    {tCellar('quantity')}
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={addToCellarQuantity}
+                    onChange={(e) => setAddToCellarQuantity(parseInt(e.target.value, 10) || 1)}
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    {tCellar('purchasePriceNis')}
+                  </label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={addToCellarPriceNis}
+                    onChange={(e) => setAddToCellarPriceNis(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">{tCellar('priceOptional')}</p>
+                </div>
+              </div>
+              {addToCellarError && (
+                <p className="mt-2 text-sm text-red-600" role="alert">
+                  {addToCellarError}
+                </p>
+              )}
+              <div className="mt-6 flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setAddToCellarWine(null)}
+                  disabled={isSubmittingToCellar}
+                >
+                  {tCommon('cancel')}
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={handleConfirmAddToCellar}
+                  disabled={isSubmittingToCellar}
+                >
+                  {isSubmittingToCellar ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    tWineCard('addToCellar')
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
