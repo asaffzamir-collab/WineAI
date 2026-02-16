@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.0",
+    "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.45.0",
     "@vercel/analytics": "^1.6.1",

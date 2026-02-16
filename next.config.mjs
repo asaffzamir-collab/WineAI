@@ -1,12 +1,18 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+    ],
+  },
   experimental: {
     staleTimes: {
-      dynamic: 0, // Disable client-side Router Cache for dynamic pages so navigations always show fresh data
+      dynamic: 0,
     },
   },
   async headers() {
@@ -24,4 +30,10 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  telemetry: false,
+});
