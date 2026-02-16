@@ -15,7 +15,7 @@
   --secondary: 250 240 225;
   --secondary-foreground: 114 32 64;
   --muted: 245 235 220;
-  --muted-foreground: 115 115 115;
+  --muted-foreground: 100 100 100;
   --accent: 212 162 26;
   --accent-foreground: 24 10 15;
   --destructive: 239 68 68;
@@ -23,6 +23,17 @@
   --border: 229 218 200;
   --input: 229 218 200;
   --ring: 114 32 64;
+
+  /* Semantic colors */
+  --success: 22 163 74;
+  --success-foreground: 255 255 255;
+  --success-muted: 240 253 244;
+  --warning: 217 119 6;
+  --warning-foreground: 255 255 255;
+  --warning-muted: 255 251 235;
+  --info: 2 132 199;
+  --info-foreground: 255 255 255;
+  --info-muted: 240 249 255;
 }
 
 @layer base {
@@ -44,7 +55,7 @@
   a:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid rgb(114 32 64 / 0.4);
+    outline: 2px solid rgb(114 32 64 / 0.7);
     outline-offset: 2px;
     transition: outline-color 0.15s ease;
   }

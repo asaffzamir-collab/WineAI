@@ -178,8 +178,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         key: 'ready',
         icon: GlassWater,
         text: t('notifReadyToDrink', { count: stats.readyToDrink }),
-        color: 'text-green-700',
-        bg: 'bg-green-50',
+        color: 'text-success',
+        bg: 'bg-success-muted',
         href: '/cellar',
       });
     }
@@ -188,8 +188,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         key: 'expiring',
         icon: AlertTriangle,
         text: t('notifExpiring', { count: stats.expiringWines }),
-        color: 'text-amber-700',
-        bg: 'bg-amber-50',
+        color: 'text-warning',
+        bg: 'bg-warning-muted',
         href: '/cellar',
       });
     }
@@ -267,8 +267,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       label: t('readyToDrink'),
       value: stats.readyToDrink,
       icon: Clock,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
+      color: 'text-success',
+      bg: 'bg-success-muted',
       href: '/cellar?filter=ready',
     },
     {
@@ -308,7 +308,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           <Card className="relative overflow-hidden border-gold-300/50 bg-gradient-to-br from-white to-gold-50/40">
             <button
               onClick={dismissGuide}
-              className="absolute top-3 end-3 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="absolute top-3 end-3 rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600 transition-colors"
               aria-label="Dismiss"
             >
               <X className="h-4 w-4" />
@@ -322,7 +322,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                     <Camera className="h-5 w-5 text-wine-700" />
                   </div>
                   <p className="text-xs font-semibold text-wine-900">{t('guideStep1Title')}</p>
-                  <p className="text-[11px] leading-tight text-gray-500">{t('guideStep1Desc')}</p>
+                  <p className="text-xs leading-tight text-gray-500">{t('guideStep1Desc')}</p>
                 </div>
                 {/* Step 2 */}
                 <div className="flex flex-col items-center text-center gap-2">
@@ -330,7 +330,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                     <BookmarkPlus className="h-5 w-5 text-gold-700" />
                   </div>
                   <p className="text-xs font-semibold text-wine-900">{t('guideStep2Title')}</p>
-                  <p className="text-[11px] leading-tight text-gray-500">{t('guideStep2Desc')}</p>
+                  <p className="text-xs leading-tight text-gray-500">{t('guideStep2Desc')}</p>
                 </div>
                 {/* Step 3 */}
                 <div className="flex flex-col items-center text-center gap-2">
@@ -338,12 +338,12 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                     <Compass className="h-5 w-5 text-green-700" />
                   </div>
                   <p className="text-xs font-semibold text-wine-900">{t('guideStep3Title')}</p>
-                  <p className="text-[11px] leading-tight text-gray-500">{t('guideStep3Desc')}</p>
+                  <p className="text-xs leading-tight text-gray-500">{t('guideStep3Desc')}</p>
                 </div>
               </div>
               <button
                 onClick={dismissGuide}
-                className="mt-4 block w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                className="mt-4 block w-full text-center text-xs text-gray-500 hover:text-gray-600 transition-colors"
               >
                 {t('guideDismiss')}
               </button>
@@ -387,7 +387,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
                     <stat.icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
-                  <p className="text-2xl font-bold text-wine-900">
+                  <p className="text-2xl font-bold text-wine-900 tabular-nums">
                     <AnimatedNumber value={stat.value} isLoading={isLoading} />
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
@@ -403,7 +403,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-xs text-gray-500">{t('totalSpent')}</p>
-                <p className="text-2xl font-bold text-wine-900">
+                <p className="text-2xl font-bold text-wine-900 tabular-nums">
                   {isLoading ? '—' : formatCurrency(stats.totalSpent)}
                 </p>
               </div>
@@ -437,7 +437,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                       {typeEntries.map(([type, count]) => (
                         <div key={type} className="flex items-center gap-1.5">
                           <span className={`h-2 w-2 rounded-full ${typeColorMap[type] || 'bg-gray-300'}`} />
-                          <span className="text-[11px] text-gray-600">
+                          <span className="text-xs text-gray-600">
                             {t(typeLabelMap[type] || type)} ({count})
                           </span>
                         </div>
@@ -496,9 +496,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-wine-900">{item.wineName}</p>
-                        <p className="truncate text-xs text-gray-400">{item.winery}</p>
+                        <p className="truncate text-xs text-gray-500">{item.winery}</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
                     </CardContent>
                   </Card>
                 </Link>

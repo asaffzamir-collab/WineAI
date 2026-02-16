@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Search, Camera, Upload, Loader2, Wine, ChevronRight } from 'lucide-react';
+import { Search, Camera, Upload, Loader2, Wine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { WineCard } from '@/components/wine-card';
 import { BottomNav } from '@/components/bottom-nav';
+import { PageHeader } from '@/components/ui/page-header';
+import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
+import { WineListItem } from '@/components/wine-list-item';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
-import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 interface SearchPageProps {
@@ -19,12 +22,23 @@ interface SearchPageProps {
 
 const MAX_RECENT = 20;
 
+function buildWineMetadata(
+  w: { region?: string; country?: string; vintage?: number; grapes?: string[] },
+  labels: (key: string) => string
+) {
+  const meta: { label: string; value: string }[] = [];
+  if (w.region) meta.push({ label: labels('region'), value: w.region });
+  if (w.country) meta.push({ label: labels('country'), value: w.country });
+  if (w.vintage) meta.push({ label: labels('vintage'), value: String(w.vintage) });
+  if (w.grapes && w.grapes.length > 0) {
+    meta.push({ label: labels('grapes'), value: Array.isArray(w.grapes) ? w.grapes.join(', ') : String(w.grapes) });
+  }
+  return meta;
+}
+
 export function SearchPage({ userId }: SearchPageProps) {
   const t = useTranslations('search');
   const tProfile = useTranslations('profile');
-  const tCellar = useTranslations('cellar');
-  const tCommon = useTranslations('common');
-  const tWineCard = useTranslations('wineCard');
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [wineResult, setWineResult] = useState<WineData | null>(null);
@@ -32,7 +46,6 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [error, setError] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isAddingToCellar, setIsAddingToCellar] = useState(false);
-  const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
   const [recentSearches, setRecentSearches] = useState<WineData[]>([]);
@@ -43,9 +56,6 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
-  const [addToCellarQuantity, setAddToCellarQuantity] = useState(1);
-  const [addToCellarPriceNis, setAddToCellarPriceNis] = useState<string>('');
-  const [addToCellarError, setAddToCellarError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -255,52 +265,11 @@ export function SearchPage({ userId }: SearchPageProps) {
     if (!target) return;
     setSelectedRecentWine(null);
     setAddToCellarWine(target);
-    setAddToCellarQuantity(1);
-    setAddToCellarPriceNis('');
-    setAddToCellarError('');
-    setIsSubmittingToCellar(false);
   };
 
-  const handleConfirmAddToCellar = async () => {
-    if (!addToCellarWine) return;
-    setAddToCellarError('');
-    setIsSubmittingToCellar(true);
-    try {
-      const quantity = Math.max(1, Math.floor(Number(addToCellarQuantity)) || 1);
-      const priceStr = addToCellarPriceNis.trim().replace(/,/g, '.');
-      const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
-      const body: { userId: string; wine: WineData; quantity: number; purchasePrice?: number; bottlePhotoUrl?: string } = {
-        userId,
-        wine: addToCellarWine,
-        quantity,
-      };
-      if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
-        body.purchasePrice = purchasePrice;
-      }
-      if (uploadedImageUrl && addToCellarWine === wineResult) {
-        body.bottlePhotoUrl = uploadedImageUrl;
-      }
-      const response = await fetch('/api/cellar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const message = typeof data?.error === 'string' ? data.error : 'Failed to add to cellar';
-        setAddToCellarError(message);
-        return;
-      }
-      setAddToCellarWine(null);
-      // Show "Added to cellar!" feedback on the wine card
-      setIsAddingToCellar(true);
-      setTimeout(() => setIsAddingToCellar(false), 2000);
-    } catch (err) {
-      console.error('Failed to add to cellar:', err);
-      setAddToCellarError('Network error. Please try again.');
-    } finally {
-      setIsSubmittingToCellar(false);
-    }
+  const handleCellarAdded = () => {
+    setIsAddingToCellar(true);
+    setTimeout(() => setIsAddingToCellar(false), 2000);
   };
 
   const handleAddToWishlist = async (wine?: WineData | null) => {
@@ -347,33 +316,27 @@ export function SearchPage({ userId }: SearchPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-20">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-8 pt-8">
-        <div className="mx-auto max-w-lg">
-          <h1 className="mb-4 text-2xl font-bold text-white">{t('title')}</h1>
-
-          {/* Search Input */}
-          <div className="relative">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
-              placeholder={t('textPlaceholder')}
-              className="h-12 bg-white pe-12 ps-4 text-start"
-            />
-            <button
-              type="button"
-              onClick={handleTextSearch}
-              disabled={isSearching}
-              className="absolute end-3 top-1/2 -translate-y-1/2 text-wine-900 transition-colors hover:text-wine-700"
-              aria-label={t('title')}
-            >
-              <Search className="h-5 w-5" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-cream-50 pb-24">
+      <PageHeader title={t('title')}>
+        <div className="relative mt-4">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
+            placeholder={t('textPlaceholder')}
+            className="h-12 bg-white pe-12 ps-4 text-start"
+          />
+          <button
+            type="button"
+            onClick={handleTextSearch}
+            disabled={isSearching}
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-wine-900 transition-colors hover:text-wine-700"
+            aria-label={t('title')}
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </div>
-      </header>
+      </PageHeader>
 
       <div className="mx-auto max-w-lg px-4">
         {/* Image Upload */}
@@ -433,37 +396,17 @@ export function SearchPage({ userId }: SearchPageProps) {
             <h2 className="mb-2 text-lg font-semibold text-wine-900">{t('pickWine')}</h2>
             <p className="mb-3 text-sm text-gray-600">{t('multipleResults')}</p>
             {isFetchingMatch ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="h-10 w-10 animate-spin text-wine-900" />
-                <p className="mt-3 text-sm text-gray-600">{t('loadingDetails')}</p>
-              </div>
+              <LoadingSpinner message={t('loadingDetails')} className="py-8" />
             ) : (
               <ul className="space-y-2">
                 {wineCandidates.map((w, idx) => (
                   <li key={`${w.name}|${w.winery}|${w.vintage ?? ''}|${idx}`}>
-                    <button
-                      type="button"
+                    <WineListItem
+                      name={w.name}
+                      winery={w.winery}
+                      metadata={buildWineMetadata(w, tProfile)}
                       onClick={() => handleSelectCandidate(w)}
-                      className={cn(
-                        'w-full rounded-lg border border-wine-100 bg-white p-3 text-left shadow-sm',
-                        'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
-                        'flex items-center justify-between gap-2'
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-wine-900">{w.name}</p>
-                        <p className="text-sm text-gray-600">{w.winery}</p>
-                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
-                          {w.region && <span>{tProfile('region')}: {w.region}</span>}
-                          {w.country && <span>{tProfile('country')}: {w.country}</span>}
-                          {w.vintage && <span>{tProfile('vintage')}: {w.vintage}</span>}
-                          {w.grapes && w.grapes.length > 0 && (
-                            <span>{tProfile('grapes')}: {Array.isArray(w.grapes) ? w.grapes.join(', ') : String(w.grapes)}</span>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 flex-shrink-0 text-wine-400" />
-                    </button>
+                    />
                   </li>
                 ))}
               </ul>
@@ -473,10 +416,7 @@ export function SearchPage({ userId }: SearchPageProps) {
 
         {/* Loading State */}
         {isSearching && (
-          <div className="mt-8 flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-wine-900" />
-            <p className="mt-4 text-gray-600">{t('analyzing')}</p>
-          </div>
+          <LoadingSpinner message={t('analyzing')} size="lg" className="mt-8" />
         )}
 
         {/* Error State */}
@@ -521,29 +461,12 @@ export function SearchPage({ userId }: SearchPageProps) {
             <ul className="space-y-2">
               {recentSearches.slice(0, MAX_RECENT).map((w, idx) => (
                 <li key={`${w.name}|${w.winery}|${idx}`}>
-                  <button
-                    type="button"
+                  <WineListItem
+                    name={w.name}
+                    winery={w.winery}
+                    metadata={buildWineMetadata(w, tProfile)}
                     onClick={() => setSelectedRecentWine(w)}
-                    className={cn(
-                      'w-full rounded-lg border border-wine-100 bg-white p-3 text-left shadow-sm',
-                      'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
-                      'flex items-center justify-between gap-2'
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-wine-900">{w.name}</p>
-                      <p className="text-sm text-gray-600">{w.winery}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
-                        {w.region && <span>{tProfile('region')}: {w.region}</span>}
-                        {w.country && <span>{tProfile('country')}: {w.country}</span>}
-                        {w.vintage && <span>{tProfile('vintage')}: {w.vintage}</span>}
-                        {w.grapes && w.grapes.length > 0 && (
-                          <span>{tProfile('grapes')}: {w.grapes.join(', ')}</span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 flex-shrink-0 text-wine-400" />
-                  </button>
+                  />
                 </li>
               ))}
             </ul>
@@ -597,83 +520,13 @@ export function SearchPage({ userId }: SearchPageProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Add to cellar with optional price (NIS) — render first so it can sit on top */}
-      <Dialog
-        open={!!addToCellarWine}
-        onOpenChange={(open) => {
-          if (!open) setAddToCellarWine(null);
-        }}
-      >
-        <DialogContent
-          onClose={() => setAddToCellarWine(null)}
-          className="max-w-sm z-[100]"
-        >
-          {addToCellarWine && (
-            <>
-              <h3 className="text-lg font-semibold text-wine-900">
-                {tCellar('addWine')}: {addToCellarWine.name}
-              </h3>
-              <p className="text-sm text-gray-500">{addToCellarWine.winery}</p>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {tCellar('quantity')}
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={addToCellarQuantity}
-                    onChange={(e) => setAddToCellarQuantity(parseInt(e.target.value, 10) || 1)}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {tCellar('purchasePriceNis')}
-                  </label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={addToCellarPriceNis}
-                    onChange={(e) => setAddToCellarPriceNis(e.target.value)}
-                    className="w-full"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">{tCellar('priceOptional')}</p>
-                </div>
-              </div>
-              {addToCellarError && (
-                <p className="mt-2 text-sm text-red-600" role="alert">
-                  {addToCellarError}
-                </p>
-              )}
-              <div className="mt-6 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setAddToCellarWine(null)}
-                  disabled={isSubmittingToCellar}
-                >
-                  {tCommon('cancel')}
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  onClick={handleConfirmAddToCellar}
-                  disabled={isSubmittingToCellar}
-                >
-                  {isSubmittingToCellar ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    tWineCard('addToCellar')
-                  )}
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AddToCellarDialog
+        wine={addToCellarWine}
+        userId={userId}
+        bottlePhotoUrl={uploadedImageUrl && addToCellarWine === wineResult ? uploadedImageUrl : undefined}
+        onClose={() => setAddToCellarWine(null)}
+        onAdded={handleCellarAdded}
+      />
 
       <BottomNav />
     </div>

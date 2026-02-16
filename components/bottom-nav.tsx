@@ -31,10 +31,10 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative flex flex-col items-center gap-0.5 px-2.5 py-2 transition-colors',
+                'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-colors',
                 isActive
                   ? 'text-wine-900'
-                  : 'text-gray-400 hover:text-wine-700'
+                  : 'text-gray-500 hover:text-wine-700'
               )}
             >
               <Icon
@@ -43,7 +43,7 @@ export function BottomNav() {
                   isActive && 'scale-110'
                 )}
               />
-              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+              <span className="text-xs font-medium">{t(item.labelKey)}</span>
               {isActive && (
                 <span className="absolute -bottom-1 h-1 w-6 rounded-full bg-wine-900 transition-all duration-200" />
               )}

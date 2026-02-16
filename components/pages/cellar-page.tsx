@@ -4,10 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight, Pencil, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
-import { WineCard } from '@/components/wine-card';
+import dynamic from 'next/dynamic';
+
+const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+});
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -320,13 +326,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-20">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-8 pt-8">
-        <div className="mx-auto max-w-lg">
-          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-cream-50 pb-24">
+      <PageHeader title={t('title')} />
 
       <div className="mx-auto max-w-lg px-4">
         {/* Stats */}
@@ -354,7 +355,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
               type="button"
               onClick={() => setActiveFilter(undefined)}
               className={cn(
-                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
                 !activeFilter
                   ? 'bg-wine-900 text-white'
                   : 'bg-cream-200 text-wine-800 hover:bg-cream-300'
@@ -366,10 +367,10 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
               type="button"
               onClick={() => setActiveFilter(activeFilter === 'ready' ? undefined : 'ready')}
               className={cn(
-                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
                 activeFilter === 'ready'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+                  ? 'bg-success text-success-foreground'
+                  : 'bg-success-muted text-success hover:bg-success-muted/80'
               )}
             >
               {t('filterReady')}
@@ -379,20 +380,13 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
 
         {/* Empty State */}
         {filteredItems.length === 0 && items.length === 0 && (
-          <Card className="mt-8">
-            <CardContent className="py-12 text-center">
-              <Wine className="mx-auto h-16 w-16 text-gray-300" />
-              <h3 className="mt-4 text-lg font-semibold text-gray-600">
-                {t('empty')}
-              </h3>
-              <p className="mt-1 text-sm text-gray-400">
-                {t('emptyDescription')}
-              </p>
-              <Button className="mt-4" asChild>
-                <a href="/search">{t('addWine')}</a>
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Wine}
+            title={t('empty')}
+            description={t('emptyDescription')}
+            actionLabel={t('addWine')}
+            actionHref="/search"
+          />
         )}
 
         {/* Filter empty state */}
@@ -430,6 +424,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                         src={imageUrl}
                         alt={wine?.name || ''}
                         className="h-full w-full object-contain"
+                        loading="lazy"
                         onError={() => handleImageError(item.id)}
                       />
                     </div>
@@ -459,7 +454,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                   />
                   <button
                     type="button"
-                    className="absolute -bottom-1 -end-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow border border-gray-200"
+                    className="absolute -bottom-1.5 -end-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow border border-gray-200"
                     onClick={(e) => {
                       e.stopPropagation();
                       document.getElementById(`cellar-photo-${item.id}`)?.click();
@@ -467,7 +462,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     disabled={isUpdatingPhoto === item.id}
                     title={tSearch('takePhoto')}
                   >
-                    <Camera className="h-2.5 w-2.5 text-gray-500" />
+                    <Camera className="h-3.5 w-3.5 text-gray-500" />
                   </button>
                 </div>
 
@@ -479,18 +474,18 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                   <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
                   {/* Region & country */}
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1 flex items-center gap-0.5">
+                    <p className="mt-0.5 text-xs text-gray-500 line-clamp-1 flex items-center gap-0.5">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
                   {/* Grapes */}
                   {wine?.grapes && wine.grapes.length > 0 && (
-                    <p className="text-xs text-gray-400 line-clamp-1">
+                    <p className="text-xs text-gray-500 line-clamp-1">
                       {wine.grapes.join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
@@ -690,7 +685,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                             </div>
                           )}
                           {selectedItem.notes && (
-                            <p className="italic text-gray-400 pt-1">{selectedItem.notes}</p>
+                            <p className="italic text-gray-500 pt-1">{selectedItem.notes}</p>
                           )}
                         </>
                       )}

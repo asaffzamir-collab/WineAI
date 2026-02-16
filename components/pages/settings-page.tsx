@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/bottom-nav';
+import { PageHeader } from '@/components/ui/page-header';
 
 interface UserProfile {
   id: string;
@@ -56,13 +57,9 @@ export function SettingsPage({ userId, profile, userEmail }: SettingsPageProps) 
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-20">
+    <div className="min-h-screen bg-cream-50 pb-24">
       {/* Header */}
-      <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-8 pt-8">
-        <div className="mx-auto max-w-lg">
-          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-        </div>
-      </header>
+      <PageHeader title={t('title')} />
 
       <div className="mx-auto max-w-lg space-y-4 px-4 pt-4">
         {/* Account Info */}

@@ -7,7 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
-import { WineCard } from '@/components/wine-card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import dynamic from 'next/dynamic';
+
+const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+});
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
@@ -167,31 +173,20 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-20">
+    <div className="min-h-screen bg-cream-50 pb-24">
       {/* Header */}
-      <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-8 pt-8">
-        <div className="mx-auto max-w-lg">
-          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-        </div>
-      </header>
+      <PageHeader title={t('title')} />
 
       <div className="mx-auto max-w-lg px-4">
         {/* Empty State */}
         {items.length === 0 && (
-          <Card className="mt-8">
-            <CardContent className="py-12 text-center">
-              <Heart className="mx-auto h-16 w-16 text-gray-300" />
-              <h3 className="mt-4 text-lg font-semibold text-gray-600">
-                {t('empty')}
-              </h3>
-              <p className="mt-1 text-sm text-gray-400">
-                {t('emptyDescription')}
-              </p>
-              <Button className="mt-4" asChild>
-                <a href="/search">{tSearch('title')}</a>
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Heart}
+            title={t('empty')}
+            description={t('emptyDescription')}
+            actionLabel={tSearch('title')}
+            actionHref="/search"
+          />
         )}
 
         {/* Wishlist Items — clickable rows (same pattern as cellar) */}
@@ -230,12 +225,12 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   </p>
                   <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1 flex items-center gap-0.5">
+                    <p className="mt-0.5 text-xs text-gray-500 line-clamp-1 flex items-center gap-0.5">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-gold-500 text-gold-500" />

@@ -10,7 +10,6 @@ const heebo = Heebo({
   subsets: ['latin', 'hebrew'],
   variable: '--font-heebo',
   display: 'swap',
-  preload: false,
 });
 
 export const metadata: Metadata = {

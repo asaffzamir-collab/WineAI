@@ -171,7 +171,7 @@ export function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -181,7 +181,7 @@ export function AuthPage() {
                   </button>
                 </div>
                 {mode === 'register' && (
-                  <p className="mt-1 text-xs text-gray-400">{t('passwordHint')}</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('passwordHint')}</p>
                 )}
               </div>
 

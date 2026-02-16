@@ -3,14 +3,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2, Loader2 } from 'lucide-react';
+import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
+import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
+import { WineListItem } from '@/components/wine-list-item';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { WineCard } from '@/components/wine-card';
+import dynamic from 'next/dynamic';
+
+const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+});
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
@@ -136,7 +142,7 @@ function SpectrumBar({
       onClick={onToggle}
       className="w-full text-start rounded-lg px-1 py-2 -mx-1 hover:bg-cream-100/60 transition-colors"
     >
-      <p className="mb-1.5 text-xs text-gray-400 italic">{hint}</p>
+      <p className="mb-1.5 text-xs text-gray-500 italic">{hint}</p>
       {/* dir="ltr" prevents RTL flex reversal so left:X% matches the correct label */}
       <div className="flex items-center gap-3" dir="ltr">
         <span className="w-14 text-end text-sm font-semibold text-wine-900">{leftLabel}</span>
@@ -184,7 +190,7 @@ function TasteSpectrumChart({
       <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wide text-wine-900">
         {t('tasteSpectrumTitle')}
       </h3>
-      <p className="mb-4 text-center text-xs text-gray-400">
+      <p className="mb-4 text-center text-xs text-gray-500">
         {t('spectrumTapToLearn')}
       </p>
       <div className="space-y-1">
@@ -221,7 +227,7 @@ function SectionHeading({
         {icon}
         <h3 className="font-semibold text-wine-900">{title}</h3>
       </div>
-      <p className="mt-0.5 text-xs text-gray-400 italic">{subtitle}</p>
+      <p className="mt-0.5 text-xs text-gray-500 italic">{subtitle}</p>
     </div>
   );
 }
@@ -231,9 +237,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
-  const tCellar = useTranslations('cellar');
-  const tCommon = useTranslations('common');
-  const tWineCard = useTranslations('wineCard');
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
   const [displayWine, setDisplayWine] = useState<Record<string, unknown> | null>(null);
   const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
@@ -241,10 +244,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const [isAddingToCellar, setIsAddingToCellar] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
-  const [addToCellarQuantity, setAddToCellarQuantity] = useState(1);
-  const [addToCellarPriceNis, setAddToCellarPriceNis] = useState('');
-  const [addToCellarError, setAddToCellarError] = useState('');
-  const [isSubmittingToCellar, setIsSubmittingToCellar] = useState(false);
   const [expandedInfos, setExpandedInfos] = useState<Set<string>>(new Set());
   const fetchingRef = useRef(false);
   const backfillRequestedRef = useRef<Set<string>>(new Set());
@@ -419,48 +418,11 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   const openAddToCellarModal = (wine: WineData) => {
     setAddToCellarWine(wine);
-    setAddToCellarQuantity(1);
-    setAddToCellarPriceNis('');
-    setAddToCellarError('');
-    setIsSubmittingToCellar(false);
   };
 
-  const handleConfirmAddToCellar = async () => {
-    if (!addToCellarWine) return;
-    setAddToCellarError('');
-    setIsSubmittingToCellar(true);
-    try {
-      const quantity = Math.max(1, Math.floor(Number(addToCellarQuantity)) || 1);
-      const priceStr = addToCellarPriceNis.trim().replace(/,/g, '.');
-      const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
-      const body: { userId: string; wine: WineData; quantity: number; purchasePrice?: number } = {
-        userId,
-        wine: addToCellarWine,
-        quantity,
-      };
-      if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
-        body.purchasePrice = purchasePrice;
-      }
-      const response = await fetch('/api/cellar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const message = typeof data?.error === 'string' ? data.error : 'Failed to add to cellar';
-        setAddToCellarError(message);
-        return;
-      }
-      setAddToCellarWine(null);
-      setIsAddingToCellar(true);
-      setTimeout(() => setIsAddingToCellar(false), 2000);
-    } catch (err) {
-      console.error('Failed to add to cellar:', err);
-      setAddToCellarError('Network error. Please try again.');
-    } finally {
-      setIsSubmittingToCellar(false);
-    }
+  const handleCellarAdded = () => {
+    setIsAddingToCellar(true);
+    setTimeout(() => setIsAddingToCellar(false), 2000);
   };
 
   const handleRemoveFromProfile = async (w: LikedWineDetail) => {
@@ -491,13 +453,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-20">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-wine-900 to-wine-800 px-4 pb-8 pt-8">
-        <div className="mx-auto max-w-lg">
-          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-cream-50 pb-24">
+      <PageHeader title={t('title')} />
 
       <div className="mx-auto max-w-lg px-4">
         {/* Wine Type Tabs */}
@@ -695,6 +652,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                               src={w.image_url || String(w.full_wine?.image_url || '')}
                                               alt={w.name}
                                               className="h-full w-full object-contain"
+                                              loading="lazy"
                                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                             />
                                           </div>
@@ -760,18 +718,11 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                 const nameStr = String(name);
                                 return (
                                   <li key={`${type}-fallback-${idx}`}>
-                                    <button
-                                      type="button"
+                                    <WineListItem
+                                      name={nameStr}
+                                      winery=""
                                       onClick={() => setSelectedWine({ name: nameStr, winery: '', wine_type: type as WineData['wine_type'] })}
-                                      className={cn(
-                                        'w-full cursor-pointer rounded-lg border border-wine-100 bg-white p-3 text-left shadow-sm',
-                                        'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
-                                        'flex items-center justify-between gap-2'
-                                      )}
-                                    >
-                                      <p className="font-semibold text-wine-900">{nameStr}</p>
-                                      <ChevronRight className="h-5 w-5 flex-shrink-0 text-wine-400" />
-                                    </button>
+                                    />
                                   </li>
                                 );
                               })}
@@ -859,83 +810,12 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Add to cellar with optional price */}
-      <Dialog
-        open={!!addToCellarWine}
-        onOpenChange={(open) => {
-          if (!open) setAddToCellarWine(null);
-        }}
-      >
-        <DialogContent
-          onClose={() => setAddToCellarWine(null)}
-          className="max-w-sm z-[100]"
-        >
-          {addToCellarWine && (
-            <>
-              <h3 className="text-lg font-semibold text-wine-900">
-                {tCellar('addWine')}: {addToCellarWine.name}
-              </h3>
-              <p className="text-sm text-gray-500">{addToCellarWine.winery}</p>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {tCellar('quantity')}
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={addToCellarQuantity}
-                    onChange={(e) => setAddToCellarQuantity(parseInt(e.target.value, 10) || 1)}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {tCellar('purchasePriceNis')}
-                  </label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={addToCellarPriceNis}
-                    onChange={(e) => setAddToCellarPriceNis(e.target.value)}
-                    className="w-full"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">{tCellar('priceOptional')}</p>
-                </div>
-              </div>
-              {addToCellarError && (
-                <p className="mt-2 text-sm text-red-600" role="alert">
-                  {addToCellarError}
-                </p>
-              )}
-              <div className="mt-6 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setAddToCellarWine(null)}
-                  disabled={isSubmittingToCellar}
-                >
-                  {tCommon('cancel')}
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  onClick={handleConfirmAddToCellar}
-                  disabled={isSubmittingToCellar}
-                >
-                  {isSubmittingToCellar ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    tWineCard('addToCellar')
-                  )}
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <AddToCellarDialog
+        wine={addToCellarWine}
+        userId={userId}
+        onClose={() => setAddToCellarWine(null)}
+        onAdded={handleCellarAdded}
+      />
 
       <BottomNav />
     </div>

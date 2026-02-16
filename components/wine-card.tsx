@@ -77,7 +77,7 @@ function MatchSpectrumChart({
 
   return (
     <div className="mb-2 rounded-lg bg-cream-50 p-3">
-      <p className="mb-2 text-center text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
         {t('spectrumCompareTitle')}
       </p>
       <div className="space-y-0.5">
@@ -92,7 +92,7 @@ function MatchSpectrumChart({
         ))}
       </div>
       {/* Legend */}
-      <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] text-gray-500">
+      <div className="mt-2.5 flex items-center justify-center gap-4 text-xs text-gray-500">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-wine-700" />
           {t('wineSpectrum')}
@@ -161,6 +161,7 @@ export function WineCard({
                 src={uploadedImageUrl || wine.image_url}
                 alt={wine.name}
                 className="h-full w-full object-contain"
+                loading="lazy"
                 onError={() => setImageError(true)}
               />
             </div>
@@ -179,7 +180,7 @@ export function WineCard({
                 'h-8 w-8',
                 wine.wine_type === 'white' || wine.wine_type === 'sparkling' ? 'text-gray-600' : 'text-white/70'
               )} />
-              <span className="text-[10px] font-medium opacity-80 max-w-full truncate px-1">
+              <span className="text-xs font-medium opacity-80 max-w-full truncate px-1">
                 {t('seeOnVivino')}
               </span>
             </a>
