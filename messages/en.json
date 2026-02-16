@@ -220,7 +220,10 @@
     "save": "Save",
     "cancelEdit": "Cancel",
     "addPrice": "Add price",
-    "notesPlaceholder": "Notes about this wine..."
+    "notesPlaceholder": "Notes about this wine...",
+    "filterAll": "All",
+    "filterReady": "Ready to drink",
+    "filterEmpty": "No wines match this filter"
   },
   "wishlist": {
     "title": "My Wishlist",

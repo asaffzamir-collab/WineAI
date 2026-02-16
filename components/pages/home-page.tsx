@@ -253,6 +253,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       icon: Sparkles,
       color: 'text-wine-900',
       bg: 'bg-wine-50',
+      href: '/cellar',
     },
     {
       label: t('bottlesInCellar'),
@@ -260,6 +261,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       icon: Wine,
       color: 'text-wine-700',
       bg: 'bg-wine-50',
+      href: '/cellar',
     },
     {
       label: t('readyToDrink'),
@@ -267,6 +269,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       icon: Clock,
       color: 'text-green-600',
       bg: 'bg-green-50',
+      href: '/cellar?filter=ready',
     },
     {
       label: t('wishlistCount'),
@@ -274,6 +277,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       icon: Heart,
       color: 'text-rose-500',
       bg: 'bg-rose-50',
+      href: '/wishlist',
     },
   ];
 
@@ -377,34 +381,38 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         {/* ── Stats Grid ── */}
         <div className="grid grid-cols-2 gap-3">
           {statCards.map((stat, idx) => (
-            <Card key={idx} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <p className="text-2xl font-bold text-wine-900">
-                  <AnimatedNumber value={stat.value} isLoading={isLoading} />
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
-              </CardContent>
-            </Card>
+            <Link key={idx} href={stat.href}>
+              <Card className="overflow-hidden cursor-pointer hover:bg-cream-50 transition-colors">
+                <CardContent className="p-4">
+                  <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                  <p className="text-2xl font-bold text-wine-900">
+                    <AnimatedNumber value={stat.value} isLoading={isLoading} />
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
         {/* ── Total Spent ── */}
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-gray-500">{t('totalSpent')}</p>
-              <p className="text-2xl font-bold text-wine-900">
-                {isLoading ? '—' : formatCurrency(stats.totalSpent)}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-gold-100 p-3">
-              <TrendingUp className="h-6 w-6 text-gold-600" />
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/cellar">
+          <Card className="cursor-pointer hover:bg-cream-50 transition-colors">
+            <CardContent className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-xs text-gray-500">{t('totalSpent')}</p>
+                <p className="text-2xl font-bold text-wine-900">
+                  {isLoading ? '—' : formatCurrency(stats.totalSpent)}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-gold-100 p-3">
+                <TrendingUp className="h-6 w-6 text-gold-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* ── Cellar Insights ── */}
         {!isLoading && stats.bottlesInCellar > 0 && (

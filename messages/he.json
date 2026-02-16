@@ -220,7 +220,10 @@
     "save": "שמור",
     "cancelEdit": "ביטול",
     "addPrice": "הוסף מחיר",
-    "notesPlaceholder": "הערות על היין..."
+    "notesPlaceholder": "הערות על היין...",
+    "filterAll": "הכל",
+    "filterReady": "מוכנים לשתייה",
+    "filterEmpty": "אין יינות שמתאימים לסינון הזה"
   },
   "wishlist": {
     "title": "רשימת המשאלות שלי",

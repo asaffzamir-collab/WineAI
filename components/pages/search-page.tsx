@@ -501,8 +501,10 @@ export function SearchPage({ userId }: SearchPageProps) {
               wine={wineResult}
               matchResult={matchResult || undefined}
               onAddToCellar={() => openAddToCellarModal(wineResult)}
+              onAddToWishlist={() => handleAddToWishlist()}
               onAddToProfile={() => handleAddToProfile()}
               isAddingToCellar={isAddingToCellar}
+              isAddingToWishlist={isAddingToWishlist}
               isAddingToProfile={isAddingToProfile}
               uploadedImageUrl={uploadedImageUrl || undefined}
             />
@@ -582,8 +584,10 @@ export function SearchPage({ userId }: SearchPageProps) {
                   wine={displayWine || selectedRecentWine}
                   matchResult={displayMatch || undefined}
                   onAddToCellar={() => openAddToCellarModal(displayWine || selectedRecentWine)}
+                  onAddToWishlist={() => handleAddToWishlist(displayWine || selectedRecentWine)}
                   onAddToProfile={() => handleAddToProfile(displayWine || selectedRecentWine)}
                   isAddingToCellar={isAddingToCellar}
+                  isAddingToWishlist={isAddingToWishlist}
                   isAddingToProfile={isAddingToProfile}
                   uploadedImageUrl={undefined}
                 />

@@ -3,6 +3,29 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+export async function GET(request: Request) {
+  try {
+    const userId = new URL(request.url).searchParams.get('userId');
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    }
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('wishlist_items')
+      .select(`
+        id, priority, notes,
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return NextResponse.json({ items: data ?? [] });
+  } catch (error) {
+    console.error('Wishlist GET error:', error);
+    return NextResponse.json({ error: 'Failed to load wishlist' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { userId, wine, priority, notes } = await request.json();

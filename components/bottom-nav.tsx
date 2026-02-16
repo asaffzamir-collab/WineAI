@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Search, Wine, User, Settings } from 'lucide-react';
+import { Home, Search, Wine, Heart, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Wishlist removed from nav for now; code kept in app/wishlist, components/pages/wishlist-page, api/wishlist for future use
 const navItems = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/search', icon: Search, labelKey: 'search' },
   { href: '/cellar', icon: Wine, labelKey: 'cellar' },
+  { href: '/wishlist', icon: Heart, labelKey: 'wishlist' },
   { href: '/profile', icon: User, labelKey: 'profile' },
   { href: '/settings', icon: Settings, labelKey: 'settings' },
 ];
@@ -31,7 +31,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative flex flex-col items-center gap-0.5 px-4 py-2 transition-colors',
+                'relative flex flex-col items-center gap-0.5 px-2.5 py-2 transition-colors',
                 isActive
                   ? 'text-wine-900'
                   : 'text-gray-400 hover:text-wine-700'

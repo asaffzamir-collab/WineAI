@@ -41,12 +41,15 @@ export interface CellarItem {
   storage_location?: string;
   notes?: string;
   bottle_photo_url?: string | null;
+  drink_from?: string | null;
+  drink_until?: string | null;
   wines: CellarWineData | CellarWineData[] | null;
 }
 
 interface CellarPageProps {
   userId: string;
   initialItems: CellarItem[];
+  initialFilter?: string;
 }
 
 const wineTypeColors: Record<string, string> = {
@@ -85,10 +88,11 @@ function toWineData(wine: CellarWineData): WineData {
   };
 }
 
-export function CellarPage({ userId, initialItems }: CellarPageProps) {
+export function CellarPage({ userId, initialItems, initialFilter }: CellarPageProps) {
   const t = useTranslations('cellar');
   const tSearch = useTranslations('search');
   const [items, setItems] = useState<CellarItem[]>(initialItems);
+  const [activeFilter, setActiveFilter] = useState<string | undefined>(initialFilter);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState<string | null>(null);
   const fetchingRef = useRef(false);
@@ -190,6 +194,16 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
 
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
+
+  const currentYear = new Date().getFullYear();
+
+  const filteredItems = activeFilter === 'ready'
+    ? items.filter((item) => {
+        const drinkFrom = item.drink_from ? new Date(item.drink_from).getFullYear() : 0;
+        const drinkUntil = item.drink_until ? new Date(item.drink_until).getFullYear() : 9999;
+        return currentYear >= drinkFrom && currentYear <= drinkUntil;
+      })
+    : items;
 
   const totalBottles = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
   const totalValue = items.reduce(
@@ -333,8 +347,38 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
           </Card>
         </div>
 
+        {/* Filter toggle */}
+        {items.length > 0 && (
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveFilter(undefined)}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                !activeFilter
+                  ? 'bg-wine-900 text-white'
+                  : 'bg-cream-200 text-wine-800 hover:bg-cream-300'
+              )}
+            >
+              {t('filterAll')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter(activeFilter === 'ready' ? undefined : 'ready')}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                activeFilter === 'ready'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+              )}
+            >
+              {t('filterReady')}
+            </button>
+          </div>
+        )}
+
         {/* Empty State */}
-        {items.length === 0 && (
+        {filteredItems.length === 0 && items.length === 0 && (
           <Card className="mt-8">
             <CardContent className="py-12 text-center">
               <Wine className="mx-auto h-16 w-16 text-gray-300" />
@@ -351,9 +395,18 @@ export function CellarPage({ userId, initialItems }: CellarPageProps) {
           </Card>
         )}
 
+        {/* Filter empty state */}
+        {filteredItems.length === 0 && items.length > 0 && (
+          <Card className="mt-4">
+            <CardContent className="py-8 text-center">
+              <p className="text-sm text-gray-500">{t('filterEmpty')}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Cellar Items */}
         <div className="mt-6 space-y-3">
-          {items.map((item) => {
+          {filteredItems.map((item) => {
             const wine = getWine(item);
             const imageUrl = item.bottle_photo_url || wine?.image_url;
             const isImageBroken = brokenImages.has(item.id);
