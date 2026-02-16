@@ -405,32 +405,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </Card>
         )}
 
-        {/* Notifications */}
-        {notifications.length > 0 && (
-          <div className="space-y-2">
-            {notifications.slice(0, 2).map((notif) => {
-              const Icon = notif.icon;
-              const content = (
-                <>
-                  <Icon className={`h-4 w-4 shrink-0 ${notif.color}`} strokeWidth={1.5} />
-                  <span className={`text-sm ${notif.color}`}>{notif.text}</span>
-                  {notif.href && <ChevronRight className={`ms-auto h-4 w-4 ${notif.color} opacity-50`} strokeWidth={1.5} />}
-                </>
-              );
-              const className = `flex items-center gap-3 rounded-xl px-4 py-3 ${notif.bg} transition-all duration-200 hover:opacity-90`;
-
-              return notif.href ? (
-                <Link key={notif.key} href={notif.href} className={className}>
-                  {content}
-                </Link>
-              ) : (
-                <div key={notif.key} className={className}>
-                  {content}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* Notifications removed — stats grid provides same info */}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">

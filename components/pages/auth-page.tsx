@@ -204,8 +204,29 @@ export function AuthPage() {
               </div>
             </div>
 
-            <a
-              href="/auth/signin?provider=google"
+            <button
+              type="button"
+              onClick={async () => {
+                setError(null);
+                setIsLoading(true);
+                try {
+                  const supabase = createClient();
+                  const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${window.location.origin}/auth/callback`,
+                    },
+                  });
+                  if (oauthError) {
+                    setError(oauthError.message);
+                    setIsLoading(false);
+                  }
+                } catch {
+                  setError(t('genericError'));
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-ivory-400 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition-all duration-200 hover:bg-ivory-200 dark:border-charcoal-700 dark:bg-charcoal-800 dark:text-ivory-200 dark:hover:bg-charcoal-700"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -215,7 +236,7 @@ export function AuthPage() {
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
               Continue with Google
-            </a>
+            </button>
 
             <p className="mt-4 text-center text-sm text-stone-600 dark:text-stone-400">
               {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}

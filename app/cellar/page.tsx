@@ -26,7 +26,7 @@ export default async function Page({
       .select(`
         id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
         drink_from, drink_until,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

@@ -155,35 +155,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     }
     const wine = getWine(selectedItem);
     if (!wine) return;
-
-    let cancelled = false;
-    setIsFetchingDetails(true);
-    setDetailWine(null);
-
-    const query = `${wine.name} ${wine.winery}`;
-    fetch('/api/wine-search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, userId }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (data.wine) {
-          setDetailWine(data.wine);
-        } else {
-          setDetailWine(toWineData(wine));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setDetailWine(toWineData(wine));
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetchingDetails(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [selectedItem, userId]);
+    setDetailWine(toWineData(wine));
+  }, [selectedItem]);
 
   const currentYear = new Date().getFullYear();
 

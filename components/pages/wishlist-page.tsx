@@ -27,6 +27,15 @@ interface WineRowData {
   region?: string;
   grapes?: string[];
   vivino_rating?: number;
+  vivino_reviews?: number;
+  alcohol?: number;
+  tasting_notes?: {
+    nose?: string[];
+    palate?: string[];
+    finish?: string;
+  } | null;
+  ai_description?: string | null;
+  image_url?: string;
 }
 
 interface WishlistItem {
@@ -54,6 +63,17 @@ function toWineData(wine: WineRowData): WineData {
     region: wine.region,
     grapes: wine.grapes || [],
     vivino_rating: wine.vivino_rating,
+    vivino_reviews: wine.vivino_reviews,
+    alcohol: wine.alcohol,
+    tasting_notes: wine.tasting_notes
+      ? {
+          nose: wine.tasting_notes.nose || [],
+          palate: wine.tasting_notes.palate || [],
+          finish: wine.tasting_notes.finish || '',
+        }
+      : undefined,
+    winery_description: wine.ai_description || undefined,
+    image_url: wine.image_url,
   };
 }
 
@@ -196,18 +216,29 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
               >
-                <div
-                  className={cn(
-                    'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl',
-                    wineTypeColors[wine?.wine_type || ''] || 'bg-ivory-400'
-                  )}
-                >
-                  <Wine className={cn(
-                    'h-5 w-5',
-                    wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
-                      ? 'text-stone-600' : 'text-white/80'
-                  )} strokeWidth={1.5} />
-                </div>
+                {wine?.image_url ? (
+                  <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                    <img
+                      src={wine.image_url}
+                      alt={wine.name}
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+                      wineTypeColors[wine?.wine_type || ''] || 'bg-ivory-400'
+                    )}
+                  >
+                    <Wine className={cn(
+                      'h-5 w-5',
+                      wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
+                        ? 'text-stone-600' : 'text-white/80'
+                    )} strokeWidth={1.5} />
+                  </div>
+                )}
 
                 <div className="min-w-0 flex-1">
                   <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
