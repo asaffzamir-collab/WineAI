@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   Wine,
   Search,
@@ -18,12 +19,19 @@ import {
   Camera,
   BookmarkPlus,
   Compass,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { BottomNav } from '@/components/bottom-nav';
 import { WineLogo } from '@/components/wine-logo';
 import { formatCurrency } from '@/lib/utils';
+import type { WineData } from '@/lib/openai';
+
+const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
+});
 
 interface HomePageProps {
   userId: string;
@@ -112,10 +120,62 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   });
   const [isLoading, setIsLoading] = useState(true);
   const [guideDismissed, setGuideDismissed] = useState(true);
+  const [selectedRecentItem, setSelectedRecentItem] = useState<RecentCellarItem | null>(null);
+  const [recentDetailWine, setRecentDetailWine] = useState<WineData | null>(null);
+  const [isFetchingRecentDetails, setIsFetchingRecentDetails] = useState(false);
 
   useEffect(() => {
     setGuideDismissed(localStorage.getItem(GUIDE_DISMISSED_KEY) === 'true');
   }, []);
+
+  useEffect(() => {
+    if (!selectedRecentItem) {
+      setRecentDetailWine(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingRecentDetails(true);
+    setRecentDetailWine(null);
+
+    const query = `${selectedRecentItem.wineName} ${selectedRecentItem.winery}`;
+    fetch('/api/wine-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, userId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.wine) {
+          setRecentDetailWine(data.wine);
+        } else {
+          setRecentDetailWine({
+            name: selectedRecentItem.wineName,
+            winery: selectedRecentItem.winery,
+            wine_type: 'red',
+            country: '',
+            grapes: [],
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRecentDetailWine({
+            name: selectedRecentItem.wineName,
+            winery: selectedRecentItem.winery,
+            wine_type: 'red',
+            country: '',
+            grapes: [],
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsFetchingRecentDetails(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedRecentItem, userId]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -305,7 +365,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           <Card className="relative overflow-hidden border border-copper-200/40 bg-gradient-to-br from-white to-copper-50/30 dark:from-charcoal-800 dark:to-charcoal-700/30">
             <button
               onClick={dismissGuide}
-              className="absolute top-3 end-3 rounded-full p-2 text-stone-500 hover:bg-ivory-300 hover:text-stone-500 transition-all duration-200 dark:hover:bg-charcoal-700"
+              className="absolute top-3 end-3 rounded-full p-2 text-stone-600 hover:bg-ivory-300 hover:text-stone-600 transition-all duration-200 dark:hover:bg-charcoal-700"
               aria-label="Dismiss"
             >
               <X className="h-4 w-4" strokeWidth={1.5} />
@@ -318,26 +378,26 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                     <Camera className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                   </div>
                   <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep1Title')}</p>
-                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep1Desc')}</p>
+                  <p className="text-xs leading-tight text-stone-600 dark:text-stone-400">{t('guideStep1Desc')}</p>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-copper-50 dark:bg-copper-700/20">
                     <BookmarkPlus className="h-5 w-5 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
                   </div>
                   <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep2Title')}</p>
-                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep2Desc')}</p>
+                  <p className="text-xs leading-tight text-stone-600 dark:text-stone-400">{t('guideStep2Desc')}</p>
                 </div>
                 <div className="flex flex-col items-center text-center gap-2">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
                     <Compass className="h-5 w-5 text-green-700 dark:text-green-400" strokeWidth={1.5} />
                   </div>
                   <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep3Title')}</p>
-                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep3Desc')}</p>
+                  <p className="text-xs leading-tight text-stone-600 dark:text-stone-400">{t('guideStep3Desc')}</p>
                 </div>
               </div>
               <button
                 onClick={dismissGuide}
-                className="mt-4 block w-full text-center text-xs text-stone-500 hover:text-stone-500 transition-colors dark:text-stone-400"
+                className="mt-4 block w-full text-center text-xs text-stone-600 hover:text-stone-600 transition-colors dark:text-stone-400"
               >
                 {t('guideDismiss')}
               </button>
@@ -384,7 +444,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   <p className="heading-serif text-2xl text-bordeaux-600 tabular-nums dark:text-ivory-200">
                     <AnimatedNumber value={stat.value} isLoading={isLoading} />
                   </p>
-                  <p className="text-xs text-stone-500 mt-0.5 dark:text-stone-400">{stat.label}</p>
+                  <p className="text-xs text-stone-600 mt-0.5 dark:text-stone-400">{stat.label}</p>
                 </CardContent>
               </Card>
             </Link>
@@ -396,7 +456,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
             <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="text-xs text-stone-500 dark:text-stone-400">{t('totalSpent')}</p>
+                <p className="text-xs text-stone-600 dark:text-stone-400">{t('totalSpent')}</p>
                 <p className="heading-serif text-2xl text-bordeaux-600 tabular-nums dark:text-ivory-200">
                   {isLoading ? '—' : formatCurrency(stats.totalSpent)}
                 </p>
@@ -416,7 +476,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
               <CardContent className="p-4 space-y-4">
                 {typeTotal > 0 && (
                   <div>
-                    <p className="text-xs text-stone-500 mb-2 dark:text-stone-400">{t('wineTypes')}</p>
+                    <p className="text-xs text-stone-600 mb-2 dark:text-stone-400">{t('wineTypes')}</p>
                     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-ivory-300 dark:bg-charcoal-700">
                       {typeEntries.map(([type, count]) => (
                         <div
@@ -430,7 +490,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                       {typeEntries.map(([type, count]) => (
                         <div key={type} className="flex items-center gap-1.5">
                           <span className={`h-2 w-2 rounded-full ${typeColorMap[type] || 'bg-stone-300'}`} />
-                          <span className="text-xs text-stone-500 dark:text-stone-400">
+                          <span className="text-xs text-stone-600 dark:text-stone-400">
                             {t(typeLabelMap[type] || type)} ({count})
                           </span>
                         </div>
@@ -441,7 +501,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
                 {stats.topCountries.length > 0 && (
                   <div>
-                    <p className="text-xs text-stone-500 mb-2 dark:text-stone-400">{t('topCountries')}</p>
+                    <p className="text-xs text-stone-600 mb-2 dark:text-stone-400">{t('topCountries')}</p>
                     <div className="flex flex-wrap gap-2">
                       {stats.topCountries.map((c) => (
                         <span
@@ -457,7 +517,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
                 {stats.totalSpent > 0 && stats.bottlesInCellar > 0 && (
                   <div className="flex items-center justify-between border-t border-ivory-300 pt-3 dark:border-charcoal-700">
-                    <p className="text-xs text-stone-500 dark:text-stone-400">{t('avgBottleValue')}</p>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">{t('avgBottleValue')}</p>
                     <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">
                       {formatCurrency(Math.round(stats.totalSpent / stats.bottlesInCellar))}
                     </p>
@@ -479,7 +539,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             </div>
             <div className="space-y-2">
               {stats.recentCellarItems.map((item) => (
-                <Link key={item.id} href="/cellar">
+                <button key={item.id} onClick={() => setSelectedRecentItem(item)} className="w-full text-start">
                   <Card className="hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
                     <CardContent className="flex items-center gap-3 p-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
@@ -487,12 +547,12 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-bordeaux-600 dark:text-ivory-200">{item.wineName}</p>
-                        <p className="truncate text-xs text-stone-500 dark:text-stone-400">{item.winery}</p>
+                        <p className="truncate text-xs text-stone-600 dark:text-stone-400">{item.winery}</p>
                       </div>
                       <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" strokeWidth={1.5} />
                     </CardContent>
                   </Card>
-                </Link>
+                </button>
               ))}
             </div>
           </div>
@@ -539,6 +599,37 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </div>
         </div>
       </div>
+
+      {/* Recent Activity Detail Modal */}
+      <Dialog
+        open={!!selectedRecentItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedRecentItem(null);
+            setRecentDetailWine(null);
+          }
+        }}
+      >
+        <DialogContent
+          onClose={() => {
+            setSelectedRecentItem(null);
+            setRecentDetailWine(null);
+          }}
+          className="max-w-lg"
+        >
+          {selectedRecentItem && (
+            <>
+              {isFetchingRecentDetails && !recentDetailWine ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
+                </div>
+              ) : recentDetailWine ? (
+                <WineCard wine={recentDetailWine} />
+              ) : null}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
