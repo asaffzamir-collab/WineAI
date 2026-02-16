@@ -270,6 +270,8 @@
     "english": "English",
     "currency": "Currency",
     "account": "Account",
+    "adminPanel": "Admin Panel",
+    "adminPanelDesc": "Manage users and app settings",
     "signOut": "Sign out"
   },
   "admin": {
@@ -297,6 +299,10 @@
     "confirmResetDesc": "This will generate a new password for {email}. Make sure to copy it and share it with the user.",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "adminGranted": "Admin role granted",
+    "adminRevoked": "Admin role removed",
     "userDeleted": "User deleted successfully",
     "dataErased": "User data erased successfully",
     "actionFailed": "Action failed. Please try again.",

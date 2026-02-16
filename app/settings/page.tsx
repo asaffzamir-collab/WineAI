@@ -23,6 +23,7 @@ export default async function Page() {
       userId={user.id}
       profile={profile}
       userEmail={user.email || ''}
+      isAdmin={profile?.is_admin === true}
     />
   );
 }

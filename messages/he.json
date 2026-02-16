@@ -270,6 +270,8 @@
     "english": "English",
     "currency": "מטבע",
     "account": "חשבון",
+    "adminPanel": "פאנל ניהול",
+    "adminPanelDesc": "ניהול משתמשים והגדרות האפליקציה",
     "signOut": "התנתק"
   },
   "admin": {
@@ -297,6 +299,10 @@
     "confirmResetDesc": "פעולה זו תיצור סיסמה חדשה עבור {email}. הקפד להעתיק ולשתף אותה עם המשתמש.",
     "cancel": "ביטול",
     "confirm": "אישור",
+    "makeAdmin": "הפוך למנהל",
+    "removeAdmin": "הסר מנהל",
+    "adminGranted": "הרשאת מנהל ניתנה",
+    "adminRevoked": "הרשאת מנהל הוסרה",
     "userDeleted": "המשתמש נמחק בהצלחה",
     "dataErased": "נתוני המשתמש נמחקו בהצלחה",
     "actionFailed": "הפעולה נכשלה. נסה שוב.",

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import {
   Users,
   Shield,
+  ShieldOff,
+  ShieldCheck,
   Trash2,
   KeyRound,
   Eraser,
@@ -77,11 +79,39 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
     }
   }, [toastMessage]);
 
+  const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null);
+
   const filteredUsers = users.filter(
     (u) =>
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.displayName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleToggleAdmin = async (userId: string, currentIsAdmin: boolean) => {
+    setTogglingAdmin(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/toggle-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAdmin: !currentIsAdmin }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setToastMessage(data.error || t('actionFailed'));
+        return;
+      }
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, isAdmin: !currentIsAdmin } : u
+        )
+      );
+      setToastMessage(!currentIsAdmin ? t('adminGranted') : t('adminRevoked'));
+    } catch {
+      setToastMessage(t('actionFailed'));
+    } finally {
+      setTogglingAdmin(null);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!confirmAction) return;
@@ -286,6 +316,24 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
 
                   {/* Actions */}
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-ivory-200 pt-3 dark:border-charcoal-700">
+                    <button
+                      onClick={() => handleToggleAdmin(user.id, user.isAdmin)}
+                      disabled={togglingAdmin === user.id}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                        user.isAdmin
+                          ? 'bg-copper-50 text-copper-600 hover:bg-copper-100 dark:bg-copper-700/20 dark:text-copper-400 dark:hover:bg-copper-700/30'
+                          : 'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30'
+                      }`}
+                    >
+                      {togglingAdmin === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : user.isAdmin ? (
+                        <ShieldOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                      )}
+                      {user.isAdmin ? t('removeAdmin') : t('makeAdmin')}
+                    </button>
                     <button
                       onClick={() =>
                         setConfirmAction({
