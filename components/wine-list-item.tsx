@@ -28,7 +28,7 @@ export function WineListItem({
       onClick={onClick}
       className={cn(
         'w-full rounded-xl bg-white p-3.5 text-left shadow-soft',
-        'hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200 ease-premium',
+        'hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 transition-all duration-200 ease-premium',
         'flex items-center gap-3',
         'dark:bg-charcoal-800 dark:hover:bg-charcoal-700',
         className
@@ -37,9 +37,9 @@ export function WineListItem({
       {leading}
       <div className="min-w-0 flex-1">
         <p className="heading-serif text-base text-bordeaux-600 dark:text-ivory-200">{name}</p>
-        <p className="text-sm text-stone-500 dark:text-stone-400">{winery}</p>
+        <p className="text-sm text-stone-600 dark:text-stone-400">{winery}</p>
         {metadata && metadata.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-500/80 dark:text-stone-400/80">
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600/80 dark:text-stone-400/80">
             {metadata.map((m) => (
               <span key={m.label}>
                 {m.label}: {m.value}

@@ -34,7 +34,7 @@ export function BottomNav() {
                 'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-200 ease-premium',
                 isActive
                   ? 'text-ruby-500 dark:text-ruby-400'
-                  : 'text-stone-500 hover:text-bordeaux-500 dark:text-stone-400 dark:hover:text-bordeaux-300'
+                  : 'text-stone-600 hover:text-bordeaux-500 dark:text-stone-400 dark:hover:text-bordeaux-300'
               )}
             >
               <Icon

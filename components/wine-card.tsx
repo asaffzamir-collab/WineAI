@@ -28,7 +28,7 @@ function ComparisonSpectrumBar({
   return (
     <div className="py-1">
       <div className="flex items-center gap-2" dir="ltr">
-        <span className="w-12 text-end text-[11px] font-medium text-stone-500 dark:text-stone-400">{leftLabel}</span>
+        <span className="w-12 text-end text-[11px] font-medium text-stone-600 dark:text-stone-400">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-ivory-300 dark:bg-charcoal-700">
           {isClose ? (
             <div
@@ -48,7 +48,7 @@ function ComparisonSpectrumBar({
             </>
           )}
         </div>
-        <span className="w-12 text-[11px] font-medium text-stone-500 dark:text-stone-400">{rightLabel}</span>
+        <span className="w-12 text-[11px] font-medium text-stone-600 dark:text-stone-400">{rightLabel}</span>
       </div>
     </div>
   );
@@ -73,7 +73,7 @@ function MatchSpectrumChart({
 
   return (
     <div className="mb-2 rounded-xl bg-ivory-200 p-3 dark:bg-charcoal-700/50">
-      <p className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">
+      <p className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-stone-600 dark:text-stone-400">
         {t('spectrumCompareTitle')}
       </p>
       <div className="space-y-0.5">
@@ -87,7 +87,7 @@ function MatchSpectrumChart({
           />
         ))}
       </div>
-      <div className="mt-2.5 flex items-center justify-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+      <div className="mt-2.5 flex items-center justify-center gap-4 text-xs text-stone-600 dark:text-stone-400">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-bordeaux-500" />
           {t('wineSpectrum')}
@@ -171,7 +171,7 @@ export function WineCard({
             >
               <Wine className={cn(
                 'h-8 w-8',
-                wine.wine_type === 'white' || wine.wine_type === 'sparkling' ? 'text-stone-500' : 'text-white/80'
+                wine.wine_type === 'white' || wine.wine_type === 'sparkling' ? 'text-stone-600' : 'text-white/80'
               )} strokeWidth={1.5} />
               <span className="text-[10px] font-medium opacity-70 max-w-full truncate px-1">
                 {t('seeOnVivino')}
@@ -182,9 +182,9 @@ export function WineCard({
             <h2 className="heading-serif text-xl text-bordeaux-600 line-clamp-2 dark:text-ivory-200">
               {wine.name}
             </h2>
-            <p className="mt-1 text-stone-500 dark:text-stone-400">{wine.winery}</p>
+            <p className="mt-1 text-stone-600 dark:text-stone-400">{wine.winery}</p>
             {wine.vintage && (
-              <span className="text-sm text-stone-500/70 dark:text-stone-400/70">{wine.vintage}</span>
+              <span className="text-sm text-stone-600/70 dark:text-stone-400/70">{wine.vintage}</span>
             )}
           </div>
         </div>
@@ -196,7 +196,7 @@ export function WineCard({
               <Star className="h-3.5 w-3.5 fill-copper-400 text-copper-400" />
               <span className="text-sm font-semibold">{Number(wine.vivino_rating).toFixed(1)}</span>
             </div>
-            <span className="text-sm text-stone-500 dark:text-stone-400">
+            <span className="text-sm text-stone-600 dark:text-stone-400">
               {wine.vivino_reviews != null ? (
                 <>{wine.vivino_reviews.toLocaleString()} {t('reviews')}</>
               ) : (
@@ -223,37 +223,37 @@ export function WineCard({
           <div className="grid grid-cols-2 gap-3 text-sm">
             {wine.country && (
               <div>
-                <span className="text-stone-500 dark:text-stone-400">{t('country')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('country')}:</span>{' '}
                 <span className="font-medium">{wine.country}</span>
               </div>
             )}
             {wine.region && (
               <div>
-                <span className="text-stone-500 dark:text-stone-400">{t('region')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('region')}:</span>{' '}
                 <span className="font-medium">{wine.region}</span>
               </div>
             )}
             {wine.grapes && wine.grapes.length > 0 && (
               <div className="col-span-2">
-                <span className="text-stone-500 dark:text-stone-400">{t('grape')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('grape')}:</span>{' '}
                 <span className="font-medium">{wine.grapes.join(', ')}</span>
               </div>
             )}
             {wine.alcohol && (
               <div>
-                <span className="text-stone-500 dark:text-stone-400">{t('alcohol')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('alcohol')}:</span>{' '}
                 <span className="font-medium">{wine.alcohol}%</span>
               </div>
             )}
             {wine.volume_ml && (
               <div>
-                <span className="text-stone-500 dark:text-stone-400">{t('volume')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('volume')}:</span>{' '}
                 <span className="font-medium">{wine.volume_ml}ml</span>
               </div>
             )}
             {wine.is_kosher !== undefined && (
               <div>
-                <span className="text-stone-500 dark:text-stone-400">{t('kosher')}:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">{t('kosher')}:</span>{' '}
                 <span className="font-medium">
                   {wine.is_kosher ? '✓' : '✗'}
                 </span>
@@ -266,7 +266,7 @@ export function WineCard({
         {wine.winery_description && (
           <section>
             <h3 className="mb-2 font-semibold text-bordeaux-600 dark:text-ivory-200">{t('aboutWinery')}</h3>
-            <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">{wine.winery_description}</p>
+            <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-400">{wine.winery_description}</p>
           </section>
         )}
 
@@ -278,19 +278,19 @@ export function WineCard({
               {wine.tasting_notes.nose && (
                 <div>
                   <span className="font-medium text-bordeaux-500 dark:text-bordeaux-300">{t('nose')}:</span>{' '}
-                  <span className="text-stone-500 dark:text-stone-400">{wine.tasting_notes.nose.join(', ')}</span>
+                  <span className="text-stone-600 dark:text-stone-400">{wine.tasting_notes.nose.join(', ')}</span>
                 </div>
               )}
               {wine.tasting_notes.palate && (
                 <div>
                   <span className="font-medium text-bordeaux-500 dark:text-bordeaux-300">{t('palate')}:</span>{' '}
-                  <span className="text-stone-500 dark:text-stone-400">{wine.tasting_notes.palate.join(', ')}</span>
+                  <span className="text-stone-600 dark:text-stone-400">{wine.tasting_notes.palate.join(', ')}</span>
                 </div>
               )}
               {wine.tasting_notes.finish && (
                 <div>
                   <span className="font-medium text-bordeaux-500 dark:text-bordeaux-300">{t('finish')}:</span>{' '}
-                  <span className="text-stone-500 dark:text-stone-400">{wine.tasting_notes.finish}</span>
+                  <span className="text-stone-600 dark:text-stone-400">{wine.tasting_notes.finish}</span>
                 </div>
               )}
             </div>
@@ -303,7 +303,7 @@ export function WineCard({
             <h3 className="mb-3 font-semibold text-bordeaux-600 dark:text-ivory-200">{t('servingInfo')}</h3>
             <div className="flex flex-wrap gap-4 text-sm">
               {(wine.serving.drink_from || wine.serving.drink_until) && (
-                <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
                   <Wine className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                   <span>
                     {t('drinkWindow')}: {wine.serving.drink_from}-{wine.serving.drink_until}
@@ -311,7 +311,7 @@ export function WineCard({
                 </div>
               )}
               {wine.serving.decant_minutes && (
-                <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
                   <Clock className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                   <span>
                     {t('decant')}: {wine.serving.decant_minutes} min
@@ -319,7 +319,7 @@ export function WineCard({
                 </div>
               )}
               {wine.serving.temperature_celsius && (
-                <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
                   <Thermometer className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                   <span>
                     {t('temperature')}: {wine.serving.temperature_celsius}°C
@@ -341,7 +341,7 @@ export function WineCard({
               {wine.food_pairings.map((food, idx) => (
                 <span
                   key={idx}
-                  className="rounded-full bg-ivory-300 px-3 py-1 text-sm text-stone-500 dark:bg-charcoal-700 dark:text-stone-400"
+                  className="rounded-full bg-ivory-300 px-3 py-1 text-sm text-stone-600 dark:bg-charcoal-700 dark:text-stone-400"
                 >
                   {food}
                 </span>
@@ -380,7 +380,7 @@ export function WineCard({
             </div>
 
             {matchResult.explanation && (
-              <p className="mb-4 text-sm leading-relaxed text-stone-500 dark:text-stone-400">{matchResult.explanation}</p>
+              <p className="mb-4 text-sm leading-relaxed text-stone-600 dark:text-stone-400">{matchResult.explanation}</p>
             )}
 
             {matchResult.wine_spectrum && matchResult.profile_spectrum && (
@@ -409,7 +409,7 @@ export function WineCard({
             )}
 
             {matchResult.similar_wines_note && (
-              <p className="mt-3 text-sm italic text-stone-500 dark:text-stone-400">
+              <p className="mt-3 text-sm italic text-stone-600 dark:text-stone-400">
                 {matchResult.similar_wines_note}
               </p>
             )}

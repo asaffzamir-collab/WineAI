@@ -191,7 +191,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 onClick={() => setSelectedItem(item)}
                 className={cn(
                   'w-full rounded-2xl bg-white p-3.5 text-left shadow-soft',
-                  'hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200 ease-premium',
+                  'hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 transition-all duration-200 ease-premium',
                   'flex items-center gap-3',
                   'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
@@ -205,7 +205,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   <Wine className={cn(
                     'h-5 w-5',
                     wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
-                      ? 'text-stone-500' : 'text-white/80'
+                      ? 'text-stone-600' : 'text-white/80'
                   )} strokeWidth={1.5} />
                 </div>
 
@@ -213,14 +213,14 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
                     {wine?.name || 'Unknown Wine'}
                   </p>
-                  <p className="text-sm text-stone-500 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
+                  <p className="text-sm text-stone-600 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-stone-500/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
+                    <p className="mt-0.5 text-xs text-stone-600/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
                       <MapPin className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500 dark:text-stone-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-400">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
@@ -309,10 +309,10 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
                   {tCellar('addWine')}: {w?.name ?? 'Unknown'}
                 </h3>
-                <p className="text-sm text-stone-500 dark:text-stone-400">{w?.winery}</p>
+                <p className="text-sm text-stone-600 dark:text-stone-400">{w?.winery}</p>
                 <div className="mt-4 space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                    <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                       {tCellar('quantity')}
                     </label>
                     <Input
@@ -324,7 +324,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                    <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                       {tCellar('purchasePriceNis')}
                     </label>
                     <Input
@@ -335,7 +335,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                       onChange={(e) => setPurchasePriceNis(e.target.value)}
                       className="w-full"
                     />
-                    <p className="mt-1 text-xs text-stone-500/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
+                    <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-2">

@@ -334,7 +334,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         {/* Image Upload */}
         <Card className="-mt-4">
           <CardContent className="p-4">
-            <p className="mb-3 text-center text-sm text-stone-500 dark:text-stone-400">
+            <p className="mb-3 text-center text-sm text-stone-600 dark:text-stone-400">
               {t('orUploadPhoto')}
             </p>
             <div className="flex gap-3">
@@ -386,7 +386,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         {wineCandidates.length > 1 && !isSearching && (
           <section className="mt-8">
             <h2 className="mb-2 heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">{t('pickWine')}</h2>
-            <p className="mb-3 text-sm text-stone-500 dark:text-stone-400">{t('multipleResults')}</p>
+            <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">{t('multipleResults')}</p>
             {isFetchingMatch ? (
               <LoadingSpinner message={t('loadingDetails')} className="py-8" />
             ) : (
@@ -415,9 +415,9 @@ export function SearchPage({ userId }: SearchPageProps) {
         {error && (
           <Card className="mt-8 border border-copper-200 bg-copper-50 dark:border-copper-700 dark:bg-copper-700/20">
             <CardContent className="py-6 text-center">
-              <p className="text-stone-500 dark:text-stone-300">{error}</p>
+              <p className="text-stone-600 dark:text-stone-300">{error}</p>
               {error.includes('foreign key') && (
-                <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+                <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
                   Run the migration in Supabase SQL Editor: Dashboard → SQL Editor → paste and run the SQL from{' '}
                   <code className="rounded bg-copper-100 px-1 text-xs dark:bg-copper-700/30">supabase/migrations/20260206180000_allow_mock_user_profiles.sql</code>
                 </p>
@@ -492,7 +492,7 @@ export function SearchPage({ userId }: SearchPageProps) {
               {isFetchingDetails ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
-                  <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('loadingDetails')}</p>
+                  <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">{t('loadingDetails')}</p>
                 </div>
               ) : (
                 <WineCard

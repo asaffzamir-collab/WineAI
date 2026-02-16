@@ -89,10 +89,10 @@ export function AddToCellarDialog({
             <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
               {tCellar('addWine')}: {wine.name}
             </h3>
-            <p className="text-sm text-stone-500 dark:text-stone-400">{wine.winery}</p>
+            <p className="text-sm text-stone-600 dark:text-stone-400">{wine.winery}</p>
             <div className="mt-4 space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                   {tCellar('quantity')}
                 </label>
                 <Input
@@ -104,7 +104,7 @@ export function AddToCellarDialog({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                   {tCellar('purchasePriceNis')}
                 </label>
                 <Input
@@ -115,7 +115,7 @@ export function AddToCellarDialog({
                   onChange={(e) => setPriceNis(e.target.value)}
                   className="w-full"
                 />
-                <p className="mt-1 text-xs text-stone-500/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
+                <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
               </div>
             </div>
             {error && (

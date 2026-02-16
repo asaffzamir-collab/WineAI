@@ -85,12 +85,12 @@ export function SettingsPage({ userId, profile, userEmail }: SettingsPageProps) 
           <CardContent>
             <div className="space-y-2 text-sm">
               <p>
-                <span className="text-stone-500 dark:text-stone-400">Email:</span>{' '}
+                <span className="text-stone-600 dark:text-stone-400">Email:</span>{' '}
                 <span className="font-medium" dir="ltr">{userEmail}</span>
               </p>
               {profile?.display_name && (
                 <p>
-                  <span className="text-stone-500 dark:text-stone-400">Name:</span>{' '}
+                  <span className="text-stone-600 dark:text-stone-400">Name:</span>{' '}
                   <span className="font-medium">{profile.display_name}</span>
                 </p>
               )}

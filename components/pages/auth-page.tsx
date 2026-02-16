@@ -93,7 +93,7 @@ export function AuthPage() {
                 className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all duration-200 ${
                   mode === 'login'
                     ? 'bg-white text-bordeaux-600 shadow-soft dark:bg-charcoal-800 dark:text-ivory-200'
-                    : 'text-stone-500 hover:text-stone-500 dark:text-stone-400'
+                    : 'text-stone-600 hover:text-stone-600 dark:text-stone-400'
                 }`}
               >
                 {t('loginTab')}
@@ -104,7 +104,7 @@ export function AuthPage() {
                 className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all duration-200 ${
                   mode === 'register'
                     ? 'bg-white text-bordeaux-600 shadow-soft dark:bg-charcoal-800 dark:text-ivory-200'
-                    : 'text-stone-500 hover:text-stone-500 dark:text-stone-400'
+                    : 'text-stone-600 hover:text-stone-600 dark:text-stone-400'
                 }`}
               >
                 {t('registerTab')}
@@ -114,7 +114,7 @@ export function AuthPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'register' && (
                 <div>
-                  <label htmlFor="displayName" className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                  <label htmlFor="displayName" className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                     {t('displayNameLabel')}
                   </label>
                   <input
@@ -129,7 +129,7 @@ export function AuthPage() {
               )}
 
               <div>
-                <label htmlFor="email" className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                <label htmlFor="email" className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                   {t('emailLabel')}
                 </label>
                 <input
@@ -145,7 +145,7 @@ export function AuthPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
+                <label htmlFor="password" className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
                   {t('passwordLabel')}
                 </label>
                 <div className="relative">
@@ -163,7 +163,7 @@ export function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute end-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-400 transition-colors"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-400 transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" strokeWidth={1.5} />
@@ -173,7 +173,7 @@ export function AuthPage() {
                   </button>
                 </div>
                 {mode === 'register' && (
-                  <p className="mt-1 text-xs text-stone-500/70 dark:text-stone-400/70">{t('passwordHint')}</p>
+                  <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{t('passwordHint')}</p>
                 )}
               </div>
 
@@ -195,7 +195,7 @@ export function AuthPage() {
               </Button>
             </form>
 
-            <p className="mt-4 text-center text-sm text-stone-500 dark:text-stone-400">
+            <p className="mt-4 text-center text-sm text-stone-600 dark:text-stone-400">
               {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}
               <button
                 type="button"

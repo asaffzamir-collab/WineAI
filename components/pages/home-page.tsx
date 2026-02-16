@@ -436,7 +436,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         <div className="grid grid-cols-2 gap-3">
           {statCards.map((stat, idx) => (
             <Link key={idx} href={stat.href}>
-              <Card className="overflow-hidden cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+              <Card className="overflow-hidden cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 dark:hover:bg-charcoal-700 transition-all duration-200">
                 <CardContent className="p-4">
                   <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
                     <stat.icon className={`h-5 w-5 ${stat.color}`} strokeWidth={1.5} />
@@ -453,7 +453,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
         {/* Total Spent */}
         <Link href="/cellar" className="block">
-          <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+          <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 dark:hover:bg-charcoal-700 transition-all duration-200">
             <CardContent className="flex items-center justify-between p-4">
               <div>
                 <p className="text-xs text-stone-600 dark:text-stone-400">{t('totalSpent')}</p>
@@ -540,7 +540,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             <div className="space-y-2">
               {stats.recentCellarItems.map((item) => (
                 <button key={item.id} onClick={() => setSelectedRecentItem(item)} className="w-full text-start">
-                  <Card className="hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+                  <Card className="hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 dark:hover:bg-charcoal-700 transition-all duration-200">
                     <CardContent className="flex items-center gap-3 p-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
                         <Wine className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />

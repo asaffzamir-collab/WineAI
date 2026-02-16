@@ -142,7 +142,7 @@ function SpectrumBar({
       onClick={onToggle}
       className="w-full text-start rounded-xl px-1 py-2 -mx-1 hover:bg-ivory-300/60 transition-all duration-200 dark:hover:bg-charcoal-700/40"
     >
-      <p className="mb-1.5 text-xs text-stone-500/80 italic dark:text-stone-400/80">{hint}</p>
+      <p className="mb-1.5 text-xs text-stone-600/80 italic dark:text-stone-400/80">{hint}</p>
       <div className="flex items-center gap-3" dir="ltr">
         <span className="w-14 text-end text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-ivory-300 dark:bg-charcoal-700">
@@ -157,7 +157,7 @@ function SpectrumBar({
         <span className="w-14 text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{rightLabel}</span>
       </div>
       {isExpanded && (
-        <p className="mt-2 rounded-xl bg-ivory-300 px-3 py-2 text-xs leading-relaxed text-stone-500 dark:bg-charcoal-700 dark:text-stone-400">
+        <p className="mt-2 rounded-xl bg-ivory-300 px-3 py-2 text-xs leading-relaxed text-stone-600 dark:bg-charcoal-700 dark:text-stone-400">
           {explanation}
         </p>
       )}
@@ -185,10 +185,10 @@ function TasteSpectrumChart({
 
   return (
     <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
-      <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-bordeaux-600 dark:text-ivory-200">
+      <h3 dir="ltr" className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-bordeaux-600 dark:text-ivory-200">
         {t('tasteSpectrumTitle')}
       </h3>
-      <p className="mb-4 text-center text-xs text-stone-500 dark:text-stone-400">
+      <p dir="ltr" className="mb-4 text-center text-xs text-stone-600 dark:text-stone-400">
         {t('spectrumTapToLearn')}
       </p>
       <div className="space-y-1">
@@ -219,12 +219,12 @@ function SectionHeading({
   subtitle: string;
 }) {
   return (
-    <div>
+    <div dir="ltr" className="text-left">
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{title}</h3>
       </div>
-      <p className="mt-0.5 text-xs text-stone-500/80 italic dark:text-stone-400/80">{subtitle}</p>
+      <p className="mt-0.5 text-xs text-stone-600/80 italic dark:text-stone-400/80">{subtitle}</p>
     </div>
   );
 }
@@ -468,7 +468,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                 <TabsContent key={type} value={type}>
                   <CardContent className="space-y-6 pt-4">
                     {!hasProfile ? (
-                      <div className="py-8 text-center text-stone-500 dark:text-stone-400">
+                      <div className="py-8 text-center text-stone-600 dark:text-stone-400">
                         <Wine className="mx-auto h-12 w-12 text-ivory-400 dark:text-charcoal-700" strokeWidth={1.5} />
                         <p className="mt-4">{t('noProfileYet')}</p>
                         <p className="text-sm">{t('addWinesToBuildProfile')}</p>
@@ -496,7 +496,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('overallStyle')}
                               subtitle={t('overallStyleExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.overall_style}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.overall_style}</p>
                           </section>
                         )}
 
@@ -506,7 +506,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('bodyStructure')}
                               subtitle={t('bodyStructureExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.body_structure}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.body_structure}</p>
                           </section>
                         )}
 
@@ -516,7 +516,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('fruitProfile')}
                               subtitle={t('fruitProfileExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.fruit_profile}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.fruit_profile}</p>
                           </section>
                         )}
 
@@ -526,7 +526,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('styleNotes')}
                               subtitle={t('styleNotesExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.style_notes}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.style_notes}</p>
                           </section>
                         )}
 
@@ -596,13 +596,13 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('summary')}
                               subtitle={t('summaryExplain')}
                             />
-                            <p className="mt-2 italic leading-relaxed text-stone-500 dark:text-stone-400">{profile.summary}</p>
+                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{profile.summary}</p>
                           </section>
                         )}
 
                         {(profile.liked_wines_detail && profile.liked_wines_detail.length > 0) && (
                           <section>
-                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
+                            <h3 dir="ltr" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-left">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
@@ -612,7 +612,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                 const isRemoving = removingKey === rowKey;
                                 return (
                                   <li key={`${type}-${rowKey}-${idx}`}>
-                                    <div className="flex items-center gap-2 rounded-2xl bg-white p-3 shadow-soft dark:bg-charcoal-800">
+                                      <div className="flex items-center gap-2 rounded-2xl bg-white p-3 shadow-soft hover:bg-ivory-50 transition-all duration-200 dark:bg-charcoal-800 dark:hover:bg-charcoal-700">
                                       <button
                                         type="button"
                                         onClick={() => setSelectedWine(w.full_wine ?? { name: w.name, winery: w.winery, country: w.country ?? '', region: w.region, vintage: w.vintage, grapes: w.grapes ?? [], wine_type: (w.wine_type as WineData['wine_type']) ?? 'red', image_url: w.image_url })}
@@ -644,8 +644,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                         )}
                                         <div className="min-w-0 flex-1">
                                           <p className="heading-serif text-base text-bordeaux-600 dark:text-ivory-200">{w.name}</p>
-                                          <p className="text-sm text-stone-500 dark:text-stone-400">{w.winery}</p>
-                                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-500/80 dark:text-stone-400/80">
+                                          <p className="text-sm text-stone-600 dark:text-stone-400">{w.winery}</p>
+                                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600/80 dark:text-stone-400/80">
                                             {w.region && <span>{t('region')}: {w.region}</span>}
                                             {w.country && <span>{t('country')}: {w.country}</span>}
                                             {w.vintage && <span>{t('vintage')}: {w.vintage}</span>}
@@ -683,7 +683,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           profile.liked_wines &&
                           profile.liked_wines.length > 0 && (
                           <section>
-                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
+                            <h3 dir="ltr" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-left">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
@@ -745,7 +745,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                 {isFetchingWineDetails ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" />
-                    <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('loadingWineDetails')}</p>
+                    <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">{t('loadingWineDetails')}</p>
                   </div>
                 ) : (
                   <>
