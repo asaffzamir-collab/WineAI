@@ -292,7 +292,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             {greeting}
           </h1>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
+        <div className="absolute -bottom-px left-0 right-0 h-6 overflow-hidden">
           <svg viewBox="0 0 1440 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 w-full" preserveAspectRatio="none">
             <path d="M0 48h1440V16C1200 42 960 48 720 48S240 42 0 16v32Z" className="fill-ivory-200 dark:fill-charcoal-900" />
           </svg>
@@ -392,7 +392,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         </div>
 
         {/* Total Spent */}
-        <Link href="/cellar">
+        <Link href="/cellar" className="block">
           <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
             <CardContent className="flex items-center justify-between p-4">
               <div>
