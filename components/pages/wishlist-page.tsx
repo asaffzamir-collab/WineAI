@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Heart, Star, Trash2, ShoppingCart, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Heart, Star, Trash2, ShoppingCart, Loader2, Wine, MapPin, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BottomNav } from '@/components/bottom-nav';
+import { WineCard } from '@/components/wine-card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import type { WineData } from '@/lib/openai';
 
-interface WineData {
+interface WineRowData {
   id: string;
   name: string;
   winery: string;
@@ -25,7 +27,7 @@ interface WishlistItem {
   id: string;
   priority?: number;
   notes?: string;
-  wines: WineData | WineData[] | null;
+  wines: WineRowData | WineRowData[] | null;
 }
 
 interface WishlistPageProps {
@@ -33,33 +35,98 @@ interface WishlistPageProps {
   initialItems: WishlistItem[];
 }
 
+function getWine(item: WishlistItem): WineRowData | null {
+  return Array.isArray(item.wines) ? item.wines[0] ?? null : item.wines;
+}
+
+/** Convert the DB row to the WineData shape that WineCard expects */
+function toWineData(wine: WineRowData): WineData {
+  return {
+    name: wine.name,
+    winery: wine.winery,
+    wine_type: (wine.wine_type || 'red') as WineData['wine_type'],
+    country: wine.country || '',
+    region: wine.region,
+    grapes: wine.grapes || [],
+    vivino_rating: wine.vivino_rating,
+  };
+}
+
+const wineTypeColors: Record<string, string> = {
+  red: 'bg-red-900',
+  white: 'bg-amber-100',
+  rose: 'bg-pink-300',
+  sparkling: 'bg-amber-50',
+  dessert: 'bg-amber-600',
+};
+
 export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const t = useTranslations('wishlist');
   const tCellar = useTranslations('cellar');
   const tCommon = useTranslations('common');
+  const tSearch = useTranslations('search');
   const tWineCard = useTranslations('wineCard');
   const [items, setItems] = useState<WishlistItem[]>(initialItems);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  // Detail modal state
+  const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
+  const [detailWine, setDetailWine] = useState<WineData | null>(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // Purchase modal state
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 
-  const wineTypeColors: Record<string, string> = {
-    red: 'bg-red-900',
-    white: 'bg-amber-100',
-    rose: 'bg-pink-300',
-    sparkling: 'bg-amber-50',
-    dessert: 'bg-amber-600',
-  };
+  // When an item is selected, fetch full wine details via the search API (same as cellar)
+  useEffect(() => {
+    if (!selectedItem) {
+      setDetailWine(null);
+      return;
+    }
+    const wine = getWine(selectedItem);
+    if (!wine) return;
 
-  const handleDelete = async (itemId: string) => {
+    let cancelled = false;
+    setIsFetchingDetails(true);
+    setDetailWine(null);
+
+    const query = `${wine.name} ${wine.winery}`;
+    fetch('/api/wine-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, userId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.wine) {
+          setDetailWine(data.wine);
+        } else {
+          setDetailWine(toWineData(wine));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDetailWine(toWineData(wine));
+      })
+      .finally(() => {
+        if (!cancelled) setIsFetchingDetails(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [selectedItem, userId]);
+
+  const handleDelete = async (itemId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setIsDeleting(itemId);
     try {
-      await fetch(`/api/wishlist?id=${itemId}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/wishlist?id=${itemId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((item) => item.id !== itemId));
+      if (selectedItem?.id === itemId) {
+        setSelectedItem(null);
+      }
     } catch (error) {
       console.error('Failed to delete:', error);
     } finally {
@@ -68,6 +135,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   };
 
   const openMarkPurchasedModal = (item: WishlistItem) => {
+    setSelectedItem(null);
     setPurchaseModalItem(item);
     setPurchaseQuantity(1);
     setPurchasePriceNis('');
@@ -75,7 +143,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
 
   const handleConfirmMarkPurchased = async () => {
     if (!purchaseModalItem) return;
-    const wine = Array.isArray(purchaseModalItem.wines) ? purchaseModalItem.wines[0] : purchaseModalItem.wines;
+    const wine = getWine(purchaseModalItem);
     if (!wine) return;
     setIsSubmittingPurchase(true);
     try {
@@ -96,9 +164,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      await fetch(`/api/wishlist?id=${purchaseModalItem.id}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/wishlist?id=${purchaseModalItem.id}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.id !== purchaseModalItem.id));
       setPurchaseModalItem(null);
     } catch (error) {
@@ -130,86 +196,133 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 {t('emptyDescription')}
               </p>
               <Button className="mt-4" asChild>
-                <a href="/search">Search Wines</a>
+                <a href="/search">{tSearch('title')}</a>
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Wishlist Items */}
-        <div className="-mt-4 space-y-4">
+        {/* Wishlist Items — clickable rows (same pattern as cellar) */}
+        <div className="-mt-4 space-y-3">
           {items.map((item) => {
-            const wine = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+            const wine = getWine(item);
             return (
-            <Card key={item.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={cn(
-                      'h-12 w-12 flex-shrink-0 rounded-lg',
-                      wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
-                    )}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base line-clamp-1">
-                      {wine?.name || 'Unknown Wine'}
-                    </CardTitle>
-                    <p className="text-sm text-gray-500">{wine?.winery}</p>
-                    {wine?.vivino_rating && (
-                      <div className="mt-1 flex items-center gap-1">
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedItem(item)}
+                className={cn(
+                  'w-full rounded-xl border border-wine-100 bg-white p-3 text-left shadow-sm',
+                  'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
+                  'flex items-center gap-3'
+                )}
+              >
+                {/* Wine color swatch */}
+                <div
+                  className={cn(
+                    'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-lg',
+                    wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
+                  )}
+                >
+                  <Wine className={cn(
+                    'h-5 w-5',
+                    wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
+                      ? 'text-gray-600' : 'text-white/70'
+                  )} />
+                </div>
+
+                {/* Wine info */}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-wine-900 line-clamp-1">
+                    {wine?.name || 'Unknown Wine'}
+                  </p>
+                  <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
+                  {(wine?.region || wine?.country) && (
+                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1 flex items-center gap-0.5">
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      {[wine?.region, wine?.country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                    {wine?.vivino_rating != null && (
+                      <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
-                        <span className="text-xs text-gray-500">
-                          {wine.vivino_rating.toFixed(1)}
-                        </span>
-                      </div>
+                        {Number(wine.vivino_rating).toFixed(1)}
+                      </span>
+                    )}
+                    {wine?.grapes && wine.grapes.length > 0 && (
+                      <span className="line-clamp-1">{wine.grapes.join(', ')}</span>
                     )}
                   </div>
-                  {item.priority && (
-                    <div className="flex items-center gap-1 rounded-full bg-pink-100 px-2 py-1 text-xs text-pink-700">
-                      <Heart className="h-3 w-3" />
-                      {item.priority}
-                    </div>
-                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {wine?.country && (
-                  <p className="text-gray-600">
-                    {wine.country}
-                    {wine.region && ` · ${wine.region}`}
-                  </p>
-                )}
-                {item.notes && (
-                  <p className="italic text-gray-400">{item.notes}</p>
-                )}
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openMarkPurchasedModal(item)}
-                    className="text-green-600 hover:bg-green-50 hover:text-green-700"
-                  >
-                    <ShoppingCart className="me-1 h-4 w-4" />
-                    {t('markPurchased')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={isDeleting === item.id}
-                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
+
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-wine-400" />
+              </button>
+            );
           })}
         </div>
       </div>
 
-      {/* Modal: Mark as purchased — quantity + optional price (NIS) */}
+      {/* Detail Modal — full WineCard with actions */}
+      <Dialog
+        open={!!selectedItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedItem(null);
+            setDetailWine(null);
+            setIsFetchingDetails(false);
+          }
+        }}
+      >
+        <DialogContent
+          onClose={() => {
+            setSelectedItem(null);
+            setDetailWine(null);
+            setIsFetchingDetails(false);
+          }}
+          className="max-w-lg"
+        >
+          {selectedItem && (
+            <>
+              {isFetchingDetails && !detailWine ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-10 w-10 animate-spin text-wine-600" />
+                  <p className="mt-4 text-sm text-gray-500">{tSearch('analyzing')}</p>
+                </div>
+              ) : detailWine ? (
+                <div className="space-y-4">
+                  <WineCard wine={detailWine} />
+
+                  {/* Wishlist actions below the wine card */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={() => openMarkPurchasedModal(selectedItem)}
+                    >
+                      <ShoppingCart className="me-2 h-4 w-4" />
+                      {t('markPurchased')}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDelete(selectedItem.id)}
+                      disabled={isDeleting === selectedItem.id}
+                    >
+                      {isDeleting === selectedItem.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Mark as purchased — quantity + optional price */}
       <Dialog
         open={!!purchaseModalItem}
         onOpenChange={(open) => {
@@ -218,10 +331,10 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       >
         <DialogContent
           onClose={() => setPurchaseModalItem(null)}
-          className="max-w-sm"
+          className="max-w-sm z-[100]"
         >
           {purchaseModalItem && (() => {
-            const w = Array.isArray(purchaseModalItem.wines) ? purchaseModalItem.wines[0] : purchaseModalItem.wines;
+            const w = getWine(purchaseModalItem);
             return (
               <>
                 <h3 className="text-lg font-semibold text-wine-900">
