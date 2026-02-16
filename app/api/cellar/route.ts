@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         .from('cellar_items')
         .select(`
           id, quantity, purchase_price, purchase_date, storage_location, notes,
-          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
+          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -66,6 +66,8 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
     tasting_notes: wine.tasting_notes ?? null,
     ai_description: wine.winery_description ?? wine.ai_description ?? null,
     image_url: wine.image_url ?? null,
+    serving: wine.serving ?? null,
+    food_pairings: Array.isArray(wine.food_pairings) ? wine.food_pairings : null,
   };
 }
 

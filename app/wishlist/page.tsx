@@ -22,6 +22,8 @@ interface WishlistItem {
     tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string } | null;
     ai_description?: string | null;
     image_url?: string;
+    serving?: Record<string, unknown> | null;
+    food_pairings?: string[] | null;
   } | {
     id: string;
     name: string;
@@ -36,6 +38,8 @@ interface WishlistItem {
     tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string } | null;
     ai_description?: string | null;
     image_url?: string;
+    serving?: Record<string, unknown> | null;
+    food_pairings?: string[] | null;
   }[] | null;
 }
 
@@ -54,7 +58,7 @@ export default async function Page() {
       .from('wishlist_items')
       .select(`
         id, priority, notes,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

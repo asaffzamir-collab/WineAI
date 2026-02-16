@@ -37,6 +37,13 @@ interface CellarWineData {
   } | null;
   ai_description?: string | null;
   image_url?: string;
+  serving?: {
+    drink_from?: number;
+    drink_until?: number;
+    decant_minutes?: number;
+    temperature_celsius?: string;
+  } | null;
+  food_pairings?: string[] | null;
 }
 
 export interface CellarItem {
@@ -90,6 +97,8 @@ function toWineData(wine: CellarWineData): WineData {
       : undefined,
     winery_description: wine.ai_description || undefined,
     image_url: wine.image_url,
+    serving: wine.serving || undefined,
+    food_pairings: wine.food_pairings || undefined,
   };
 }
 
@@ -104,6 +113,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
 
   const [selectedItem, setSelectedItem] = useState<CellarItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
+  const [detailMatch, setDetailMatch] = useState<import('@/lib/openai').ProfileMatchResult | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -151,12 +161,28 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   useEffect(() => {
     if (!selectedItem) {
       setDetailWine(null);
+      setDetailMatch(null);
       return;
     }
     const wine = getWine(selectedItem);
     if (!wine) return;
-    setDetailWine(toWineData(wine));
-  }, [selectedItem]);
+    const wineData = toWineData(wine);
+    setDetailWine(wineData);
+    setDetailMatch(null);
+
+    let cancelled = false;
+    fetch('/api/wine-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wine: wineData, userId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setDetailMatch(data.match ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selectedItem, userId]);
 
   const currentYear = new Date().getFullYear();
 
@@ -506,6 +532,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 <div className="space-y-4">
                   <WineCard
                     wine={detailWine}
+                    matchResult={detailMatch || undefined}
                     uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
                   />
 

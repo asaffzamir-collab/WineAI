@@ -36,6 +36,13 @@ interface WineRowData {
   } | null;
   ai_description?: string | null;
   image_url?: string;
+  serving?: {
+    drink_from?: number;
+    drink_until?: number;
+    decant_minutes?: number;
+    temperature_celsius?: string;
+  } | null;
+  food_pairings?: string[] | null;
 }
 
 interface WishlistItem {
@@ -74,6 +81,8 @@ function toWineData(wine: WineRowData): WineData {
       : undefined,
     winery_description: wine.ai_description || undefined,
     image_url: wine.image_url,
+    serving: wine.serving || undefined,
+    food_pairings: wine.food_pairings || undefined,
   };
 }
 

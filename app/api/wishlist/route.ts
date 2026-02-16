@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       .from('wishlist_items')
       .select(`
         id, priority, notes,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -48,7 +48,10 @@ export async function POST(request: Request) {
         alcohol: wine.alcohol,
         wine_type: wine.wine_type,
         tasting_notes: wine.tasting_notes,
-        ai_description: wine.winery_description,
+        ai_description: wine.winery_description ?? wine.ai_description,
+        image_url: wine.image_url ?? null,
+        serving: wine.serving ?? null,
+        food_pairings: Array.isArray(wine.food_pairings) ? wine.food_pairings : null,
       }).select('id').single();
       if (wineError) throw wineError;
       wineId = newWine.id;
