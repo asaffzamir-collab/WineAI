@@ -154,6 +154,8 @@ export function SearchPage({ userId }: SearchPageProps) {
     }
   };
 
+  const MAX_BASE64_SIZE = 3_500_000; // ~3.5MB base64 ≈ 2.6MB raw — safe for all platforms
+
   const compressImage = (file: File, maxDim = 1600, quality = 0.85): Promise<string> =>
     new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -173,7 +175,26 @@ export function SearchPage({ userId }: SearchPageProps) {
           const ctx = canvas.getContext('2d');
           if (!ctx) { reject(new Error('Canvas not supported')); return; }
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
+
+          // Progressive compression: reduce quality until size is acceptable
+          let result = canvas.toDataURL('image/jpeg', quality);
+          let attempts = 0;
+          while (result.length > MAX_BASE64_SIZE && attempts < 4) {
+            attempts++;
+            quality = Math.max(0.3, quality - 0.15);
+            const reducedDim = Math.round(maxDim * (1 - attempts * 0.15));
+            if (width > reducedDim || height > reducedDim) {
+              const s = reducedDim / Math.max(width, height);
+              width = Math.round(width * s);
+              height = Math.round(height * s);
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+            }
+            result = canvas.toDataURL('image/jpeg', quality);
+          }
+
+          resolve(result);
         } catch (err) {
           reject(err);
         }
@@ -185,22 +206,18 @@ export function SearchPage({ userId }: SearchPageProps) {
       img.src = url;
     });
 
-  const readFileAsDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset file input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
     setIsSearching(true);
     setError('');
     setWineResult(null);
     setMatchResult(null);
+    setWineCandidates([]);
     setIsAddingToCellar(false);
     setIsAddingToWishlist(false);
     setIsAddingToProfile(false);
@@ -209,18 +226,37 @@ export function SearchPage({ userId }: SearchPageProps) {
       let dataUrl: string;
       try {
         dataUrl = await compressImage(file);
-      } catch {
-        dataUrl = await readFileAsDataUrl(file);
+      } catch (compressionErr) {
+        console.warn('Image compression failed, reading raw file:', compressionErr);
+        // Fallback: read raw file — but only if it's reasonably sized
+        if (file.size > 4 * 1024 * 1024) {
+          setError('Image is too large. Please use a smaller photo or take a new one.');
+          setIsSearching(false);
+          return;
+        }
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
       }
       setUploadedImageUrl(dataUrl);
       
       const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches) {
-        setError('Invalid image format');
+        setError('Invalid image format. Please use a JPEG, PNG, or WebP photo.');
         setIsSearching(false);
         return;
       }
       const [, mimeType, base64] = matches;
+
+      // Guard: reject payloads that are still too large after compression
+      if (base64.length > MAX_BASE64_SIZE) {
+        setError('Image is too large even after compression. Please use a smaller photo.');
+        setIsSearching(false);
+        return;
+      }
 
       const response = await fetch('/api/wine-search', {
         method: 'POST',
@@ -231,6 +267,20 @@ export function SearchPage({ userId }: SearchPageProps) {
           userId,
         }),
       });
+
+      // Handle non-JSON error responses (413, 502, timeouts, etc.)
+      if (!response.ok) {
+        let errMsg = 'Search failed. Please try again.';
+        try {
+          const errData = await response.json();
+          if (errData?.error) errMsg = errData.error;
+        } catch {
+          console.error('Server returned non-JSON error, status:', response.status);
+        }
+        setError(errMsg);
+        setIsSearching(false);
+        return;
+      }
 
       const data = await response.json();
 
@@ -245,8 +295,9 @@ export function SearchPage({ userId }: SearchPageProps) {
         }
       }
       setIsSearching(false);
-    } catch {
-      setError('Image upload failed. Please try again.');
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      setError('Image upload failed. Please try again with a different photo.');
       setIsSearching(false);
     }
   };

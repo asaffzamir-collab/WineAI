@@ -7,18 +7,30 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  // Parse the request body with explicit error handling for large/malformed payloads
+  let body: Record<string, unknown>;
   try {
-    const { query, image, imageMimeType, userId, tasteProfiles: clientProfiles } = await request.json();
+    body = await request.json();
+  } catch (parseErr) {
+    console.error('Failed to parse request body:', parseErr);
+    return NextResponse.json(
+      { error: 'Invalid request. The image may be too large — please try a smaller photo.' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const { query, image, imageMimeType, userId, tasteProfiles: clientProfiles } = body;
 
     // Determine locale from cookie
     const cookieStore = await cookies();
     const locale = cookieStore.get('locale')?.value || 'he';
 
     // Fetch fresh taste profiles from DB when userId is provided; fall back to client-provided profiles
-    let tasteProfiles: Record<string, unknown> = clientProfiles || {};
+    let tasteProfiles: Record<string, unknown> = (clientProfiles as Record<string, unknown>) || {};
     if (userId) {
       try {
-        const dbProfiles = await getTasteProfilesForUser(userId);
+        const dbProfiles = await getTasteProfilesForUser(userId as string);
         if (dbProfiles && Object.keys(dbProfiles).length > 0) {
           tasteProfiles = dbProfiles;
         }
@@ -31,7 +43,7 @@ export async function POST(request: Request) {
     const { searchWinesByText, searchWineByImage, matchWineToProfile } = await import('@/lib/openai');
 
     if (image) {
-      const wine = await searchWineByImage(image, imageMimeType || 'image/jpeg');
+      const wine = await searchWineByImage(image as string, (imageMimeType as string) || 'image/jpeg');
       if (!wine) {
         return NextResponse.json(
           { error: 'Could not identify wine. Please try a clearer image of the wine label, or search by name.' },
@@ -43,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     if (query) {
-      const wines = await searchWinesByText(query);
+      const wines = await searchWinesByText(query as string);
       if (wines.length === 0) {
         return NextResponse.json(
           { error: 'Could not find any matching wines. Try a different spelling or add the winery name.' },
@@ -64,7 +76,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Wine search error:', error);
     return NextResponse.json(
-      { error: 'Search failed' },
+      { error: 'Search failed. Please try again.' },
       { status: 500 }
     );
   }
