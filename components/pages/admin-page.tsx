@@ -285,34 +285,34 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                   {/* Actions */}
-                  {!user.isAdmin && (
-                    <div className="mt-3 flex flex-wrap gap-2 border-t border-ivory-200 pt-3 dark:border-charcoal-700">
-                      <button
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'reset',
-                            userId: user.id,
-                            userEmail: user.email,
-                          })
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-ivory-100 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-ivory-200 transition-colors dark:bg-charcoal-700 dark:text-stone-300 dark:hover:bg-charcoal-600"
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        {t('resetPassword')}
-                      </button>
-                      <button
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'erase',
-                            userId: user.id,
-                            userEmail: user.email,
-                          })
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
-                      >
-                        <Eraser className="h-3.5 w-3.5" />
-                        {t('eraseData')}
-                      </button>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-ivory-200 pt-3 dark:border-charcoal-700">
+                    <button
+                      onClick={() =>
+                        setConfirmAction({
+                          type: 'reset',
+                          userId: user.id,
+                          userEmail: user.email,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-ivory-100 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-ivory-200 transition-colors dark:bg-charcoal-700 dark:text-stone-300 dark:hover:bg-charcoal-600"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      {t('resetPassword')}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setConfirmAction({
+                          type: 'erase',
+                          userId: user.id,
+                          userEmail: user.email,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                      {t('eraseData')}
+                    </button>
+                    {!user.isAdmin && (
                       <button
                         onClick={() =>
                           setConfirmAction({
@@ -326,8 +326,8 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
                         <Trash2 className="h-3.5 w-3.5" />
                         {t('deleteUser')}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
