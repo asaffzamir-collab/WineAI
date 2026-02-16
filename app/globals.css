@@ -34,6 +34,19 @@
     background-color: rgb(253 251 249);
     color: rgb(24 10 15);
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Smoother focus states */
+  input:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgb(114 32 64 / 0.4);
+    outline-offset: 2px;
+    transition: outline-color 0.15s ease;
   }
 
   /* RTL Support */

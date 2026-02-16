@@ -16,6 +16,7 @@ const heebo = Heebo({
 export const metadata: Metadata = {
   title: 'WineJourney - Your Personal Wine Companion',
   description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
+  themeColor: '#722040',
 };
 
 export default async function RootLayout({

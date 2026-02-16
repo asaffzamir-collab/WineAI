@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { Wine, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { WineLogo } from '@/components/wine-logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -32,14 +33,18 @@ export function OnboardingWelcome({ userId: _userId, displayName }: OnboardingWe
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-wine-900 to-wine-950 px-4 py-8 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-8">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-wine-900 to-wine-950 px-4 py-8 flex flex-col items-center justify-center">
+      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full border border-wine-700/20" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full border border-wine-700/15" />
+
+      <div className="relative z-10 w-full max-w-md space-y-8">
         <div className="text-center">
-          <Wine className="mx-auto mb-4 h-12 w-12 text-gold-500" />
+          <WineLogo size={56} className="mx-auto mb-4 text-gold-500" />
           <h1 className="text-2xl font-bold text-white">{welcomeTitle}</h1>
+          <p className="mt-2 text-sm text-wine-300">WineJourney</p>
         </div>
 
-        <Card>
+        <Card className="shadow-xl">
           <CardContent className="py-8 space-y-6">
             <p className="text-wine-900 text-center leading-relaxed">
               {t('welcomeBody')}

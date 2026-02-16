@@ -20,8 +20,8 @@ export function BottomNav() {
   const t = useTranslations('nav');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-cream-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-cream-200 bg-white/95 shadow-[0_-2px_10px_rgb(0,0,0,0.04)] backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -31,7 +31,7 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 transition-colors',
+                'relative flex flex-col items-center gap-0.5 px-4 py-2 transition-colors',
                 isActive
                   ? 'text-wine-900'
                   : 'text-gray-400 hover:text-wine-700'
@@ -39,11 +39,14 @@ export function BottomNav() {
             >
               <Icon
                 className={cn(
-                  'h-6 w-6 transition-all',
+                  'h-5 w-5 transition-all duration-200',
                   isActive && 'scale-110'
                 )}
               />
-              <span className="text-xs font-medium">{t(item.labelKey)}</span>
+              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+              {isActive && (
+                <span className="absolute -bottom-1 h-1 w-6 rounded-full bg-wine-900 transition-all duration-200" />
+              )}
             </Link>
           );
         })}

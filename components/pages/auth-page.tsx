@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Wine, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { WineLogo } from '@/components/wine-logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
@@ -74,15 +75,20 @@ export function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-wine-900 to-wine-950 px-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-wine-900 to-wine-950 px-4">
+      {/* Decorative background rings */}
+      <div className="pointer-events-none absolute -top-32 -right-32 h-80 w-80 rounded-full border border-wine-700/20" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full border border-wine-700/15" />
+      <div className="pointer-events-none absolute top-1/4 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-wine-800/10 blur-3xl" />
+
+      <div className="relative z-10 w-full max-w-md space-y-8">
         <div className="text-center">
-          <Wine className="mx-auto h-16 w-16 text-gold-500" />
+          <WineLogo size={64} className="mx-auto text-gold-500" />
           <h1 className="mt-6 text-3xl font-bold text-white">{t('welcome')}</h1>
-          <p className="mt-2 text-wine-200">{t('subtitle')}</p>
+          <p className="mt-2 text-sm text-wine-200">{t('subtitle')}</p>
         </div>
 
-        <Card data-app="signin-screen">
+        <Card data-app="signin-screen" className="shadow-xl">
           <CardContent className="py-8">
             {/* Tabs */}
             <div className="mb-6 flex rounded-lg bg-cream-100 p-1">
