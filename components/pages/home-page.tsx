@@ -342,7 +342,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   return (
     <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
       {/* Header */}
-      <header className="relative bg-bordeaux-600 px-4 pb-10 pt-8 dark:bg-charcoal-900 dark:border-b dark:border-charcoal-700">
+      <header className="relative bg-bordeaux-600 px-4 pb-16 pt-8 dark:bg-charcoal-900 dark:border-b dark:border-charcoal-700">
         <div className="mx-auto max-w-lg">
           <div className="flex items-center gap-2 mb-1">
             <WineLogo size={28} className="text-copper-400" />

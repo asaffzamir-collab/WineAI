@@ -10,8 +10,12 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   preferred_language TEXT DEFAULT 'he' CHECK (preferred_language IN ('he', 'en')),
   preferred_currency TEXT DEFAULT 'ILS',
   onboarding_completed BOOLEAN DEFAULT FALSE,
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add is_admin column if it doesn't exist (for existing databases)
+-- ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
 
 -- Enable RLS
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
