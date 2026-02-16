@@ -1,8 +1,9 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
-/** Auth disabled: all routes open. Enable auth later by restoring updateSession + protected paths. */
 export async function middleware(request: NextRequest) {
-  return NextResponse.next();
+  const { supabaseResponse } = await updateSession(request);
+  return supabaseResponse;
 }
 
 export const config = {
