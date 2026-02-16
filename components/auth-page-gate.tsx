@@ -6,10 +6,6 @@ import { createClient } from '@/lib/supabase/client';
 import { AuthPage } from '@/components/pages/auth-page';
 import { Wine, Loader2 } from 'lucide-react';
 
-/**
- * Wrapper for /auth: if user already has a session, redirect to home.
- * Otherwise show the sign-in / register form.
- */
 export function AuthPageGate() {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
@@ -35,10 +31,10 @@ export function AuthPageGate() {
 
   if (!showForm) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-wine-900 to-wine-950">
-        <Wine className="h-16 w-16 text-gold-500 mb-4" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bordeaux-600 dark:bg-charcoal-900">
+        <Wine className="h-16 w-16 text-copper-400 mb-4" strokeWidth={1.5} />
         <Loader2 className="h-8 w-8 animate-spin text-white" />
-        <p className="mt-4 text-wine-200">Loading...</p>
+        <p className="mt-4 text-bordeaux-200">Loading...</p>
       </div>
     );
   }

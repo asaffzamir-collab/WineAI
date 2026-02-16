@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import dynamic from 'next/dynamic';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
-  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
 });
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,6 @@ function getWine(item: WishlistItem): WineRowData | null {
   return Array.isArray(item.wines) ? item.wines[0] ?? null : item.wines;
 }
 
-/** Convert the DB row to the WineData shape that WineCard expects */
 function toWineData(wine: WineRowData): WineData {
   return {
     name: wine.name,
@@ -59,11 +58,11 @@ function toWineData(wine: WineRowData): WineData {
 }
 
 const wineTypeColors: Record<string, string> = {
-  red: 'bg-red-900',
-  white: 'bg-amber-100',
-  rose: 'bg-pink-300',
-  sparkling: 'bg-amber-50',
-  dessert: 'bg-amber-600',
+  red: 'bg-bordeaux-600',
+  white: 'bg-gold-100',
+  rose: 'bg-bordeaux-200',
+  sparkling: 'bg-gold-50',
+  dessert: 'bg-copper-400',
 };
 
 export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
@@ -75,18 +74,15 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [items, setItems] = useState<WishlistItem[]>(initialItems);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Detail modal state
   const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [detailMatch, setDetailMatch] = useState<ProfileMatchResult | null>(null);
 
-  // Purchase modal state
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 
-  // Show wine data immediately from what we have; only fetch the lightweight profile match
   useEffect(() => {
     if (!selectedItem) {
       setDetailWine(null);
@@ -96,11 +92,9 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     const wine = getWine(selectedItem);
     if (!wine) return;
 
-    // Display instantly with existing data
     setDetailWine(toWineData(wine));
     setDetailMatch(null);
 
-    // Fetch only the fast profile-match call in the background
     let cancelled = false;
     fetch('/api/wine-match', {
       method: 'POST',
@@ -122,9 +116,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     try {
       await fetch(`/api/wishlist?id=${itemId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((item) => item.id !== itemId));
-      if (selectedItem?.id === itemId) {
-        setSelectedItem(null);
-      }
+      if (selectedItem?.id === itemId) setSelectedItem(null);
     } catch (error) {
       console.error('Failed to delete:', error);
     } finally {
@@ -173,11 +165,10 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-24">
-      {/* Header */}
+    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
       <PageHeader title={t('title')} />
 
-      <div className="mx-auto max-w-lg px-4">
+      <div className="mx-auto max-w-lg px-4 animate-page">
         {/* Empty State */}
         {items.length === 0 && (
           <EmptyState
@@ -189,7 +180,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
           />
         )}
 
-        {/* Wishlist Items — clickable rows (same pattern as cellar) */}
+        {/* Wishlist Items */}
         <div className="-mt-4 space-y-3">
           {items.map((item) => {
             const wine = getWine(item);
@@ -199,41 +190,40 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 type="button"
                 onClick={() => setSelectedItem(item)}
                 className={cn(
-                  'w-full rounded-xl border border-wine-100 bg-white p-3 text-left shadow-sm',
-                  'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
-                  'flex items-center gap-3'
+                  'w-full rounded-2xl bg-white p-3.5 text-left shadow-soft',
+                  'hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200 ease-premium',
+                  'flex items-center gap-3',
+                  'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
               >
-                {/* Wine color swatch */}
                 <div
                   className={cn(
-                    'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-lg',
-                    wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
+                    'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+                    wineTypeColors[wine?.wine_type || ''] || 'bg-ivory-400'
                   )}
                 >
                   <Wine className={cn(
                     'h-5 w-5',
                     wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
-                      ? 'text-gray-600' : 'text-white/70'
-                  )} />
+                      ? 'text-stone-500' : 'text-white/80'
+                  )} strokeWidth={1.5} />
                 </div>
 
-                {/* Wine info */}
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-wine-900 line-clamp-1">
+                  <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
                     {wine?.name || 'Unknown Wine'}
                   </p>
-                  <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
+                  <p className="text-sm text-stone-500 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-gray-500 line-clamp-1 flex items-center gap-0.5">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <p className="mt-0.5 text-xs text-stone-500/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
+                      <MapPin className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500 dark:text-stone-400">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
-                        <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
+                        <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
                         {Number(wine.vivino_rating).toFixed(1)}
                       </span>
                     )}
@@ -243,14 +233,14 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   </div>
                 </div>
 
-                <ChevronRight className="h-4 w-4 flex-shrink-0 text-wine-400" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-bordeaux-300 dark:text-bordeaux-400" strokeWidth={1.5} />
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Detail Modal — full WineCard with actions */}
+      {/* Detail Modal */}
       <Dialog
         open={!!selectedItem}
         onOpenChange={(open) => {
@@ -275,14 +265,12 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 wine={detailWine}
                 matchResult={detailMatch || undefined}
               />
-
-              {/* Wishlist actions below the wine card */}
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
                   onClick={() => openMarkPurchasedModal(selectedItem)}
                 >
-                  <ShoppingCart className="me-2 h-4 w-4" />
+                  <ShoppingCart className="me-2 h-4 w-4" strokeWidth={1.5} />
                   {t('markPurchased')}
                 </Button>
                 <Button
@@ -294,7 +282,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   {isDeleting === selectedItem.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                   )}
                 </Button>
               </div>
@@ -303,7 +291,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Mark as purchased — quantity + optional price */}
+      {/* Purchase Modal */}
       <Dialog
         open={!!purchaseModalItem}
         onOpenChange={(open) => {
@@ -318,13 +306,13 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
             const w = getWine(purchaseModalItem);
             return (
               <>
-                <h3 className="text-lg font-semibold text-wine-900">
+                <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
                   {tCellar('addWine')}: {w?.name ?? 'Unknown'}
                 </h3>
-                <p className="text-sm text-gray-500">{w?.winery}</p>
+                <p className="text-sm text-stone-500 dark:text-stone-400">{w?.winery}</p>
                 <div className="mt-4 space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
                       {tCellar('quantity')}
                     </label>
                     <Input
@@ -336,7 +324,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-stone-500 dark:text-stone-400">
                       {tCellar('purchasePriceNis')}
                     </label>
                     <Input
@@ -347,7 +335,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                       onChange={(e) => setPurchasePriceNis(e.target.value)}
                       className="w-full"
                     />
-                    <p className="mt-1 text-xs text-gray-500">{tCellar('priceOptional')}</p>
+                    <p className="mt-1 text-xs text-stone-500/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-2">

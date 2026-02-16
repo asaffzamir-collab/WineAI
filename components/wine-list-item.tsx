@@ -27,18 +27,19 @@ export function WineListItem({
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full rounded-lg border border-wine-100 bg-white p-3 text-left shadow-sm',
-        'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
+        'w-full rounded-xl bg-white p-3.5 text-left shadow-soft',
+        'hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200 ease-premium',
         'flex items-center gap-3',
+        'dark:bg-charcoal-800 dark:hover:bg-charcoal-700',
         className
       )}
     >
       {leading}
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-wine-900">{name}</p>
-        <p className="text-sm text-gray-600">{winery}</p>
+        <p className="heading-serif text-base text-bordeaux-600 dark:text-ivory-200">{name}</p>
+        <p className="text-sm text-stone-500 dark:text-stone-400">{winery}</p>
         {metadata && metadata.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-500/80 dark:text-stone-400/80">
             {metadata.map((m) => (
               <span key={m.label}>
                 {m.label}: {m.value}
@@ -47,7 +48,7 @@ export function WineListItem({
           </div>
         )}
       </div>
-      {trailing ?? <ChevronRight className="h-5 w-5 flex-shrink-0 text-wine-400" />}
+      {trailing ?? <ChevronRight className="h-5 w-5 flex-shrink-0 text-bordeaux-300 dark:text-bordeaux-400" strokeWidth={1.5} />}
     </button>
   );
 }

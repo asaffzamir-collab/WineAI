@@ -20,8 +20,8 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      <Loader2 className={cn('animate-spin text-wine-900', sizeClasses[size])} />
-      {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
+      <Loader2 className={cn('animate-spin text-bordeaux-500 dark:text-bordeaux-300', sizeClasses[size])} />
+      {message && <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{message}</p>}
     </div>
   );
 }

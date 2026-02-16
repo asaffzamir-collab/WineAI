@@ -10,9 +10,6 @@ import { WineLogo } from '@/components/wine-logo';
 
 type Me = { id: string; email: string | null; onboardingCompleted: boolean; displayName: string | null };
 
-/**
- * Root gate: check session → show auth form or home page.
- */
 export function RootGate() {
   const router = useRouter();
   const [state, setState] = useState<'loading' | 'auth' | 'home'>('loading');
@@ -60,10 +57,10 @@ export function RootGate() {
 
   if (state === 'loading') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-wine-900 to-wine-950">
-        <WineLogo size={64} className="text-gold-500 mb-4" />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bordeaux-600 dark:bg-charcoal-900">
+        <WineLogo size={64} className="text-copper-400 mb-4" />
         <Loader2 className="h-8 w-8 animate-spin text-white" />
-        <p className="mt-4 text-wine-200">Loading...</p>
+        <p className="mt-4 text-bordeaux-200">Loading...</p>
       </div>
     );
   }

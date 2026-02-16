@@ -6,22 +6,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 ease-premium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ruby-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-wine-900 text-white hover:bg-wine-800',
-        destructive: 'bg-red-500 text-white hover:bg-red-600',
-        outline: 'border-2 border-wine-900 text-wine-900 hover:bg-wine-50',
-        secondary: 'bg-cream-200 text-wine-900 hover:bg-cream-300',
-        ghost: 'hover:bg-cream-100 hover:text-wine-900',
-        link: 'text-wine-900 underline-offset-4 hover:underline',
+        default: 'bg-ruby-500 text-white hover:bg-ruby-600 shadow-soft hover:shadow-soft-lg active:scale-[0.98]',
+        destructive: 'bg-red-600 text-white hover:bg-red-700 shadow-soft',
+        outline: 'border-2 border-bordeaux-500 text-bordeaux-500 hover:bg-bordeaux-50 dark:border-bordeaux-300 dark:text-bordeaux-200 dark:hover:bg-bordeaux-900',
+        secondary: 'bg-ivory-300 text-bordeaux-600 hover:bg-ivory-400 dark:bg-charcoal-800 dark:text-ivory-200 dark:hover:bg-charcoal-700',
+        ghost: 'hover:bg-ivory-300 hover:text-bordeaux-600 dark:hover:bg-charcoal-800 dark:hover:text-ivory-200',
+        link: 'text-bordeaux-500 underline-offset-4 hover:underline dark:text-bordeaux-200',
       },
       size: {
-        default: 'h-11 px-5 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-12 rounded-lg px-8 text-base',
-        icon: 'h-10 w-10',
+        default: 'h-11 min-h-[44px] px-6 py-2',
+        sm: 'h-9 rounded-lg px-4 text-xs',
+        lg: 'h-12 min-h-[48px] rounded-xl px-8 text-base',
+        icon: 'h-11 w-11 min-h-[44px]',
       },
     },
     defaultVariants: {

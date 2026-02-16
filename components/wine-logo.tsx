@@ -64,12 +64,12 @@ export function WineLogo({ className, size = 48 }: WineLogoProps) {
 
       <defs>
         <linearGradient id="wineGradient" x1="32" y1="8" x2="32" y2="42" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a8254f" />
-          <stop offset="100%" stopColor="#722040" />
+          <stop offset="0%" stopColor="#6E2C3A" />
+          <stop offset="100%" stopColor="#5A1E2A" />
         </linearGradient>
         <radialGradient id="goldAccent" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor="#facc15" />
-          <stop offset="100%" stopColor="#d4a21a" />
+          <stop offset="0%" stopColor="#D4A872" />
+          <stop offset="100%" stopColor="#B87333" />
         </radialGradient>
       </defs>
     </svg>

@@ -16,7 +16,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
-  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
 });
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
@@ -115,7 +115,6 @@ function hasFullWineData(w: Record<string, unknown>): boolean {
   return !!(w.tasting_notes && w.winery_description);
 }
 
-/* ─── Spectrum bar: single horizontal indicator on a track ─── */
 function SpectrumBar({
   value,
   leftLabel,
@@ -141,25 +140,24 @@ function SpectrumBar({
     <button
       type="button"
       onClick={onToggle}
-      className="w-full text-start rounded-lg px-1 py-2 -mx-1 hover:bg-cream-100/60 transition-colors"
+      className="w-full text-start rounded-xl px-1 py-2 -mx-1 hover:bg-ivory-300/60 transition-all duration-200 dark:hover:bg-charcoal-700/40"
     >
-      <p className="mb-1.5 text-xs text-gray-500 italic">{hint}</p>
-      {/* dir="ltr" prevents RTL flex reversal so left:X% matches the correct label */}
+      <p className="mb-1.5 text-xs text-stone-500/80 italic dark:text-stone-400/80">{hint}</p>
       <div className="flex items-center gap-3" dir="ltr">
-        <span className="w-14 text-end text-sm font-semibold text-wine-900">{leftLabel}</span>
-        <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
+        <span className="w-14 text-end text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{leftLabel}</span>
+        <div className="relative flex-1 h-[7px] rounded-full bg-ivory-300 dark:bg-charcoal-700">
           <div
-            className="absolute top-0 h-[7px] rounded-full bg-wine-800"
+            className="absolute top-0 h-[7px] rounded-full bg-bordeaux-500 dark:bg-bordeaux-400"
             style={{
               left: `${left - halfWidth}%`,
               width: `${halfWidth * 2}%`,
             }}
           />
         </div>
-        <span className="w-14 text-sm font-semibold text-wine-900">{rightLabel}</span>
+        <span className="w-14 text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{rightLabel}</span>
       </div>
       {isExpanded && (
-        <p className="mt-2 rounded-lg bg-cream-100 px-3 py-2 text-xs leading-relaxed text-gray-500">
+        <p className="mt-2 rounded-xl bg-ivory-300 px-3 py-2 text-xs leading-relaxed text-stone-500 dark:bg-charcoal-700 dark:text-stone-400">
           {explanation}
         </p>
       )}
@@ -167,7 +165,6 @@ function SpectrumBar({
   );
 }
 
-/* ─── Taste spectrum chart: 4 bars ─── */
 function TasteSpectrumChart({
   spectrum,
   t,
@@ -187,11 +184,11 @@ function TasteSpectrumChart({
   ];
 
   return (
-    <section className="rounded-xl border border-wine-100 bg-white p-5 shadow-sm">
-      <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wide text-wine-900">
+    <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
+      <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-bordeaux-600 dark:text-ivory-200">
         {t('tasteSpectrumTitle')}
       </h3>
-      <p className="mb-4 text-center text-xs text-gray-500">
+      <p className="mb-4 text-center text-xs text-stone-500 dark:text-stone-400">
         {t('spectrumTapToLearn')}
       </p>
       <div className="space-y-1">
@@ -212,7 +209,6 @@ function TasteSpectrumChart({
   );
 }
 
-/* ─── Section heading with always-visible subtitle explanation ─── */
 function SectionHeading({
   icon,
   title,
@@ -226,9 +222,9 @@ function SectionHeading({
     <div>
       <div className="flex items-center gap-2">
         {icon}
-        <h3 className="font-semibold text-wine-900">{title}</h3>
+        <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{title}</h3>
       </div>
-      <p className="mt-0.5 text-xs text-gray-500 italic">{subtitle}</p>
+      <p className="mt-0.5 text-xs text-stone-500/80 italic dark:text-stone-400/80">{subtitle}</p>
     </div>
   );
 }
@@ -259,12 +255,10 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     });
   }, []);
 
-  // Sync server-rendered profiles into state so router.refresh() updates are picked up
   useEffect(() => {
     setProfiles(initialProfiles);
   }, [initialProfiles]);
 
-  // Backfill taste_spectrum for profiles that don't have it yet, or re-calibrate old spectrums
   useEffect(() => {
     for (const p of profiles) {
       const pd = p.profile_data;
@@ -297,7 +291,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     }
   }, [profiles, userId]);
 
-  // Reusable fetch function for profiles — always bypass cache
   const refreshProfiles = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
@@ -311,13 +304,11 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         setProfiles(Array.isArray(data) ? data : []);
       }
     } catch {
-      // Keep current profiles on error
     } finally {
       fetchingRef.current = false;
     }
   }, [userId]);
 
-  // When modal opens with a wine, fetch full details + profile match from search API
   useEffect(() => {
     if (!selectedWine?.name || !selectedWine?.winery) {
       setDisplayWine(null);
@@ -328,10 +319,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     setDisplayWine(null);
     setDisplayMatch(null);
 
-    // If we already have full data, use it but still fetch match
     if (hasFullWineData(selectedWine)) {
       setDisplayWine(selectedWine);
-      // Still fetch match from API
       fetch('/api/wine-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,7 +348,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
           setDisplayWine(data.wine);
           setDisplayMatch(data.match ?? null);
         } else if (Array.isArray(data.wines) && data.wines.length > 0) {
-          // Multiple results — use the best match and fetch match separately
           const bestWine = data.wines[0];
           setDisplayWine(bestWine);
           fetch('/api/wine-match', {
@@ -385,25 +373,15 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     return () => { cancelled = true; };
   }, [selectedWine, userId]);
 
-  // Auto-refresh profiles on mount, visibility change, and window focus
   useEffect(() => {
-    // Invalidate Next.js router cache so the server component re-renders with fresh data
     router.refresh();
-    // Also fetch fresh data from the client-side API (faster than waiting for server re-render)
     refreshProfiles();
-
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshProfiles();
-      }
+      if (document.visibilityState === 'visible') refreshProfiles();
     };
-    const handleFocus = () => {
-      refreshProfiles();
-    };
-
+    const handleFocus = () => refreshProfiles();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
@@ -417,9 +395,9 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   };
 
   const wineTypeColors: Record<string, string> = {
-    red: 'bg-red-900 text-white',
-    white: 'bg-amber-100 text-amber-900',
-    rose: 'bg-pink-300 text-pink-900',
+    red: 'bg-bordeaux-600 text-white',
+    white: 'bg-gold-100 text-gold-800',
+    rose: 'bg-bordeaux-200 text-bordeaux-800',
   };
 
   const getProfile = (type: string) =>
@@ -462,11 +440,10 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-24">
+    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
       <PageHeader title={t('title')} />
 
-      <div className="mx-auto max-w-lg px-4">
-        {/* Wine Type Tabs */}
+      <div className="mx-auto max-w-lg px-4 animate-page">
         <Card className="-mt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
@@ -491,20 +468,19 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                 <TabsContent key={type} value={type}>
                   <CardContent className="space-y-6 pt-4">
                     {!hasProfile ? (
-                      <div className="py-8 text-center text-gray-500">
-                        <Wine className="mx-auto h-12 w-12 text-gray-300" />
+                      <div className="py-8 text-center text-stone-500 dark:text-stone-400">
+                        <Wine className="mx-auto h-12 w-12 text-ivory-400 dark:text-charcoal-700" strokeWidth={1.5} />
                         <p className="mt-4">{t('noProfileYet')}</p>
                         <p className="text-sm">{t('addWinesToBuildProfile')}</p>
                         <Button asChild variant="outline" className="mt-4">
                           <Link href="/search" className="inline-flex items-center gap-2">
-                            <Search className="h-4 w-4" />
+                            <Search className="h-4 w-4" strokeWidth={1.5} />
                             {t('goToSearch')}
                           </Link>
                         </Button>
                       </div>
                     ) : (
                       <>
-                        {/* Taste Spectrum Chart */}
                         {profile.taste_spectrum && (
                           <TasteSpectrumChart
                             spectrum={profile.taste_spectrum}
@@ -514,55 +490,50 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           />
                         )}
 
-                        {/* Overall Style */}
                         {profile.overall_style && (
                           <section>
                             <SectionHeading
                               title={t('overallStyle')}
                               subtitle={t('overallStyleExplain')}
                             />
-                            <p className="mt-2 text-gray-600">{profile.overall_style}</p>
+                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.overall_style}</p>
                           </section>
                         )}
 
-                        {/* Body & Structure */}
                         {profile.body_structure && (
                           <section>
                             <SectionHeading
                               title={t('bodyStructure')}
                               subtitle={t('bodyStructureExplain')}
                             />
-                            <p className="mt-2 text-gray-600">{profile.body_structure}</p>
+                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.body_structure}</p>
                           </section>
                         )}
 
-                        {/* Fruit Profile */}
                         {profile.fruit_profile && (
                           <section>
                             <SectionHeading
                               title={t('fruitProfile')}
                               subtitle={t('fruitProfileExplain')}
                             />
-                            <p className="mt-2 text-gray-600">{profile.fruit_profile}</p>
+                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.fruit_profile}</p>
                           </section>
                         )}
 
-                        {/* Style Notes */}
                         {profile.style_notes && (
                           <section>
                             <SectionHeading
                               title={t('styleNotes')}
                               subtitle={t('styleNotesExplain')}
                             />
-                            <p className="mt-2 text-gray-600">{profile.style_notes}</p>
+                            <p className="mt-2 leading-relaxed text-stone-500 dark:text-stone-400">{profile.style_notes}</p>
                           </section>
                         )}
 
-                        {/* Recommended Grapes */}
                         {profile.recommended_grapes && profile.recommended_grapes.length > 0 && (
                           <section>
                             <SectionHeading
-                              icon={<Grape className="h-4 w-4" />}
+                              icon={<Grape className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedGrapes')}
                               subtitle={t('recommendedGrapesExplain')}
                             />
@@ -570,7 +541,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               {profile.recommended_grapes.map((grape, idx) => (
                                 <span
                                   key={idx}
-                                  className="rounded-full bg-wine-100 px-3 py-1 text-sm text-wine-900"
+                                  className="rounded-full bg-bordeaux-50 px-3 py-1 text-sm text-bordeaux-600 dark:bg-bordeaux-900/20 dark:text-bordeaux-300"
                                 >
                                   {grape}
                                 </span>
@@ -579,11 +550,10 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           </section>
                         )}
 
-                        {/* Recommended Regions */}
                         {profile.recommended_regions && profile.recommended_regions.length > 0 && (
                           <section>
                             <SectionHeading
-                              icon={<MapPin className="h-4 w-4" />}
+                              icon={<MapPin className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedRegions')}
                               subtitle={t('recommendedRegionsExplain')}
                             />
@@ -591,7 +561,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               {profile.recommended_regions.map((region, idx) => (
                                 <span
                                   key={idx}
-                                  className="rounded-full bg-gold-100 px-3 py-1 text-sm text-gold-800"
+                                  className="rounded-full bg-copper-50 px-3 py-1 text-sm text-copper-600 dark:bg-copper-700/20 dark:text-copper-300"
                                 >
                                   {region}
                                 </span>
@@ -600,11 +570,10 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           </section>
                         )}
 
-                        {/* What to Avoid */}
                         {profile.what_to_avoid && profile.what_to_avoid.length > 0 && (
                           <section>
                             <SectionHeading
-                              icon={<AlertCircle className="h-4 w-4" />}
+                              icon={<AlertCircle className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('whatToAvoid')}
                               subtitle={t('whatToAvoidExplain')}
                             />
@@ -612,7 +581,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               {profile.what_to_avoid.map((avoid, idx) => (
                                 <span
                                   key={idx}
-                                  className="rounded-full bg-red-50 px-3 py-1 text-sm text-red-700"
+                                  className="rounded-full bg-red-50 px-3 py-1 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
                                 >
                                   {avoid}
                                 </span>
@@ -621,22 +590,20 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           </section>
                         )}
 
-                        {/* Summary */}
                         {profile.summary && (
-                          <section className="rounded-lg bg-cream-100 p-4">
+                          <section className="rounded-xl bg-ivory-300 p-4 dark:bg-charcoal-700/50">
                             <SectionHeading
                               title={t('summary')}
                               subtitle={t('summaryExplain')}
                             />
-                            <p className="mt-2 italic text-gray-600">{profile.summary}</p>
+                            <p className="mt-2 italic leading-relaxed text-stone-500 dark:text-stone-400">{profile.summary}</p>
                           </section>
                         )}
 
-                        {/* Wines that built this profile - click to see full details */}
                         {(profile.liked_wines_detail && profile.liked_wines_detail.length > 0) && (
                           <section>
-                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-wine-900">
-                              <Wine className="h-4 w-4" />
+                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
+                              <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
                             <ul className="space-y-2">
@@ -645,18 +612,17 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                 const isRemoving = removingKey === rowKey;
                                 return (
                                   <li key={`${type}-${rowKey}-${idx}`}>
-                                    <div className="flex items-center gap-2 rounded-lg border border-wine-100 bg-white p-3 shadow-sm">
+                                    <div className="flex items-center gap-2 rounded-2xl bg-white p-3 shadow-soft dark:bg-charcoal-800">
                                       <button
                                         type="button"
                                         onClick={() => setSelectedWine(w.full_wine ?? { name: w.name, winery: w.winery, country: w.country ?? '', region: w.region, vintage: w.vintage, grapes: w.grapes ?? [], wine_type: (w.wine_type as WineData['wine_type']) ?? 'red', image_url: w.image_url })}
                                         className={cn(
                                           'min-w-0 flex-1 cursor-pointer text-left',
-                                          'hover:opacity-80 transition-opacity flex items-center gap-3'
+                                          'hover:opacity-80 transition-all duration-200 flex items-center gap-3'
                                         )}
                                       >
-                                        {/* Wine thumbnail */}
                                         {(w.image_url || w.full_wine?.image_url) ? (
-                                          <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100">
+                                          <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
                                             <img
                                               src={w.image_url || String(w.full_wine?.image_url || '')}
                                               alt={w.name}
@@ -667,26 +633,26 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                           </div>
                                         ) : (
                                           <div className={cn(
-                                            'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded',
-                                            w.wine_type === 'white' ? 'bg-amber-100' : w.wine_type === 'rose' ? 'bg-pink-200' : 'bg-red-900/80'
+                                            'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-lg',
+                                            w.wine_type === 'white' ? 'bg-gold-100' : w.wine_type === 'rose' ? 'bg-bordeaux-200' : 'bg-bordeaux-600'
                                           )}>
                                             <Wine className={cn(
                                               'h-5 w-5',
-                                              w.wine_type === 'white' ? 'text-amber-700' : 'text-white/70'
-                                            )} />
+                                              w.wine_type === 'white' ? 'text-gold-700' : 'text-white/80'
+                                            )} strokeWidth={1.5} />
                                           </div>
                                         )}
                                         <div className="min-w-0 flex-1">
-                                          <p className="font-semibold text-wine-900">{w.name}</p>
-                                          <p className="text-sm text-gray-600">{w.winery}</p>
-                                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+                                          <p className="heading-serif text-base text-bordeaux-600 dark:text-ivory-200">{w.name}</p>
+                                          <p className="text-sm text-stone-500 dark:text-stone-400">{w.winery}</p>
+                                          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-500/80 dark:text-stone-400/80">
                                             {w.region && <span>{t('region')}: {w.region}</span>}
                                             {w.country && <span>{t('country')}: {w.country}</span>}
                                             {w.vintage && <span>{t('vintage')}: {w.vintage}</span>}
                                             {w.grapes && w.grapes.length > 0 && <span>{t('grapes')}: {w.grapes.join(', ')}</span>}
                                           </div>
                                         </div>
-                                        <ChevronRight className="h-5 w-5 flex-shrink-0 text-wine-400" />
+                                        <ChevronRight className="h-5 w-5 flex-shrink-0 text-bordeaux-300 dark:text-bordeaux-400" strokeWidth={1.5} />
                                       </button>
                                       <Button
                                         type="button"
@@ -698,12 +664,12 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                           e.stopPropagation();
                                           handleRemoveFromProfile(w);
                                         }}
-                                        className="flex-shrink-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                        className="flex-shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
                                       >
                                         {isRemoving ? (
                                           <span className="text-xs">{t('removing')}</span>
                                         ) : (
-                                          <Trash2 className="h-5 w-5" />
+                                          <Trash2 className="h-5 w-5" strokeWidth={1.5} />
                                         )}
                                       </Button>
                                     </div>
@@ -713,13 +679,12 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             </ul>
                           </section>
                         )}
-                        {/* Fallback: show as clickable cards when we only have names (no detail) */}
                         {(!profile.liked_wines_detail || profile.liked_wines_detail.length === 0) &&
                           profile.liked_wines &&
                           profile.liked_wines.length > 0 && (
                           <section>
-                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-wine-900">
-                              <Wine className="h-4 w-4" />
+                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
+                              <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
                             <ul className="space-y-2">
@@ -746,10 +711,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
             })}
           </Tabs>
         </Card>
-
       </div>
 
-      {/* Full wine details modal */}
       <Dialog
         open={!!selectedWine}
         onOpenChange={(open) => {
@@ -781,8 +744,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
               <>
                 {isFetchingWineDetails ? (
                   <div className="flex flex-col items-center justify-center py-12">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" />
-                    <p className="mt-4 text-sm text-gray-500">{t('loadingWineDetails')}</p>
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" />
+                    <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('loadingWineDetails')}</p>
                   </div>
                 ) : (
                   <>
@@ -797,7 +760,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                       <Button
                         type="button"
                         variant="outline"
-                        className="mt-4 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                        className="mt-4 w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
                         disabled={removingThis}
                         onClick={() => handleRemoveFromProfile({ name: sn, winery: sw })}
                       >
@@ -805,7 +768,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <span>{t('removing')}</span>
                         ) : (
                           <>
-                            <Trash2 className="me-2 h-4 w-4" />
+                            <Trash2 className="me-2 h-4 w-4" strokeWidth={1.5} />
                             {t('removeFromProfile')}
                           </>
                         )}

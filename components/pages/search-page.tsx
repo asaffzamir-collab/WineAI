@@ -70,12 +70,10 @@ export function SearchPage({ userId }: SearchPageProps) {
       return;
     }
     let cancelled = false;
-    // Use stored wine data directly — no need to re-search from OpenAI
     setDisplayWine(selectedRecentWine);
     setDisplayMatch(null);
     setIsFetchingDetails(false);
 
-    // Only fetch the profile match (single fast API call)
     fetch('/api/wine-match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -156,7 +154,6 @@ export function SearchPage({ userId }: SearchPageProps) {
     }
   };
 
-  /** Resize image on a canvas to keep payload small and API calls fast */
   const compressImage = (file: File, maxDim = 1600, quality = 0.85): Promise<string> =>
     new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -188,7 +185,6 @@ export function SearchPage({ userId }: SearchPageProps) {
       img.src = url;
     });
 
-  /** Read file as data URL (fallback when compression fails, e.g. HEIC) */
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -210,17 +206,14 @@ export function SearchPage({ userId }: SearchPageProps) {
     setIsAddingToProfile(false);
 
     try {
-      // Try to compress; fall back to raw base64 if compression fails (e.g. HEIC format)
       let dataUrl: string;
       try {
         dataUrl = await compressImage(file);
       } catch {
         dataUrl = await readFileAsDataUrl(file);
       }
-      // Save the uploaded image URL for display
       setUploadedImageUrl(dataUrl);
       
-      // Extract mime type and base64 data
       const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches) {
         setError('Invalid image format');
@@ -315,7 +308,7 @@ export function SearchPage({ userId }: SearchPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-24">
+    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
       <PageHeader title={t('title')}>
         <div className="relative mt-4">
           <Input
@@ -323,25 +316,25 @@ export function SearchPage({ userId }: SearchPageProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
             placeholder={t('textPlaceholder')}
-            className="h-12 bg-white pe-12 ps-4 text-start"
+            className="h-12 bg-white pe-12 ps-4 text-start dark:bg-charcoal-800"
           />
           <button
             type="button"
             onClick={handleTextSearch}
             disabled={isSearching}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-wine-900 transition-colors hover:text-wine-700"
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-bordeaux-500 transition-colors hover:text-bordeaux-400 dark:text-bordeaux-300"
             aria-label={t('title')}
           >
-            <Search className="h-5 w-5" />
+            <Search className="h-5 w-5" strokeWidth={1.5} />
           </button>
         </div>
       </PageHeader>
 
-      <div className="mx-auto max-w-lg px-4">
+      <div className="mx-auto max-w-lg px-4 animate-page">
         {/* Image Upload */}
         <Card className="-mt-4">
           <CardContent className="p-4">
-            <p className="mb-3 text-center text-sm text-gray-600">
+            <p className="mb-3 text-center text-sm text-stone-500 dark:text-stone-400">
               {t('orUploadPhoto')}
             </p>
             <div className="flex gap-3">
@@ -367,7 +360,7 @@ export function SearchPage({ userId }: SearchPageProps) {
                   }
                 }}
               >
-                <Upload className="me-2 h-4 w-4" />
+                <Upload className="me-2 h-4 w-4" strokeWidth={1.5} />
                 {t('uploadPhoto')}
               </Button>
               <Button
@@ -382,18 +375,18 @@ export function SearchPage({ userId }: SearchPageProps) {
                   }
                 }}
               >
-                <Camera className="me-2 h-4 w-4" />
+                <Camera className="me-2 h-4 w-4" strokeWidth={1.5} />
                 {t('takePhoto')}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Multiple text results: pick one */}
+        {/* Multiple text results */}
         {wineCandidates.length > 1 && !isSearching && (
-          <section className="mt-6">
-            <h2 className="mb-2 text-lg font-semibold text-wine-900">{t('pickWine')}</h2>
-            <p className="mb-3 text-sm text-gray-600">{t('multipleResults')}</p>
+          <section className="mt-8">
+            <h2 className="mb-2 heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">{t('pickWine')}</h2>
+            <p className="mb-3 text-sm text-stone-500 dark:text-stone-400">{t('multipleResults')}</p>
             {isFetchingMatch ? (
               <LoadingSpinner message={t('loadingDetails')} className="py-8" />
             ) : (
@@ -413,20 +406,20 @@ export function SearchPage({ userId }: SearchPageProps) {
           </section>
         )}
 
-        {/* Loading State */}
+        {/* Loading */}
         {isSearching && (
           <LoadingSpinner message={t('analyzing')} size="lg" className="mt-8" />
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {error && (
-          <Card className="mt-8 border-amber-200 bg-amber-50">
+          <Card className="mt-8 border border-copper-200 bg-copper-50 dark:border-copper-700 dark:bg-copper-700/20">
             <CardContent className="py-6 text-center">
-              <p className="text-gray-800">{error}</p>
+              <p className="text-stone-500 dark:text-stone-300">{error}</p>
               {error.includes('foreign key') && (
-                <p className="mt-2 text-sm text-gray-600">
+                <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
                   Run the migration in Supabase SQL Editor: Dashboard → SQL Editor → paste and run the SQL from{' '}
-                  <code className="rounded bg-amber-100 px-1 text-xs">supabase/migrations/20260206180000_allow_mock_user_profiles.sql</code>
+                  <code className="rounded bg-copper-100 px-1 text-xs dark:bg-copper-700/30">supabase/migrations/20260206180000_allow_mock_user_profiles.sql</code>
                 </p>
               )}
             </CardContent>
@@ -450,11 +443,11 @@ export function SearchPage({ userId }: SearchPageProps) {
           </div>
         )}
 
-        {/* Recent searches - below search results */}
+        {/* Recent searches */}
         {recentSearches.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-wine-900">
-              <Wine className="h-5 w-5" />
+          <section className="mt-section">
+            <h2 className="mb-3 flex items-center gap-2 heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
+              <Wine className="h-5 w-5" strokeWidth={1.5} />
               {t('recentSearches')}
             </h2>
             <ul className="space-y-2">
@@ -473,7 +466,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         )}
       </div>
 
-      {/* Modal: recent wine full details + match */}
+      {/* Modal: recent wine */}
       <Dialog
         open={!!selectedRecentWine}
         onOpenChange={(open) => {
@@ -498,8 +491,8 @@ export function SearchPage({ userId }: SearchPageProps) {
             <>
               {isFetchingDetails ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin text-wine-600" />
-                  <p className="mt-4 text-sm text-gray-500">{t('loadingDetails')}</p>
+                  <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
+                  <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('loadingDetails')}</p>
                 </div>
               ) : (
                 <WineCard

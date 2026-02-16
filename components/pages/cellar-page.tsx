@@ -12,7 +12,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import dynamic from 'next/dynamic';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
-  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-wine-200 border-t-wine-600" /></div>,
+  loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
 });
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -59,18 +59,17 @@ interface CellarPageProps {
 }
 
 const wineTypeColors: Record<string, string> = {
-  red: 'bg-red-900',
-  white: 'bg-amber-100',
-  rose: 'bg-pink-300',
-  sparkling: 'bg-amber-50',
-  dessert: 'bg-amber-600',
+  red: 'bg-bordeaux-600',
+  white: 'bg-gold-100',
+  rose: 'bg-bordeaux-200',
+  sparkling: 'bg-gold-50',
+  dessert: 'bg-copper-400',
 };
 
 function getWine(item: CellarItem): CellarWineData | null {
   return Array.isArray(item.wines) ? item.wines[0] ?? null : item.wines;
 }
 
-/** Convert cellar wine DB row to the WineData shape that WineCard expects */
 function toWineData(wine: CellarWineData): WineData {
   return {
     name: wine.name,
@@ -103,22 +102,18 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState<string | null>(null);
   const fetchingRef = useRef(false);
 
-  // Detail modal state
   const [selectedItem, setSelectedItem] = useState<CellarItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
 
-  // Inline editing state for cellar details
   const [isEditing, setIsEditing] = useState(false);
   const [editPrice, setEditPrice] = useState('');
   const [editQuantity, setEditQuantity] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Track broken images per item id
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
-  // Fetch fresh cellar items from the server — always bypass cache
   const refreshCellar = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
@@ -134,35 +129,25 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
         }
       }
     } catch {
-      // Keep current items on error
     } finally {
       fetchingRef.current = false;
     }
   }, [userId]);
 
-  // Auto-refresh on mount and on visibility/focus changes
   useEffect(() => {
     refreshCellar();
-
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshCellar();
-      }
+      if (document.visibilityState === 'visible') refreshCellar();
     };
-    const handleFocus = () => {
-      refreshCellar();
-    };
-
+    const handleFocus = () => refreshCellar();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
   }, [refreshCellar]);
 
-  // When an item is selected, fetch full wine details via search API
   useEffect(() => {
     if (!selectedItem) {
       setDetailWine(null);
@@ -187,7 +172,6 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
         if (data.wine) {
           setDetailWine(data.wine);
         } else {
-          // Fallback to basic wine data from DB
           setDetailWine(toWineData(wine));
         }
       })
@@ -223,9 +207,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     try {
       await fetch(`/api/cellar?id=${itemId}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((item) => item.id !== itemId));
-      if (selectedItem?.id === itemId) {
-        setSelectedItem(null);
-      }
+      if (selectedItem?.id === itemId) setSelectedItem(null);
     } catch (error) {
       console.error('Failed to delete:', error);
     } finally {
@@ -252,7 +234,6 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
               item.id === itemId ? { ...item, bottle_photo_url: dataUrl } : item
             )
           );
-          // Clear broken image flag for this item
           setBrokenImages((prev) => {
             const next = new Set(prev);
             next.delete(itemId);
@@ -305,7 +286,6 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
       });
 
       if (res.ok) {
-        // Update local state
         const updated = {
           ...selectedItem,
           purchase_price: purchasePrice != null && !Number.isNaN(purchasePrice) ? purchasePrice : undefined,
@@ -326,39 +306,39 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   };
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-24">
+    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
       <PageHeader title={t('title')} />
 
-      <div className="mx-auto max-w-lg px-4">
+      <div className="mx-auto max-w-lg px-4 animate-page">
         {/* Stats */}
         <div className="-mt-4 grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-wine-900">{totalBottles}</p>
-              <p className="text-sm text-gray-500">{t('totalBottles')}</p>
+              <p className="heading-serif text-2xl text-bordeaux-600 dark:text-ivory-200">{totalBottles}</p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">{t('totalBottles')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-wine-900">
+              <p className="heading-serif text-2xl text-bordeaux-600 dark:text-ivory-200">
                 {formatCurrency(totalValue)}
               </p>
-              <p className="text-sm text-gray-500">{t('totalValue')}</p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">{t('totalValue')}</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filter toggle */}
+        {/* Filter */}
         {items.length > 0 && (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-6 flex gap-2">
             <button
               type="button"
               onClick={() => setActiveFilter(undefined)}
               className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                'rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
                 !activeFilter
-                  ? 'bg-wine-900 text-white'
-                  : 'bg-cream-200 text-wine-800 hover:bg-cream-300'
+                  ? 'bg-bordeaux-600 text-white shadow-soft'
+                  : 'bg-ivory-300 text-bordeaux-500 hover:bg-ivory-400 dark:bg-charcoal-800 dark:text-bordeaux-300'
               )}
             >
               {t('filterAll')}
@@ -367,10 +347,10 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
               type="button"
               onClick={() => setActiveFilter(activeFilter === 'ready' ? undefined : 'ready')}
               className={cn(
-                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                'rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
                 activeFilter === 'ready'
-                  ? 'bg-success text-success-foreground'
-                  : 'bg-success-muted text-success hover:bg-success-muted/80'
+                  ? 'bg-success text-success-foreground shadow-soft'
+                  : 'bg-success-muted text-success hover:bg-success-muted/80 dark:bg-green-950 dark:text-green-400'
               )}
             >
               {t('filterReady')}
@@ -389,11 +369,10 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
           />
         )}
 
-        {/* Filter empty state */}
         {filteredItems.length === 0 && items.length > 0 && (
           <Card className="mt-4">
             <CardContent className="py-8 text-center">
-              <p className="text-sm text-gray-500">{t('filterEmpty')}</p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">{t('filterEmpty')}</p>
             </CardContent>
           </Card>
         )}
@@ -411,15 +390,15 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 type="button"
                 onClick={() => setSelectedItem(item)}
                 className={cn(
-                  'w-full rounded-xl border border-wine-100 bg-white p-3 text-left shadow-sm',
-                  'hover:border-wine-300 hover:bg-wine-50/50 transition-colors',
-                  'flex items-center gap-3'
+                  'w-full rounded-2xl bg-white p-3.5 text-left shadow-soft',
+                  'hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200 ease-premium',
+                  'flex items-center gap-3',
+                  'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
               >
-                {/* Wine image / color fallback */}
                 <div className="relative flex-shrink-0">
                   {imageUrl && !isImageBroken ? (
-                    <div className="h-16 w-12 overflow-hidden rounded-lg bg-gray-100">
+                    <div className="h-16 w-12 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
                       <img
                         src={imageUrl}
                         alt={wine?.name || ''}
@@ -431,18 +410,17 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                   ) : (
                     <div
                       className={cn(
-                        'flex h-16 w-12 items-center justify-center rounded-lg',
-                        wineTypeColors[wine?.wine_type || ''] || 'bg-gray-200'
+                        'flex h-16 w-12 items-center justify-center rounded-xl',
+                        wineTypeColors[wine?.wine_type || ''] || 'bg-ivory-400'
                       )}
                     >
                       <Wine className={cn(
                         'h-6 w-6',
                         wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
-                          ? 'text-gray-600' : 'text-white/70'
-                      )} />
+                          ? 'text-stone-500' : 'text-white/80'
+                      )} strokeWidth={1.5} />
                     </div>
                   )}
-                  {/* Camera button overlay */}
                   <input
                     id={`cellar-photo-${item.id}`}
                     type="file"
@@ -454,7 +432,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                   />
                   <button
                     type="button"
-                    className="absolute -bottom-1.5 -end-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow border border-gray-200"
+                    className="absolute -bottom-1.5 -end-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-soft border border-ivory-300 dark:bg-charcoal-800 dark:border-charcoal-700"
                     onClick={(e) => {
                       e.stopPropagation();
                       document.getElementById(`cellar-photo-${item.id}`)?.click();
@@ -462,33 +440,30 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     disabled={isUpdatingPhoto === item.id}
                     title={tSearch('takePhoto')}
                   >
-                    <Camera className="h-3.5 w-3.5 text-gray-500" />
+                    <Camera className="h-3 w-3 text-stone-500 dark:text-stone-400" strokeWidth={1.5} />
                   </button>
                 </div>
 
-                {/* Wine info */}
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-wine-900 line-clamp-1">
+                  <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
                     {wine?.name || 'Unknown Wine'}
                   </p>
-                  <p className="text-sm text-gray-500 line-clamp-1">{wine?.winery}</p>
-                  {/* Region & country */}
+                  <p className="text-sm text-stone-500 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-gray-500 line-clamp-1 flex items-center gap-0.5">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <p className="mt-0.5 text-xs text-stone-500/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
+                      <MapPin className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
-                  {/* Grapes */}
                   {wine?.grapes && wine.grapes.length > 0 && (
-                    <p className="text-xs text-gray-500 line-clamp-1">
+                    <p className="text-xs text-stone-500/80 line-clamp-1 dark:text-stone-400/80">
                       {wine.grapes.join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500 dark:text-stone-400">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
-                        <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
+                        <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
                         {Number(wine.vivino_rating).toFixed(1)}
                       </span>
                     )}
@@ -500,28 +475,27 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     )}
                     {item.purchase_date && (
                       <span className="flex items-center gap-0.5">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="h-3 w-3" strokeWidth={1.5} />
                         {formatDate(item.purchase_date)}
                       </span>
                     )}
                     {item.storage_location && (
                       <span className="flex items-center gap-0.5">
-                        <MapPin className="h-3 w-3" />
+                        <MapPin className="h-3 w-3" strokeWidth={1.5} />
                         {item.storage_location}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Quantity badge + arrow */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="flex items-center gap-1 rounded-full bg-wine-100 px-2.5 py-1">
-                    <Wine className="h-3.5 w-3.5 text-wine-900" />
-                    <span className="text-sm font-semibold text-wine-900">
+                  <div className="flex items-center gap-1 rounded-full bg-bordeaux-50 px-2.5 py-1 dark:bg-bordeaux-900/30">
+                    <Wine className="h-3.5 w-3.5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
+                    <span className="text-sm font-semibold text-bordeaux-600 dark:text-bordeaux-300">
                       {item.quantity}
                     </span>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-wine-400" />
+                  <ChevronRight className="h-4 w-4 text-bordeaux-300 dark:text-bordeaux-400" strokeWidth={1.5} />
                 </div>
               </button>
             );
@@ -552,8 +526,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
             <>
               {isFetchingDetails && !detailWine ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin text-wine-600" />
-                  <p className="mt-4 text-sm text-gray-500">{tSearch('analyzing')}</p>
+                  <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
+                  <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{tSearch('analyzing')}</p>
                 </div>
               ) : detailWine ? (
                 <div className="space-y-4">
@@ -562,11 +536,10 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
                   />
 
-                  {/* Cellar-specific details below the wine card */}
-                  <Card className="border-wine-100">
+                  <Card className="border border-bordeaux-100 dark:border-charcoal-700">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold text-wine-900">
+                        <CardTitle className="text-sm">
                           {t('cellarDetails')}
                         </CardTitle>
                         {!isEditing ? (
@@ -574,9 +547,9 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                             variant="ghost"
                             size="sm"
                             onClick={startEditing}
-                            className="h-7 gap-1 text-xs text-wine-700 hover:text-wine-900"
+                            className="h-7 gap-1 text-xs text-bordeaux-400 hover:text-bordeaux-600"
                           >
-                            <Pencil className="h-3 w-3" />
+                            <Pencil className="h-3 w-3" strokeWidth={1.5} />
                             {t('edit')}
                           </Button>
                         ) : (
@@ -586,7 +559,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                               size="sm"
                               onClick={cancelEditing}
                               disabled={isSaving}
-                              className="h-7 text-xs text-gray-500"
+                              className="h-7 text-xs text-stone-500"
                             >
                               {t('cancelEdit')}
                             </Button>
@@ -599,7 +572,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                               {isSaving ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                <Check className="h-3 w-3" />
+                                <Check className="h-3 w-3" strokeWidth={1.5} />
                               )}
                               {t('save')}
                             </Button>
@@ -610,9 +583,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     <CardContent className="space-y-3 text-sm">
                       {isEditing ? (
                         <>
-                          {/* Editable quantity */}
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                            <label className="mb-1 block text-xs font-medium text-stone-500 dark:text-stone-400">
                               {t('quantityLabel')}
                             </label>
                             <Input
@@ -623,9 +595,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                               className="h-9"
                             />
                           </div>
-                          {/* Editable price */}
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                            <label className="mb-1 block text-xs font-medium text-stone-500 dark:text-stone-400">
                               {t('purchasePriceNis')}
                             </label>
                             <Input
@@ -637,9 +608,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                               className="h-9"
                             />
                           </div>
-                          {/* Editable notes */}
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-500">
+                            <label className="mb-1 block text-xs font-medium text-stone-500 dark:text-stone-400">
                               {t('notes')}
                             </label>
                             <Input
@@ -654,18 +624,18 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                       ) : (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-500">{t('quantityLabel')}</span>
-                            <span className="font-semibold text-wine-900">{selectedItem.quantity}</span>
+                            <span className="text-stone-500 dark:text-stone-400">{t('quantityLabel')}</span>
+                            <span className="font-semibold text-bordeaux-600 dark:text-ivory-200">{selectedItem.quantity}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-500">{t('priceLabel')}</span>
+                            <span className="text-stone-500 dark:text-stone-400">{t('priceLabel')}</span>
                             <span className="font-medium">
                               {selectedItem.purchase_price != null && selectedItem.purchase_price > 0
                                 ? formatCurrency(selectedItem.purchase_price)
                                 : <button
                                     type="button"
                                     onClick={startEditing}
-                                    className="text-wine-600 hover:text-wine-800 underline underline-offset-2"
+                                    className="text-bordeaux-400 hover:text-bordeaux-600 underline underline-offset-2 transition-colors"
                                   >
                                     {t('addPrice')}
                                   </button>
@@ -674,25 +644,24 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                           </div>
                           {selectedItem.purchase_date && (
                             <div className="flex items-center justify-between">
-                              <span className="text-gray-500">{t('dateLabel')}</span>
+                              <span className="text-stone-500 dark:text-stone-400">{t('dateLabel')}</span>
                               <span className="font-medium">{formatDate(selectedItem.purchase_date)}</span>
                             </div>
                           )}
                           {selectedItem.storage_location && (
                             <div className="flex items-center justify-between">
-                              <span className="text-gray-500">{t('locationLabel')}</span>
+                              <span className="text-stone-500 dark:text-stone-400">{t('locationLabel')}</span>
                               <span className="font-medium">{selectedItem.storage_location}</span>
                             </div>
                           )}
                           {selectedItem.notes && (
-                            <p className="italic text-gray-500 pt-1">{selectedItem.notes}</p>
+                            <p className="italic text-stone-500 pt-1 dark:text-stone-400">{selectedItem.notes}</p>
                           )}
                         </>
                       )}
                     </CardContent>
                   </Card>
 
-                  {/* Delete button */}
                   <Button
                     variant="destructive"
                     className="w-full"
@@ -702,7 +671,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     {isDeleting === selectedItem.id ? (
                       <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Trash2 className="me-2 h-4 w-4" />
+                      <Trash2 className="me-2 h-4 w-4" strokeWidth={1.5} />
                     )}
                     {t('removeFromCellar')}
                   </Button>

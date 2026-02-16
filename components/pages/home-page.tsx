@@ -89,7 +89,7 @@ function AnimatedNumber({ value, isLoading }: { value: number; isLoading: boolea
     return () => clearInterval(timer);
   }, [value, isLoading]);
 
-  if (isLoading) return <span className="text-wine-300">—</span>;
+  if (isLoading) return <span className="text-bordeaux-200">—</span>;
   return <>{displayed}</>;
 }
 
@@ -111,7 +111,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     hasRoseProfile: false,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [guideDismissed, setGuideDismissed] = useState(true); // default true to avoid flash
+  const [guideDismissed, setGuideDismissed] = useState(true);
 
   useEffect(() => {
     setGuideDismissed(localStorage.getItem(GUIDE_DISMISSED_KEY) === 'true');
@@ -168,7 +168,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
   const showGuide = !guideDismissed && !isLoading && stats.bottlesInCellar === 0 && stats.winesTasted === 0;
 
-  // Build notifications
   const notifications = useMemo(() => {
     if (isLoading) return [];
     const items: { key: string; icon: React.ElementType; text: string; color: string; bg: string; href?: string }[] = [];
@@ -198,8 +197,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         key: 'red-profile',
         icon: User,
         text: t('notifMissingProfile', { type: t('notifProfileRed') }),
-        color: 'text-wine-700',
-        bg: 'bg-wine-50',
+        color: 'text-bordeaux-500',
+        bg: 'bg-bordeaux-50',
         href: '/profile',
       });
     }
@@ -208,8 +207,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         key: 'white-profile',
         icon: User,
         text: t('notifMissingProfile', { type: t('notifProfileWhite') }),
-        color: 'text-wine-700',
-        bg: 'bg-wine-50',
+        color: 'text-bordeaux-500',
+        bg: 'bg-bordeaux-50',
         href: '/profile',
       });
     }
@@ -218,24 +217,23 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         key: 'rose-profile',
         icon: User,
         text: t('notifMissingProfile', { type: t('notifProfileRose') }),
-        color: 'text-wine-700',
-        bg: 'bg-wine-50',
+        color: 'text-bordeaux-500',
+        bg: 'bg-bordeaux-50',
         href: '/profile',
       });
     }
     return items;
   }, [isLoading, stats, t]);
 
-  // Wine type distribution for display
   const typeTotal = Object.values(stats.wineTypeDistribution).reduce((a, b) => a + b, 0);
   const typeEntries = Object.entries(stats.wineTypeDistribution).sort((a, b) => b[1] - a[1]);
 
   const typeColorMap: Record<string, string> = {
-    red: 'bg-wine-700',
+    red: 'bg-bordeaux-500',
     white: 'bg-gold-400',
-    rose: 'bg-pink-300',
-    sparkling: 'bg-sky-300',
-    dessert: 'bg-amber-400',
+    rose: 'bg-bordeaux-200',
+    sparkling: 'bg-gold-200',
+    dessert: 'bg-copper-400',
   };
 
   const typeLabelMap: Record<string, string> = {
@@ -251,16 +249,16 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       label: t('winesTasted'),
       value: stats.winesTasted,
       icon: Sparkles,
-      color: 'text-wine-900',
-      bg: 'bg-wine-50',
+      color: 'text-bordeaux-500',
+      bg: 'bg-bordeaux-50',
       href: '/cellar',
     },
     {
       label: t('bottlesInCellar'),
       value: stats.bottlesInCellar,
       icon: Wine,
-      color: 'text-wine-700',
-      bg: 'bg-wine-50',
+      color: 'text-bordeaux-400',
+      bg: 'bg-bordeaux-50',
       href: '/cellar',
     },
     {
@@ -275,75 +273,71 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       label: t('wishlistCount'),
       value: stats.wishlistCount,
       icon: Heart,
-      color: 'text-rose-500',
-      bg: 'bg-rose-50',
+      color: 'text-ruby-500',
+      bg: 'bg-ruby-50',
       href: '/wishlist',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-24">
-      {/* ── Header ── */}
-      <header className="relative bg-gradient-to-br from-wine-900 via-wine-900 to-wine-800 px-4 pb-16 pt-8">
+    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
+      {/* Header */}
+      <header className="relative bg-bordeaux-600 px-4 pb-16 pt-8 dark:bg-charcoal-900 dark:border-b dark:border-charcoal-700">
         <div className="mx-auto max-w-lg">
           <div className="flex items-center gap-2 mb-1">
-            <WineLogo size={28} className="text-gold-500" />
-            <span className="text-sm font-medium text-wine-300 tracking-wide">WineJourney</span>
+            <WineLogo size={28} className="text-copper-400" />
+            <span className="text-sm font-medium text-bordeaux-200 tracking-wide">WineJourney</span>
           </div>
-          <h1 className="text-2xl font-bold text-white mt-2">
+          <h1 className="heading-serif text-2xl text-white mt-3">
             {greeting}
           </h1>
         </div>
-        {/* Curved bottom edge */}
         <div className="absolute bottom-0 left-0 right-0 h-6 overflow-hidden">
           <svg viewBox="0 0 1440 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 w-full" preserveAspectRatio="none">
-            <path d="M0 48h1440V16C1200 42 960 48 720 48S240 42 0 16v32Z" fill="rgb(254,253,251)" />
+            <path d="M0 48h1440V16C1200 42 960 48 720 48S240 42 0 16v32Z" className="fill-ivory-200 dark:fill-charcoal-900" />
           </svg>
         </div>
       </header>
 
-      <div className="mx-auto -mt-10 max-w-lg px-4 space-y-6">
-        {/* ── Getting-Started Guide ── */}
+      <div className="mx-auto -mt-10 max-w-lg px-4 space-y-8 animate-page">
+        {/* Getting-Started Guide */}
         {showGuide && (
-          <Card className="relative overflow-hidden border-gold-300/50 bg-gradient-to-br from-white to-gold-50/40">
+          <Card className="relative overflow-hidden border border-copper-200/40 bg-gradient-to-br from-white to-copper-50/30 dark:from-charcoal-800 dark:to-charcoal-700/30">
             <button
               onClick={dismissGuide}
-              className="absolute top-3 end-3 rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="absolute top-3 end-3 rounded-full p-2 text-stone-500 hover:bg-ivory-300 hover:text-stone-500 transition-all duration-200 dark:hover:bg-charcoal-700"
               aria-label="Dismiss"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
             <CardContent className="px-5 py-5">
-              <p className="text-sm font-semibold text-wine-900 mb-4">{t('guideTitle')}</p>
+              <p className="text-sm font-semibold text-bordeaux-600 mb-4 dark:text-ivory-200">{t('guideTitle')}</p>
               <div className="grid grid-cols-3 gap-3">
-                {/* Step 1 */}
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-wine-100">
-                    <Camera className="h-5 w-5 text-wine-700" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/30">
+                    <Camera className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                   </div>
-                  <p className="text-xs font-semibold text-wine-900">{t('guideStep1Title')}</p>
-                  <p className="text-xs leading-tight text-gray-500">{t('guideStep1Desc')}</p>
+                  <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep1Title')}</p>
+                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep1Desc')}</p>
                 </div>
-                {/* Step 2 */}
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-100">
-                    <BookmarkPlus className="h-5 w-5 text-gold-700" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-copper-50 dark:bg-copper-700/20">
+                    <BookmarkPlus className="h-5 w-5 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
                   </div>
-                  <p className="text-xs font-semibold text-wine-900">{t('guideStep2Title')}</p>
-                  <p className="text-xs leading-tight text-gray-500">{t('guideStep2Desc')}</p>
+                  <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep2Title')}</p>
+                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep2Desc')}</p>
                 </div>
-                {/* Step 3 */}
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                    <Compass className="h-5 w-5 text-green-700" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/20">
+                    <Compass className="h-5 w-5 text-green-700 dark:text-green-400" strokeWidth={1.5} />
                   </div>
-                  <p className="text-xs font-semibold text-wine-900">{t('guideStep3Title')}</p>
-                  <p className="text-xs leading-tight text-gray-500">{t('guideStep3Desc')}</p>
+                  <p className="text-xs font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideStep3Title')}</p>
+                  <p className="text-xs leading-tight text-stone-500 dark:text-stone-400">{t('guideStep3Desc')}</p>
                 </div>
               </div>
               <button
                 onClick={dismissGuide}
-                className="mt-4 block w-full text-center text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                className="mt-4 block w-full text-center text-xs text-stone-500 hover:text-stone-500 transition-colors dark:text-stone-400"
               >
                 {t('guideDismiss')}
               </button>
@@ -351,19 +345,19 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </Card>
         )}
 
-        {/* ── Notifications ── */}
+        {/* Notifications */}
         {notifications.length > 0 && (
           <div className="space-y-2">
             {notifications.slice(0, 2).map((notif) => {
               const Icon = notif.icon;
               const content = (
                 <>
-                  <Icon className={`h-4 w-4 shrink-0 ${notif.color}`} />
+                  <Icon className={`h-4 w-4 shrink-0 ${notif.color}`} strokeWidth={1.5} />
                   <span className={`text-sm ${notif.color}`}>{notif.text}</span>
-                  {notif.href && <ChevronRight className={`ms-auto h-4 w-4 ${notif.color} opacity-50`} />}
+                  {notif.href && <ChevronRight className={`ms-auto h-4 w-4 ${notif.color} opacity-50`} strokeWidth={1.5} />}
                 </>
               );
-              const className = `flex items-center gap-3 rounded-xl px-4 py-3 ${notif.bg} transition-all hover:opacity-90`;
+              const className = `flex items-center gap-3 rounded-xl px-4 py-3 ${notif.bg} transition-all duration-200 hover:opacity-90`;
 
               return notif.href ? (
                 <Link key={notif.key} href={notif.href} className={className}>
@@ -378,57 +372,56 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </div>
         )}
 
-        {/* ── Stats Grid ── */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           {statCards.map((stat, idx) => (
             <Link key={idx} href={stat.href}>
-              <Card className="overflow-hidden cursor-pointer hover:bg-cream-50 transition-colors">
+              <Card className="overflow-hidden cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
                 <CardContent className="p-4">
                   <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
-                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} strokeWidth={1.5} />
                   </div>
-                  <p className="text-2xl font-bold text-wine-900 tabular-nums">
+                  <p className="heading-serif text-2xl text-bordeaux-600 tabular-nums dark:text-ivory-200">
                     <AnimatedNumber value={stat.value} isLoading={isLoading} />
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+                  <p className="text-xs text-stone-500 mt-0.5 dark:text-stone-400">{stat.label}</p>
                 </CardContent>
               </Card>
             </Link>
           ))}
         </div>
 
-        {/* ── Total Spent ── */}
+        {/* Total Spent */}
         <Link href="/cellar">
-          <Card className="cursor-pointer hover:bg-cream-50 transition-colors">
+          <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
             <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="text-xs text-gray-500">{t('totalSpent')}</p>
-                <p className="text-2xl font-bold text-wine-900 tabular-nums">
+                <p className="text-xs text-stone-500 dark:text-stone-400">{t('totalSpent')}</p>
+                <p className="heading-serif text-2xl text-bordeaux-600 tabular-nums dark:text-ivory-200">
                   {isLoading ? '—' : formatCurrency(stats.totalSpent)}
                 </p>
               </div>
-              <div className="rounded-2xl bg-gold-100 p-3">
-                <TrendingUp className="h-6 w-6 text-gold-600" />
+              <div className="rounded-2xl bg-copper-50 p-3 dark:bg-copper-700/20">
+                <TrendingUp className="h-6 w-6 text-copper-400" strokeWidth={1.5} />
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        {/* ── Cellar Insights ── */}
+        {/* Cellar Insights */}
         {!isLoading && stats.bottlesInCellar > 0 && (
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-wine-900">{t('cellarInsights')}</h2>
+            <h2 className="mb-3 heading-serif text-sm text-bordeaux-600 uppercase tracking-wider dark:text-ivory-200">{t('cellarInsights')}</h2>
             <Card>
               <CardContent className="p-4 space-y-4">
-                {/* Wine type distribution bar */}
                 {typeTotal > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">{t('wineTypes')}</p>
-                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-cream-200">
+                    <p className="text-xs text-stone-500 mb-2 dark:text-stone-400">{t('wineTypes')}</p>
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-ivory-300 dark:bg-charcoal-700">
                       {typeEntries.map(([type, count]) => (
                         <div
                           key={type}
-                          className={`h-full ${typeColorMap[type] || 'bg-gray-300'} transition-all duration-500`}
+                          className={`h-full ${typeColorMap[type] || 'bg-stone-300'} transition-all duration-500`}
                           style={{ width: `${(count / typeTotal) * 100}%` }}
                         />
                       ))}
@@ -436,8 +429,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                       {typeEntries.map(([type, count]) => (
                         <div key={type} className="flex items-center gap-1.5">
-                          <span className={`h-2 w-2 rounded-full ${typeColorMap[type] || 'bg-gray-300'}`} />
-                          <span className="text-xs text-gray-600">
+                          <span className={`h-2 w-2 rounded-full ${typeColorMap[type] || 'bg-stone-300'}`} />
+                          <span className="text-xs text-stone-500 dark:text-stone-400">
                             {t(typeLabelMap[type] || type)} ({count})
                           </span>
                         </div>
@@ -446,15 +439,14 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   </div>
                 )}
 
-                {/* Top countries */}
                 {stats.topCountries.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">{t('topCountries')}</p>
+                    <p className="text-xs text-stone-500 mb-2 dark:text-stone-400">{t('topCountries')}</p>
                     <div className="flex flex-wrap gap-2">
                       {stats.topCountries.map((c) => (
                         <span
                           key={c.name}
-                          className="rounded-full bg-cream-200 px-3 py-1 text-xs font-medium text-wine-800"
+                          className="rounded-full bg-ivory-300 px-3 py-1 text-xs font-medium text-bordeaux-500 dark:bg-charcoal-700 dark:text-bordeaux-300"
                         >
                           {c.name} ({c.count})
                         </span>
@@ -463,11 +455,10 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   </div>
                 )}
 
-                {/* Avg bottle value */}
                 {stats.totalSpent > 0 && stats.bottlesInCellar > 0 && (
-                  <div className="flex items-center justify-between border-t border-cream-200 pt-3">
-                    <p className="text-xs text-gray-500">{t('avgBottleValue')}</p>
-                    <p className="text-sm font-semibold text-wine-900">
+                  <div className="flex items-center justify-between border-t border-ivory-300 pt-3 dark:border-charcoal-700">
+                    <p className="text-xs text-stone-500 dark:text-stone-400">{t('avgBottleValue')}</p>
+                    <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">
                       {formatCurrency(Math.round(stats.totalSpent / stats.bottlesInCellar))}
                     </p>
                   </div>
@@ -477,28 +468,28 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </div>
         )}
 
-        {/* ── Recent Activity ── */}
+        {/* Recent Activity */}
         {!isLoading && stats.recentCellarItems.length > 0 && (
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-wine-900">{t('recentActivity')}</h2>
-              <Link href="/cellar" className="text-xs font-medium text-wine-600 hover:text-wine-800 transition-colors">
+              <h2 className="heading-serif text-sm text-bordeaux-600 uppercase tracking-wider dark:text-ivory-200">{t('recentActivity')}</h2>
+              <Link href="/cellar" className="text-xs font-medium text-bordeaux-400 hover:text-bordeaux-600 transition-colors dark:text-bordeaux-300">
                 {t('viewAll')}
               </Link>
             </div>
             <div className="space-y-2">
               {stats.recentCellarItems.map((item) => (
                 <Link key={item.id} href="/cellar">
-                  <Card className="hover:bg-cream-50 transition-colors">
+                  <Card className="hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
                     <CardContent className="flex items-center gap-3 p-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wine-50">
-                        <Wine className="h-4 w-4 text-wine-700" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                        <Wine className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-wine-900">{item.wineName}</p>
-                        <p className="truncate text-xs text-gray-500">{item.winery}</p>
+                        <p className="truncate text-sm font-medium text-bordeaux-600 dark:text-ivory-200">{item.wineName}</p>
+                        <p className="truncate text-xs text-stone-500 dark:text-stone-400">{item.winery}</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                      <ChevronRight className="h-4 w-4 shrink-0 text-stone-400" strokeWidth={1.5} />
                     </CardContent>
                   </Card>
                 </Link>
@@ -507,40 +498,40 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </div>
         )}
 
-        {/* ── Quick Actions ── */}
+        {/* Quick Actions */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-wine-900">
+          <h2 className="mb-3 heading-serif text-sm text-bordeaux-600 uppercase tracking-wider dark:text-ivory-200">
             {t('quickActions')}
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <Link href="/search">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-wine-100">
-                  <Search className="h-5 w-5 text-wine-700" />
+              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                  <Search className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                 </div>
                 <span className="text-sm">{t('searchWine')}</span>
               </Button>
             </Link>
             <Link href="/cellar">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-wine-100">
-                  <Wine className="h-5 w-5 text-wine-700" />
+              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                  <Wine className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
                 </div>
                 <span className="text-sm">{t('viewCellar')}</span>
               </Button>
             </Link>
             <Link href="/profile">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-100">
-                  <Sparkles className="h-5 w-5 text-gold-700" />
+              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-copper-50 dark:bg-copper-700/20">
+                  <Sparkles className="h-5 w-5 text-copper-400" strokeWidth={1.5} />
                 </div>
                 <span className="text-sm">{t('viewProfile')}</span>
               </Button>
             </Link>
             <Link href="/wishlist">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100">
-                  <Heart className="h-5 w-5 text-rose-500" />
+              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ruby-50 dark:bg-ruby-900/20">
+                  <Heart className="h-5 w-5 text-ruby-500 dark:text-ruby-400" strokeWidth={1.5} />
                 </div>
                 <span className="text-sm">{t('viewWishlist')}</span>
               </Button>

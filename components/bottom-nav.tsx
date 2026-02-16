@@ -20,7 +20,7 @@ export function BottomNav() {
   const t = useTranslations('nav');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-cream-200 bg-white/95 shadow-[0_-2px_10px_rgb(0,0,0,0.04)] backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-ivory-300/50 shadow-[0_-2px_16px_rgb(0,0,0,0.04)] dark:border-charcoal-700/50">
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -31,10 +31,10 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-colors',
+                'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-200 ease-premium',
                 isActive
-                  ? 'text-wine-900'
-                  : 'text-gray-500 hover:text-wine-700'
+                  ? 'text-ruby-500 dark:text-ruby-400'
+                  : 'text-stone-500 hover:text-bordeaux-500 dark:text-stone-400 dark:hover:text-bordeaux-300'
               )}
             >
               <Icon
@@ -42,10 +42,11 @@ export function BottomNav() {
                   'h-5 w-5 transition-all duration-200',
                   isActive && 'scale-110'
                 )}
+                strokeWidth={isActive ? 2 : 1.5}
               />
-              <span className="text-xs font-medium">{t(item.labelKey)}</span>
+              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
               {isActive && (
-                <span className="absolute -bottom-1 h-1 w-6 rounded-full bg-wine-900 transition-all duration-200" />
+                <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-ruby-500 transition-all duration-200 dark:bg-ruby-400" />
               )}
             </Link>
           );

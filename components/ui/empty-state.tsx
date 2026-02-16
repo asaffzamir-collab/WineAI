@@ -20,10 +20,10 @@ export function EmptyState({
   return (
     <Card className="mt-8">
       <CardContent className="py-12 text-center">
-        <Icon className="mx-auto h-16 w-16 text-gray-300" />
-        <h3 className="mt-4 text-lg font-semibold text-gray-600">{title}</h3>
+        <Icon className="mx-auto h-16 w-16 text-ivory-400 dark:text-charcoal-700" strokeWidth={1.5} />
+        <h3 className="mt-4 heading-serif text-lg text-stone-500 dark:text-stone-400">{title}</h3>
         {description && (
-          <p className="mt-1 text-sm text-gray-500">{description}</p>
+          <p className="mt-1 text-sm text-stone-500/80 dark:text-stone-400/80">{description}</p>
         )}
         {actionLabel && actionHref && (
           <Button className="mt-4" asChild>
