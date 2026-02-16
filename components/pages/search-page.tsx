@@ -307,7 +307,6 @@ export function SearchPage({ userId }: SearchPageProps) {
         return;
       }
       setError('');
-      setIsAddingToProfile(false);
     } catch (err) {
       console.error('Failed to add to profile:', err);
       setError('Failed to add to profile. Please try again.');

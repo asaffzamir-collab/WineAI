@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -234,6 +235,7 @@ function SectionHeading({
 
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
   const t = useTranslations('profile');
+  const router = useRouter();
 
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
   const [activeTab, setActiveTab] = useState('red');
@@ -256,6 +258,11 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       return next;
     });
   }, []);
+
+  // Sync server-rendered profiles into state so router.refresh() updates are picked up
+  useEffect(() => {
+    setProfiles(initialProfiles);
+  }, [initialProfiles]);
 
   // Backfill taste_spectrum for profiles that don't have it yet, or re-calibrate old spectrums
   useEffect(() => {
@@ -380,7 +387,9 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
   // Auto-refresh profiles on mount, visibility change, and window focus
   useEffect(() => {
-    // Always fetch fresh data from API on mount (don't rely on server cache)
+    // Invalidate Next.js router cache so the server component re-renders with fresh data
+    router.refresh();
+    // Also fetch fresh data from the client-side API (faster than waiting for server re-render)
     refreshProfiles();
 
     const handleVisibilityChange = () => {
@@ -399,7 +408,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshProfiles]);
+  }, [refreshProfiles, router]);
 
   const wineTypeLabels: Record<string, string> = {
     red: t('red'),
