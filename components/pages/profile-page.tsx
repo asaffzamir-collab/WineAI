@@ -185,10 +185,10 @@ function TasteSpectrumChart({
 
   return (
     <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
-      <h3 dir="ltr" className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-bordeaux-600 dark:text-ivory-200">
+      <h3 className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-bordeaux-600 dark:text-ivory-200">
         {t('tasteSpectrumTitle')}
       </h3>
-      <p dir="ltr" className="mb-4 text-center text-xs text-stone-600 dark:text-stone-400">
+      <p className="mb-4 text-center text-xs text-stone-600 dark:text-stone-400">
         {t('spectrumTapToLearn')}
       </p>
       <div className="space-y-1">
@@ -219,7 +219,7 @@ function SectionHeading({
   subtitle: string;
 }) {
   return (
-    <div dir="ltr" className="text-left">
+    <div dir="rtl" className="text-right">
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{title}</h3>
@@ -602,7 +602,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
                         {(profile.liked_wines_detail && profile.liked_wines_detail.length > 0) && (
                           <section>
-                            <h3 dir="ltr" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-left">
+                            <h3 dir="rtl" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-right">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
@@ -683,7 +683,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           profile.liked_wines &&
                           profile.liked_wines.length > 0 && (
                           <section>
-                            <h3 dir="ltr" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-left">
+                            <h3 dir="rtl" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-right">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
