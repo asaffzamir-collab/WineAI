@@ -10,7 +10,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import { WineCard } from '@/components/wine-card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import type { WineData } from '@/lib/openai';
+import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 interface WineRowData {
   id: string;
@@ -72,7 +72,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   // Detail modal state
   const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
-  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [detailMatch, setDetailMatch] = useState<ProfileMatchResult | null>(null);
 
   // Purchase modal state
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
@@ -80,40 +80,32 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 
-  // When an item is selected, fetch full wine details via the search API (same as cellar)
+  // Show wine data immediately from what we have; only fetch the lightweight profile match
   useEffect(() => {
     if (!selectedItem) {
       setDetailWine(null);
+      setDetailMatch(null);
       return;
     }
     const wine = getWine(selectedItem);
     if (!wine) return;
 
-    let cancelled = false;
-    setIsFetchingDetails(true);
-    setDetailWine(null);
+    // Display instantly with existing data
+    setDetailWine(toWineData(wine));
+    setDetailMatch(null);
 
-    const query = `${wine.name} ${wine.winery}`;
-    fetch('/api/wine-search', {
+    // Fetch only the fast profile-match call in the background
+    let cancelled = false;
+    fetch('/api/wine-match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, userId }),
+      body: JSON.stringify({ wine: toWineData(wine), userId }),
     })
       .then((r) => r.json())
       .then((data) => {
-        if (cancelled) return;
-        if (data.wine) {
-          setDetailWine(data.wine);
-        } else {
-          setDetailWine(toWineData(wine));
-        }
+        if (!cancelled) setDetailMatch(data.match ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setDetailWine(toWineData(wine));
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetchingDetails(false);
-      });
+      .catch(() => {});
 
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
@@ -270,7 +262,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
           if (!open) {
             setSelectedItem(null);
             setDetailWine(null);
-            setIsFetchingDetails(false);
+            setDetailMatch(null);
           }
         }}
       >
@@ -278,46 +270,40 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
           onClose={() => {
             setSelectedItem(null);
             setDetailWine(null);
-            setIsFetchingDetails(false);
+            setDetailMatch(null);
           }}
           className="max-w-lg"
         >
-          {selectedItem && (
-            <>
-              {isFetchingDetails && !detailWine ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin text-wine-600" />
-                  <p className="mt-4 text-sm text-gray-500">{tSearch('analyzing')}</p>
-                </div>
-              ) : detailWine ? (
-                <div className="space-y-4">
-                  <WineCard wine={detailWine} />
+          {selectedItem && detailWine && (
+            <div className="space-y-4">
+              <WineCard
+                wine={detailWine}
+                matchResult={detailMatch || undefined}
+              />
 
-                  {/* Wishlist actions below the wine card */}
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => openMarkPurchasedModal(selectedItem)}
-                    >
-                      <ShoppingCart className="me-2 h-4 w-4" />
-                      {t('markPurchased')}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDelete(selectedItem.id)}
-                      disabled={isDeleting === selectedItem.id}
-                    >
-                      {isDeleting === selectedItem.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-            </>
+              {/* Wishlist actions below the wine card */}
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => openMarkPurchasedModal(selectedItem)}
+                >
+                  <ShoppingCart className="me-2 h-4 w-4" />
+                  {t('markPurchased')}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDelete(selectedItem.id)}
+                  disabled={isDeleting === selectedItem.id}
+                >
+                  {isDeleting === selectedItem.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
