@@ -27,7 +27,8 @@ function ComparisonSpectrumBar({
 
   return (
     <div className="py-1">
-      <div className="flex items-center gap-2">
+      {/* dir="ltr" prevents RTL flex reversal so left:X% matches the correct label */}
+      <div className="flex items-center gap-2" dir="ltr">
         <span className="w-12 text-end text-[11px] font-medium text-gray-500">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
           {isClose ? (

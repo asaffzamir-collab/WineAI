@@ -137,7 +137,8 @@ function SpectrumBar({
       className="w-full text-start rounded-lg px-1 py-2 -mx-1 hover:bg-cream-100/60 transition-colors"
     >
       <p className="mb-1.5 text-xs text-gray-400 italic">{hint}</p>
-      <div className="flex items-center gap-3">
+      {/* dir="ltr" prevents RTL flex reversal so left:X% matches the correct label */}
+      <div className="flex items-center gap-3" dir="ltr">
         <span className="w-14 text-end text-sm font-semibold text-wine-900">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-cream-200">
           <div
@@ -257,15 +258,16 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     });
   }, []);
 
-  // Backfill taste_spectrum for profiles that don't have it yet
+  // Backfill taste_spectrum for profiles that don't have it yet, or re-calibrate old spectrums
   useEffect(() => {
     for (const p of profiles) {
       const pd = p.profile_data;
       const hasContent = pd.overall_style || pd.body_structure || pd.summary;
       const hasSpectrum = pd.taste_spectrum && typeof pd.taste_spectrum.body === 'number';
+      const isCalibrated = hasSpectrum && (pd.taste_spectrum as unknown as Record<string, unknown>)?.calibrated === true;
       const key = `${userId}:${p.wine_type}`;
 
-      if (hasContent && !hasSpectrum && !backfillRequestedRef.current.has(key)) {
+      if (hasContent && !isCalibrated && !backfillRequestedRef.current.has(key)) {
         backfillRequestedRef.current.add(key);
         fetch('/api/profile/backfill-spectrum', {
           method: 'POST',

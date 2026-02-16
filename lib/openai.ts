@@ -397,12 +397,12 @@ Guidelines for each field:
 - recommended_regions: 4-6 wine regions worldwide that produce wines matching their taste.
 - what_to_avoid: 3-5 specific wine styles or characteristics they probably won't enjoy, with brief explanations.
 - summary: A rich 3-5 sentence personal wine profile summary that reads like advice from a sommelier friend. Include insights about their palate personality, what patterns define their taste, and a specific wine recommendation to try.
-- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's preference falls on each spectrum:
-  - body: 0 = Light, 100 = Bold/Full-bodied
-  - tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
-  - sweetness: 0 = Bone Dry, 100 = Sweet
-  - acidity: 0 = Soft/Round, 100 = Crisp/Acidic
-  Be precise — use the full 0-100 range. For example, someone who likes medium-bodied reds might get body: 55.
+- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's PREFERRED wines typically fall on each spectrum. These represent the characteristics of wines they enjoy, NOT how much they like that characteristic. Use these calibration anchors (match Vivino-style values):
+  - body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz).
+  - tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
+  - sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
+  - acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
+  CRITICAL: A user who prefers dry wines should get sweetness: 5-15, NOT a high number. The values represent the actual wine characteristics, not a preference score.
 
 Return this structure for each wine type:
 {
@@ -433,7 +433,14 @@ Return this structure for each wine type:
     const content = response.choices?.[0]?.message?.content;
     if (!content) return null;
 
-    return JSON.parse(content);
+    const result = JSON.parse(content) as Record<string, Record<string, unknown>>;
+    // Mark all generated spectrums as calibrated
+    for (const type of ['red', 'white', 'rose']) {
+      if (result[type]?.taste_spectrum && typeof result[type].taste_spectrum === 'object') {
+        (result[type].taste_spectrum as Record<string, unknown>).calibrated = true;
+      }
+    }
+    return result;
   } catch (error) {
     console.error('Error generating taste profile:', error);
     return null;
@@ -471,12 +478,12 @@ Guidelines for each field:
 - what_to_avoid: 3-5 wine styles or characteristics that seem opposite to their preferences, with brief explanations.
 - summary: A rich 3-5 sentence personal wine profile summary. Include insights about taste patterns across their liked wines, their palate personality, and a specific recommendation for what to try next.
 - liked_wines: Array of names of all wines they've liked (carry forward from existing profile + add the new one).
-- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's preference falls on each spectrum based on ALL their liked wines:
-  - body: 0 = Light, 100 = Bold/Full-bodied
-  - tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
-  - sweetness: 0 = Bone Dry, 100 = Sweet
-  - acidity: 0 = Soft/Round, 100 = Crisp/Acidic
-  Be precise — use the full 0-100 range. Average across all liked wines, weighted towards the latest addition.
+- taste_spectrum: An object with 4 numeric values (0-100) representing where the user's PREFERRED wines typically fall on each spectrum, averaged across ALL their liked wines (weighted towards the latest). These represent the characteristics of wines they enjoy, NOT a preference score. Use these calibration anchors (match Vivino-style values):
+  - body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz).
+  - tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
+  - sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
+  - acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
+  CRITICAL: A user who prefers dry wines should get sweetness: 5-15, NOT a high number. The values represent actual wine characteristics, not a preference score.
 
 Return this structure:
 {
@@ -508,7 +515,12 @@ Update their profile to reflect that they enjoy this wine's characteristics.`,
     const content = response.choices?.[0]?.message?.content;
     if (!content) return null;
 
-    return parseJsonResponse(content) as Record<string, unknown>;
+    const result = parseJsonResponse(content) as Record<string, unknown>;
+    // Mark generated spectrum as calibrated
+    if (result.taste_spectrum && typeof result.taste_spectrum === 'object') {
+      (result.taste_spectrum as Record<string, unknown>).calibrated = true;
+    }
+    return result;
   } catch (error) {
     console.error('Error updating taste profile from wine:', error);
     return null;
@@ -529,7 +541,7 @@ export async function generateSpectrumFromProfile(
       messages: [
         {
           role: 'system',
-          content: `You are a wine sommelier. Given an existing taste profile description for a ${wineType} wine drinker, produce numeric spectrum values.
+          content: `You are a wine sommelier. Given an existing taste profile description for a ${wineType} wine drinker, produce numeric spectrum values representing the characteristics of wines they prefer.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.
 
@@ -541,13 +553,14 @@ Return exactly this structure:
   "acidity": <0-100>
 }
 
-Where:
-- body: 0 = Light, 100 = Bold/Full-bodied
-- tannin: 0 = Smooth/Silky, 100 = Tannic/Grippy
-- sweetness: 0 = Bone Dry, 100 = Sweet
-- acidity: 0 = Soft/Round, 100 = Crisp/Acidic
+Use these calibration anchors (match Vivino-style values):
+- body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz).
+- tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
+- sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
+- acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
 
-Be precise and use the full 0-100 range. Derive values from the text descriptions provided.`,
+CRITICAL: The values represent the actual characteristics of wines they enjoy, NOT a preference score. If the profile says they prefer dry wines, sweetness should be 5-15, NOT a high number.
+Be precise and derive values from the text descriptions provided.`,
         },
         {
           role: 'user',

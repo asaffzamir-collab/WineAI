@@ -38,11 +38,11 @@ export async function POST(request: Request) {
 
     const profileData = profile.profile_data as Record<string, unknown>;
 
-    if (
-      profileData.taste_spectrum &&
-      typeof profileData.taste_spectrum === 'object' &&
-      typeof (profileData.taste_spectrum as Record<string, unknown>).body === 'number'
-    ) {
+    const existingSpectrum = profileData.taste_spectrum as Record<string, unknown> | undefined;
+    const isCalibrated = existingSpectrum && (existingSpectrum as Record<string, unknown>).calibrated === true;
+
+    // Only skip regeneration if spectrum exists AND was generated with calibrated anchors
+    if (isCalibrated) {
       return NextResponse.json({ spectrum: profileData.taste_spectrum, already_exists: true });
     }
 
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to generate spectrum' }, { status: 500 });
     }
 
-    profileData.taste_spectrum = spectrum;
+    // Mark as calibrated so we don't regenerate again
+    profileData.taste_spectrum = { ...spectrum, calibrated: true };
 
     const { error: updateError } = await supabase
       .from('taste_profiles')
