@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Heebo, Inter, Playfair_Display } from 'next/font/google';
 import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
 export const dynamic = 'force-dynamic';
@@ -62,6 +64,8 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages as AbstractIntlMessages}>
           {children}
         </NextIntlClientProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
