@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/dev/', '/auth/callback'],
     },
-    sitemap: 'https://wine-ai-mu.vercel.app/sitemap.xml',
+    sitemap: 'https://winejourney.co/sitemap.xml',
   };
 }

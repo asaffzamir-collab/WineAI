@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -8,8 +8,9 @@ import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight } from 'lucide-rea
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
+import { Separator } from '@/components/ui/separator';
 
 interface UserProfile {
   id: string;
@@ -34,12 +35,9 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Initialize dark mode from document class on mount
-  useState(() => {
-    if (typeof document !== 'undefined') {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    }
-  });
+  useEffect(() => {
+    setIsDarkMode(document.documentElement.classList.contains('dark'));
+  }, []);
 
   const toggleDarkMode = () => {
     const next = !isDarkMode;
@@ -72,10 +70,12 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
   };
 
   return (
-    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
-      <PageHeader title={t('title')} />
+    <AppShell>
+      <div className="animate-page py-6 md:py-8 lg:py-10">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <PageHeader title={t('title')} />
 
-      <div className="mx-auto max-w-lg space-y-6 px-4 pt-6 animate-page">
+        <div className="max-w-2xl space-y-6">
         {/* Account Info */}
         <Card>
           <CardHeader>
@@ -181,6 +181,7 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
         )}
 
         {/* Sign Out */}
+        <Separator />
         <Button
           variant="destructive"
           className="w-full"
@@ -190,9 +191,9 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
           <LogOut className="me-2 h-4 w-4" strokeWidth={1.5} />
           {t('signOut')}
         </Button>
+        </div>
+        </div>
       </div>
-
-      <BottomNav />
-    </div>
+    </AppShell>
   );
 }

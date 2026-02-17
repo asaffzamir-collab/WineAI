@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -8,6 +9,7 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   actionHref?: string;
+  onAction?: () => void;
 }
 
 export function EmptyState({
@@ -16,18 +18,26 @@ export function EmptyState({
   description,
   actionLabel,
   actionHref,
+  onAction,
 }: EmptyStateProps) {
   return (
-    <Card className="mt-8">
+    <Card className="mt-8 border-dashed">
       <CardContent className="py-12 text-center">
-        <Icon className="mx-auto h-16 w-16 text-ivory-400 dark:text-charcoal-700" strokeWidth={1.5} />
-        <h3 className="mt-4 heading-serif text-lg text-stone-600 dark:text-stone-400">{title}</h3>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-2">
+          <Icon className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
+        </div>
+        <h3 className="mt-4 text-heading text-foreground">{title}</h3>
         {description && (
-          <p className="mt-1 text-sm text-stone-600/80 dark:text-stone-400/80">{description}</p>
+          <p className="mt-1.5 mx-auto max-w-sm text-sm text-muted-foreground">{description}</p>
         )}
         {actionLabel && actionHref && (
-          <Button className="mt-4" asChild>
-            <a href={actionHref}>{actionLabel}</a>
+          <Button className="mt-6" asChild>
+            <Link href={actionHref}>{actionLabel}</Link>
+          </Button>
+        )}
+        {actionLabel && onAction && !actionHref && (
+          <Button className="mt-6" onClick={onAction}>
+            {actionLabel}
           </Button>
         )}
       </CardContent>

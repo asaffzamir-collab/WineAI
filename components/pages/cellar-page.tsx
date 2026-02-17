@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppShell } from '@/components/app-shell';
+import { PageShell } from '@/components/ui/page-shell';
 import dynamic from 'next/dynamic';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
@@ -305,24 +306,23 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   };
 
   return (
-    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
-      <PageHeader title={t('title')} />
-
-      <div className="mx-auto max-w-lg px-4 animate-page">
+    <AppShell>
+      <PageShell>
+        <PageHeader title={t('title')} />
         {/* Stats */}
-        <div className="-mt-4 grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="heading-serif text-2xl text-bordeaux-600 dark:text-ivory-200">{totalBottles}</p>
-              <p className="text-sm text-stone-600 dark:text-stone-400">{t('totalBottles')}</p>
+              <p className="heading-serif text-2xl text-foreground">{totalBottles}</p>
+              <p className="text-sm text-muted-foreground">{t('totalBottles')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="heading-serif text-2xl text-bordeaux-600 dark:text-ivory-200">
+              <p className="heading-serif text-2xl text-foreground">
                 {formatCurrency(totalValue)}
               </p>
-              <p className="text-sm text-stone-600 dark:text-stone-400">{t('totalValue')}</p>
+              <p className="text-sm text-muted-foreground">{t('totalValue')}</p>
             </CardContent>
           </Card>
         </div>
@@ -377,7 +377,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
         )}
 
         {/* Cellar Items */}
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {filteredItems.map((item) => {
             const wine = getWine(item);
             const imageUrl = item.bottle_photo_url || wine?.image_url;
@@ -389,10 +389,9 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 type="button"
                 onClick={() => setSelectedItem(item)}
                 className={cn(
-                  'w-full rounded-2xl bg-white p-3.5 text-left shadow-soft',
-                  'hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 transition-all duration-200 ease-premium',
+                  'w-full rounded-2xl bg-card p-3.5 text-left shadow-soft',
+                  'card-hover',
                   'flex items-center gap-3',
-                  'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
               >
                 <div className="relative flex-shrink-0">
@@ -444,22 +443,22 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
+                  <p className="text-heading text-base text-foreground line-clamp-1">
                     {wine?.name || 'Unknown Wine'}
                   </p>
-                  <p className="text-sm text-stone-600 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-stone-600/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
+                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1 flex items-center gap-0.5">
                       <MapPin className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
                   {wine?.grapes && wine.grapes.length > 0 && (
-                    <p className="text-xs text-stone-600/80 line-clamp-1 dark:text-stone-400/80">
+                    <p className="text-xs text-muted-foreground line-clamp-1">
                       {wine.grapes.join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
@@ -490,7 +489,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex items-center gap-1 rounded-full bg-bordeaux-50 px-2.5 py-1 dark:bg-bordeaux-900/30">
                     <Wine className="h-3.5 w-3.5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
-                    <span className="text-sm font-semibold text-bordeaux-600 dark:text-bordeaux-300">
+                    <span className="text-sm font-semibold text-primary">
                       {item.quantity}
                     </span>
                   </div>
@@ -500,7 +499,6 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
             );
           })}
         </div>
-      </div>
 
       {/* Detail Modal */}
       <Dialog
@@ -525,8 +523,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
             <>
               {isFetchingDetails && !detailWine ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
-                  <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">{tSearch('analyzing')}</p>
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="mt-4 text-sm text-muted-foreground">{tSearch('analyzing')}</p>
                 </div>
               ) : detailWine ? (
                 <div className="space-y-4">
@@ -536,7 +534,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
                   />
 
-                  <Card className="border border-bordeaux-100 dark:border-charcoal-700">
+                  <Card className="border border-border">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm">
@@ -584,7 +582,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                       {isEditing ? (
                         <>
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-400">
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
                               {t('quantityLabel')}
                             </label>
                             <Input
@@ -596,7 +594,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                             />
                           </div>
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-400">
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
                               {t('purchasePriceNis')}
                             </label>
                             <Input
@@ -609,7 +607,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                             />
                           </div>
                           <div>
-                            <label className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-400">
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
                               {t('notes')}
                             </label>
                             <Input
@@ -624,11 +622,11 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                       ) : (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-stone-600 dark:text-stone-400">{t('quantityLabel')}</span>
-                            <span className="font-semibold text-bordeaux-600 dark:text-ivory-200">{selectedItem.quantity}</span>
+                            <span className="text-muted-foreground">{t('quantityLabel')}</span>
+                            <span className="font-semibold text-foreground">{selectedItem.quantity}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-stone-600 dark:text-stone-400">{t('priceLabel')}</span>
+                            <span className="text-muted-foreground">{t('priceLabel')}</span>
                             <span className="font-medium">
                               {selectedItem.purchase_price != null && selectedItem.purchase_price > 0
                                 ? formatCurrency(selectedItem.purchase_price)
@@ -644,18 +642,18 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                           </div>
                           {selectedItem.purchase_date && (
                             <div className="flex items-center justify-between">
-                              <span className="text-stone-600 dark:text-stone-400">{t('dateLabel')}</span>
+                              <span className="text-muted-foreground">{t('dateLabel')}</span>
                               <span className="font-medium">{formatDate(selectedItem.purchase_date)}</span>
                             </div>
                           )}
                           {selectedItem.storage_location && (
                             <div className="flex items-center justify-between">
-                              <span className="text-stone-600 dark:text-stone-400">{t('locationLabel')}</span>
+                              <span className="text-muted-foreground">{t('locationLabel')}</span>
                               <span className="font-medium">{selectedItem.storage_location}</span>
                             </div>
                           )}
                           {selectedItem.notes && (
-                            <p className="italic text-stone-600 pt-1 dark:text-stone-400">{selectedItem.notes}</p>
+                            <p className="italic text-muted-foreground pt-1">{selectedItem.notes}</p>
                           )}
                         </>
                       )}
@@ -681,8 +679,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
           )}
         </DialogContent>
       </Dialog>
-
-      <BottomNav />
-    </div>
+      </PageShell>
+    </AppShell>
   );
 }

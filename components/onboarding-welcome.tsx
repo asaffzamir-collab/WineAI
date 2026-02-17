@@ -33,23 +33,23 @@ export function OnboardingWelcome({ userId: _userId, displayName }: OnboardingWe
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-wine-900 to-wine-950 px-4 py-8 flex flex-col items-center justify-center">
-      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full border border-wine-700/20" />
-      <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full border border-wine-700/15" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-bordeaux-600 to-bordeaux-900 px-4 py-8 flex flex-col items-center justify-center">
+      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full border border-bordeaux-400/20" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full border border-bordeaux-400/15" />
 
-      <div className="relative z-10 w-full max-w-md space-y-8">
+      <div className="relative z-10 w-full max-w-md lg:max-w-lg space-y-8">
         <div className="text-center">
-          <WineLogo size={56} className="mx-auto mb-4 text-gold-500" />
+          <WineLogo size={56} className="mx-auto mb-4 text-copper-400" />
           <h1 className="text-2xl font-bold text-white">{welcomeTitle}</h1>
-          <p className="mt-2 text-sm text-wine-300">WineJourney</p>
+          <p className="mt-2 text-sm text-bordeaux-200">WineJourney</p>
         </div>
 
         <Card className="shadow-xl">
           <CardContent className="py-8 space-y-6">
-            <p className="text-wine-900 text-center leading-relaxed">
+            <p className="text-foreground text-center leading-relaxed">
               {t('welcomeBody')}
             </p>
-            <p className="text-wine-700 text-center text-sm leading-relaxed">
+            <p className="text-muted-foreground text-center text-sm leading-relaxed">
               {t('welcomeValue')}
             </p>
             <Button

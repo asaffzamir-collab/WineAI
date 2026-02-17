@@ -6,16 +6,16 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 ease-premium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ruby-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-150 ease-premium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-ruby-500 text-white hover:bg-ruby-600 shadow-soft hover:shadow-soft-lg active:scale-[0.98]',
-        destructive: 'bg-red-600 text-white hover:bg-red-700 shadow-soft',
-        outline: 'border-2 border-bordeaux-500 text-bordeaux-500 hover:bg-bordeaux-50 dark:border-bordeaux-300 dark:text-bordeaux-200 dark:hover:bg-bordeaux-900',
-        secondary: 'bg-ivory-300 text-bordeaux-600 hover:bg-ivory-400 dark:bg-charcoal-800 dark:text-ivory-200 dark:hover:bg-charcoal-700',
-        ghost: 'hover:bg-ivory-300 hover:text-bordeaux-600 dark:hover:bg-charcoal-800 dark:hover:text-ivory-200',
-        link: 'text-bordeaux-500 underline-offset-4 hover:underline dark:text-bordeaux-200',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-soft hover:shadow-soft-lg active:scale-[0.98]',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-soft',
+        outline: 'border-2 border-primary text-primary hover:bg-primary/5',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-secondary hover:text-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-11 min-h-[44px] px-6 py-2',

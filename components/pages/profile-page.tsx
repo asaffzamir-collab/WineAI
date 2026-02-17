@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppShell } from '@/components/app-shell';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import { WineListItem } from '@/components/wine-list-item';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -440,11 +440,12 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   };
 
   return (
-    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
-      <PageHeader title={t('title')} />
+    <AppShell>
+      <div className="animate-page py-6 md:py-8 lg:py-10">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <PageHeader title={t('title')} />
 
-      <div className="mx-auto max-w-lg px-4 animate-page">
-        <Card className="-mt-4">
+        <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               {['red', 'white', 'rose'].map((type) => (
@@ -711,7 +712,6 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
             })}
           </Tabs>
         </Card>
-      </div>
 
       <Dialog
         open={!!selectedWine}
@@ -789,7 +789,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         onAdded={handleCellarAdded}
       />
 
-      <BottomNav />
-    </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }

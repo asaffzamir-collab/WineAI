@@ -8,20 +8,101 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '1.5rem',
+        lg: '2rem',
+      },
+      screens: {
+        sm: '640px',
+        md: '768px',
+        lg: '1024px',
+        xl: '1280px',
+      },
+    },
     extend: {
       colors: {
+        /* ── CSS-variable semantic colors ── */
+        background: 'rgb(var(--background) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+
+        card: {
+          DEFAULT: 'rgb(var(--card) / <alpha-value>)',
+          foreground: 'rgb(var(--card-foreground) / <alpha-value>)',
+        },
+        popover: {
+          DEFAULT: 'rgb(var(--popover) / <alpha-value>)',
+          foreground: 'rgb(var(--popover-foreground) / <alpha-value>)',
+        },
+        primary: {
+          DEFAULT: 'rgb(var(--primary) / <alpha-value>)',
+          foreground: 'rgb(var(--primary-foreground) / <alpha-value>)',
+        },
+        secondary: {
+          DEFAULT: 'rgb(var(--secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--secondary-foreground) / <alpha-value>)',
+        },
+        muted: {
+          DEFAULT: 'rgb(var(--muted) / <alpha-value>)',
+          foreground: 'rgb(var(--muted-foreground) / <alpha-value>)',
+        },
+        accent: {
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          foreground: 'rgb(var(--accent-foreground) / <alpha-value>)',
+        },
+        destructive: {
+          DEFAULT: 'rgb(var(--destructive) / <alpha-value>)',
+          foreground: 'rgb(var(--destructive-foreground) / <alpha-value>)',
+        },
+        border: 'rgb(var(--border) / <alpha-value>)',
+        input: 'rgb(var(--input) / <alpha-value>)',
+        ring: 'rgb(var(--ring) / <alpha-value>)',
+
+        surface: {
+          DEFAULT: 'rgb(var(--surface) / <alpha-value>)',
+          raised: 'rgb(var(--surface-raised) / <alpha-value>)',
+          2: 'rgb(var(--surface-2) / <alpha-value>)',
+        },
+
+        sidebar: {
+          DEFAULT: 'rgb(var(--sidebar-background) / <alpha-value>)',
+          foreground: 'rgb(var(--sidebar-foreground) / <alpha-value>)',
+          border: 'rgb(var(--sidebar-border) / <alpha-value>)',
+          accent: 'rgb(var(--sidebar-accent) / <alpha-value>)',
+          'accent-foreground': 'rgb(var(--sidebar-accent-foreground) / <alpha-value>)',
+        },
+
+        /* ── Semantic status ── */
+        success: {
+          DEFAULT: 'rgb(var(--success) / <alpha-value>)',
+          foreground: 'rgb(var(--success-foreground) / <alpha-value>)',
+          muted: 'rgb(var(--success-muted) / <alpha-value>)',
+        },
+        warning: {
+          DEFAULT: 'rgb(var(--warning) / <alpha-value>)',
+          foreground: 'rgb(var(--warning-foreground) / <alpha-value>)',
+          muted: 'rgb(var(--warning-muted) / <alpha-value>)',
+        },
+        info: {
+          DEFAULT: 'rgb(var(--info) / <alpha-value>)',
+          foreground: 'rgb(var(--info-foreground) / <alpha-value>)',
+          muted: 'rgb(var(--info-muted) / <alpha-value>)',
+        },
+
         /* ── 60% Dominant Background ── */
         ivory: {
           50: '#FDFCFA',
           100: '#FAF8F5',
-          200: '#F7F5F2',  // Light-mode primary bg
+          200: '#F7F5F2',
           300: '#EDE9E3',
           400: '#E0DBD3',
         },
         charcoal: {
           700: '#2A2A2A',
-          800: '#1A1A1A',  // Dark-mode surface
-          900: '#121212',  // Dark-mode primary bg
+          800: '#1A1A1A',
+          900: '#121212',
           950: '#0A0A0A',
         },
 
@@ -32,20 +113,20 @@ const config: Config = {
           200: '#E8B5BF',
           300: '#D48B9B',
           400: '#9E4A5D',
-          500: '#6E2C3A',  // Primary structural
-          600: '#5A1E2A',  // Darker structural
+          500: '#6E2C3A',
+          600: '#5A1E2A',
           700: '#481824',
           800: '#3A1220',
           900: '#2D0D18',
         },
         olive: {
           400: '#5A6B5C',
-          500: '#3E4A3F',  // Dark-mode structural
+          500: '#3E4A3F',
           600: '#2F382F',
         },
         stone: {
           200: '#E8E2DA',
-          300: '#D8D2C8',  // Light-mode card/surface
+          300: '#D8D2C8',
           400: '#C8C0B4',
           500: '#B0A898',
         },
@@ -57,7 +138,7 @@ const config: Config = {
           200: '#FAB0B2',
           300: '#E86B6F',
           400: '#C93035',
-          500: '#A6192E',  // Primary CTA accent
+          500: '#A6192E',
           600: '#8B1526',
           700: '#70101E',
           800: '#560C16',
@@ -68,7 +149,7 @@ const config: Config = {
           100: '#FAEBD5',
           200: '#F0D4A8',
           300: '#D4A872',
-          400: '#B87333',  // Secondary accent
+          400: '#B87333',
           500: '#9A5F28',
           600: '#7C4C20',
           700: '#5E3918',
@@ -78,7 +159,7 @@ const config: Config = {
           600: '#700000',
         },
 
-        /* ── Legacy wine palette (for backward compat) ── */
+        /* ── Legacy aliases (map to new palette for backward compat) ── */
         wine: {
           50: '#FBF0F2',
           100: '#F5DCE1',
@@ -111,23 +192,6 @@ const config: Config = {
           300: '#EDE9E3',
           400: '#E0DBD3',
         },
-
-        /* ── Semantic colors (CSS variable based) ── */
-        success: {
-          DEFAULT: 'rgb(var(--success) / <alpha-value>)',
-          foreground: 'rgb(var(--success-foreground) / <alpha-value>)',
-          muted: 'rgb(var(--success-muted) / <alpha-value>)',
-        },
-        warning: {
-          DEFAULT: 'rgb(var(--warning) / <alpha-value>)',
-          foreground: 'rgb(var(--warning-foreground) / <alpha-value>)',
-          muted: 'rgb(var(--warning-muted) / <alpha-value>)',
-        },
-        info: {
-          DEFAULT: 'rgb(var(--info) / <alpha-value>)',
-          foreground: 'rgb(var(--info-foreground) / <alpha-value>)',
-          muted: 'rgb(var(--info-muted) / <alpha-value>)',
-        },
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'var(--font-heebo)', 'system-ui', 'sans-serif'],
@@ -147,6 +211,9 @@ const config: Config = {
         'card-gap': '24px',
         inner: '16px',
         tight: '8px',
+        'nav-width': 'var(--nav-width)',
+        'nav-collapsed': 'var(--nav-collapsed-width)',
+        'header-height': 'var(--header-height)',
       },
       boxShadow: {
         'soft': '0 2px 16px rgba(0, 0, 0, 0.06)',
@@ -167,11 +234,26 @@ const config: Config = {
           '0%': { transform: 'scale(0.98)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        slideInFromRight: {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        slideInFromBottom: {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
         'slide-up': 'slideUp 0.4s ease-out',
         'subtle-scale': 'subtleScale 0.3s ease-out',
+        'shimmer': 'shimmer 2s linear infinite',
+        'slide-in-right': 'slideInFromRight 0.2s ease-out',
+        'slide-in-bottom': 'slideInFromBottom 0.25s ease-out',
       },
       transitionTimingFunction: {
         'premium': 'cubic-bezier(0.4, 0, 0.2, 1)',

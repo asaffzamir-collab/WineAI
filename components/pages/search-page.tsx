@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { WineCard } from '@/components/wine-card';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import { WineListItem } from '@/components/wine-list-item';
@@ -359,33 +359,33 @@ export function SearchPage({ userId }: SearchPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
-      <PageHeader title={t('title')}>
-        <div className="relative mt-4">
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
-            placeholder={t('textPlaceholder')}
-            className="h-12 bg-white pe-12 ps-4 text-start dark:bg-charcoal-800"
-          />
-          <button
-            type="button"
-            onClick={handleTextSearch}
-            disabled={isSearching}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-bordeaux-500 transition-colors hover:text-bordeaux-400 dark:text-bordeaux-300"
-            aria-label={t('title')}
-          >
-            <Search className="h-5 w-5" strokeWidth={1.5} />
-          </button>
-        </div>
-      </PageHeader>
-
-      <div className="mx-auto max-w-lg px-4 animate-page">
+    <AppShell>
+      <div className="animate-page py-6 md:py-8 lg:py-10">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <PageHeader title={t('title')}>
+            <div className="relative mt-4 max-w-xl">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
+                placeholder={t('textPlaceholder')}
+                className="h-12 bg-card pe-12 ps-4 text-start"
+              />
+              <button
+                type="button"
+                onClick={handleTextSearch}
+                disabled={isSearching}
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-primary transition-colors hover:text-primary/80"
+                aria-label={t('title')}
+              >
+                <Search className="h-5 w-5" strokeWidth={1.5} />
+              </button>
+            </div>
+          </PageHeader>
         {/* Image Upload */}
-        <Card className="-mt-4">
+        <Card className="max-w-xl">
           <CardContent className="p-4">
-            <p className="mb-3 text-center text-sm text-stone-600 dark:text-stone-400">
+            <p className="mb-3 text-center text-sm text-muted-foreground">
               {t('orUploadPhoto')}
             </p>
             <div className="flex gap-3">
@@ -436,8 +436,8 @@ export function SearchPage({ userId }: SearchPageProps) {
         {/* Multiple text results */}
         {wineCandidates.length > 1 && !isSearching && (
           <section className="mt-8">
-            <h2 className="mb-2 heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">{t('pickWine')}</h2>
-            <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">{t('multipleResults')}</p>
+            <h2 className="mb-2 text-heading text-lg text-foreground">{t('pickWine')}</h2>
+            <p className="mb-3 text-sm text-muted-foreground">{t('multipleResults')}</p>
             {isFetchingMatch ? (
               <LoadingSpinner message={t('loadingDetails')} className="py-8" />
             ) : (
@@ -466,7 +466,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         {error && (
           <Card className="mt-8 border border-copper-200 bg-copper-50 dark:border-copper-700 dark:bg-copper-700/20">
             <CardContent className="py-6 text-center">
-              <p className="text-stone-600 dark:text-stone-300">{error}</p>
+              <p className="text-foreground">{error}</p>
               {error.includes('foreign key') && (
                 <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
                   Run the migration in Supabase SQL Editor: Dashboard → SQL Editor → paste and run the SQL from{' '}
@@ -497,11 +497,11 @@ export function SearchPage({ userId }: SearchPageProps) {
         {/* Recent searches */}
         {recentSearches.length > 0 && (
           <section className="mt-section">
-            <h2 className="mb-3 flex items-center gap-2 heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
+            <h2 className="mb-3 flex items-center gap-2 text-heading text-lg text-foreground">
               <Wine className="h-5 w-5" strokeWidth={1.5} />
               {t('recentSearches')}
             </h2>
-            <ul className="space-y-2">
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {recentSearches.slice(0, MAX_RECENT).map((w, idx) => (
                 <li key={`${w.name}|${w.winery}|${idx}`}>
                   <WineListItem
@@ -515,7 +515,6 @@ export function SearchPage({ userId }: SearchPageProps) {
             </ul>
           </section>
         )}
-      </div>
 
       {/* Modal: recent wine */}
       <Dialog
@@ -542,8 +541,8 @@ export function SearchPage({ userId }: SearchPageProps) {
             <>
               {isFetchingDetails ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-10 w-10 animate-spin text-bordeaux-400" />
-                  <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">{t('loadingDetails')}</p>
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="mt-4 text-sm text-muted-foreground">{t('loadingDetails')}</p>
                 </div>
               ) : (
                 <WineCard
@@ -570,8 +569,8 @@ export function SearchPage({ userId }: SearchPageProps) {
         onClose={() => setAddToCellarWine(null)}
         onAdded={handleCellarAdded}
       />
-
-      <BottomNav />
-    </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }

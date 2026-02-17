@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     const url = new URL(decodeURIComponent(next));
     const allowed =
       url.origin === request.nextUrl.origin ||
+      url.hostname === 'winejourney.co' ||
+      url.hostname.endsWith('.winejourney.co') ||
       url.hostname.endsWith('.supabase.co') ||
       url.hostname.endsWith('.google.com');
     if (!allowed) {

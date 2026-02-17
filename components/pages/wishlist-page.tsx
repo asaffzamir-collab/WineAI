@@ -6,7 +6,7 @@ import { Heart, Star, Trash2, ShoppingCart, Loader2, Wine, MapPin, ChevronRight 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BottomNav } from '@/components/bottom-nav';
+import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import dynamic from 'next/dynamic';
@@ -194,10 +194,10 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-ivory-200 pb-24 dark:bg-charcoal-900">
-      <PageHeader title={t('title')} />
-
-      <div className="mx-auto max-w-lg px-4 animate-page">
+    <AppShell>
+      <div className="animate-page py-6 md:py-8 lg:py-10">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <PageHeader title={t('title')} />
         {/* Empty State */}
         {items.length === 0 && (
           <EmptyState
@@ -210,7 +210,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
         )}
 
         {/* Wishlist Items */}
-        <div className="-mt-4 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {items.map((item) => {
             const wine = getWine(item);
             return (
@@ -219,10 +219,9 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 type="button"
                 onClick={() => setSelectedItem(item)}
                 className={cn(
-                  'w-full rounded-2xl bg-white p-3.5 text-left shadow-soft',
-                  'hover:shadow-soft-lg hover:translate-y-[-1px] hover:bg-ivory-50 transition-all duration-200 ease-premium',
+                  'w-full rounded-2xl bg-card p-3.5 text-left shadow-soft',
+                  'card-hover',
                   'flex items-center gap-3',
-                  'dark:bg-charcoal-800 dark:hover:bg-charcoal-700'
                 )}
               >
                 {wine?.image_url ? (
@@ -250,17 +249,17 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <p className="heading-serif text-base text-bordeaux-600 line-clamp-1 dark:text-ivory-200">
+                  <p className="text-heading text-base text-foreground line-clamp-1">
                     {wine?.name || 'Unknown Wine'}
                   </p>
-                  <p className="text-sm text-stone-600 line-clamp-1 dark:text-stone-400">{wine?.winery}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{wine?.winery}</p>
                   {(wine?.region || wine?.country) && (
-                    <p className="mt-0.5 text-xs text-stone-600/80 line-clamp-1 flex items-center gap-0.5 dark:text-stone-400/80">
+                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1 flex items-center gap-0.5">
                       <MapPin className="h-3 w-3 flex-shrink-0" strokeWidth={1.5} />
                       {[wine?.region, wine?.country].filter(Boolean).join(', ')}
                     </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-400">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     {wine?.vivino_rating != null && (
                       <span className="flex items-center gap-0.5">
                         <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
@@ -278,7 +277,6 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
             );
           })}
         </div>
-      </div>
 
       {/* Detail Modal */}
       <Dialog
@@ -346,13 +344,13 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
             const w = getWine(purchaseModalItem);
             return (
               <>
-                <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
+                <h3 className="text-heading text-lg text-foreground">
                   {tCellar('addWine')}: {w?.name ?? 'Unknown'}
                 </h3>
-                <p className="text-sm text-stone-600 dark:text-stone-400">{w?.winery}</p>
+                <p className="text-sm text-muted-foreground">{w?.winery}</p>
                 <div className="mt-4 space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
+                    <label className="mb-1 block text-sm font-medium text-muted-foreground">
                       {tCellar('quantity')}
                     </label>
                     <Input
@@ -364,7 +362,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
+                    <label className="mb-1 block text-sm font-medium text-muted-foreground">
                       {tCellar('purchasePriceNis')}
                     </label>
                     <Input
@@ -375,7 +373,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                       onChange={(e) => setPurchasePriceNis(e.target.value)}
                       className="w-full"
                     />
-                    <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
+                    <p className="mt-1 text-xs text-muted-foreground/70">{tCellar('priceOptional')}</p>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-2">
@@ -403,8 +401,8 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
           })()}
         </DialogContent>
       </Dialog>
-
-      <BottomNav />
-    </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }

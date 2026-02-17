@@ -30,11 +30,11 @@ export const metadata: Metadata = {
   title: 'WineJourney - Your Personal Wine Companion',
   description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
   themeColor: '#5A1E2A',
-  metadataBase: new URL('https://wine-ai-mu.vercel.app'),
+  metadataBase: new URL('https://winejourney.co'),
   openGraph: {
     title: 'WineJourney - Your Personal Wine Companion',
     description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
-    url: 'https://wine-ai-mu.vercel.app',
+    url: 'https://winejourney.co',
     siteName: 'WineJourney',
     locale: 'he_IL',
     type: 'website',
@@ -76,11 +76,11 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${heebo.variable} ${inter.variable} ${playfair.variable} font-sans antialiased`}>
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-bordeaux-600 focus:text-white focus:px-4 focus:py-2 focus:rounded">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg">
           Skip to content
         </a>
         <NextIntlClientProvider messages={messages as AbstractIntlMessages}>
-          <main id="main-content">{children}</main>
+          <div id="main-content">{children}</div>
         </NextIntlClientProvider>
         <Analytics />
         <SpeedInsights />

@@ -137,19 +137,19 @@ export function OnboardingQuiz({ userId }: OnboardingQuizProps) {
     currentQuestion.type === 'text' || answers[currentQuestion.id] !== undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-wine-900 to-wine-950 px-4 py-8">
-      <div className="mx-auto max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-bordeaux-600 to-bordeaux-900 px-4 py-8">
+      <div className="mx-auto max-w-md lg:max-w-lg">
         {/* Header */}
         <div className="mb-8 text-center">
-          <Wine className="mx-auto mb-4 h-12 w-12 text-gold-500" />
+          <Wine className="mx-auto mb-4 h-12 w-12 text-copper-400" />
           <h1 className="text-2xl font-bold text-white">{t('welcome')}</h1>
-          <p className="mt-2 text-wine-200">{t('subtitle')}</p>
+          <p className="mt-2 text-bordeaux-200">{t('subtitle')}</p>
         </div>
 
         {/* Progress */}
         <div className="mb-6">
           <Progress value={progress} className="h-2" />
-          <p className="mt-2 text-center text-sm text-wine-200">
+          <p className="mt-2 text-center text-sm text-bordeaux-200">
             {currentStep + 1} / {questions.length}
           </p>
         </div>
@@ -173,8 +173,8 @@ export function OnboardingQuiz({ userId }: OnboardingQuizProps) {
                     className={cn(
                       'rounded-lg border-2 p-4 text-center transition-all',
                       answers[currentQuestion.id] === option.id
-                        ? 'border-wine-900 bg-wine-50 text-wine-900'
-                        : 'border-cream-200 hover:border-wine-300 hover:bg-cream-50'
+                        ? 'border-bordeaux-500 bg-bordeaux-50 text-bordeaux-600'
+                        : 'border-border hover:border-bordeaux-300 hover:bg-surface-raised'
                     )}
                   >
                     {option.label}

@@ -19,9 +19,14 @@ export function LoadingSpinner({
   size = 'md',
 }: LoadingSpinnerProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      <Loader2 className={cn('animate-spin text-bordeaux-500 dark:text-bordeaux-300', sizeClasses[size])} />
-      {message && <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">{message}</p>}
+    <div
+      className={cn('flex flex-col items-center justify-center py-12', className)}
+      role="status"
+      aria-label={message || 'Loading'}
+    >
+      <Loader2 className={cn('animate-spin text-primary', sizeClasses[size])} aria-hidden="true" />
+      {message && <p className="mt-4 text-sm text-muted-foreground">{message}</p>}
+      {!message && <span className="sr-only">Loading</span>}
     </div>
   );
 }

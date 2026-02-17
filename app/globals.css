@@ -6,7 +6,12 @@
    Light Mode (default) — Soft Ivory
    ═══════════════════════════════════════════════ */
 :root {
-  --radius: 1rem;
+  --radius: 0.75rem;
+
+  /* Layout */
+  --nav-width: 256px;
+  --nav-collapsed-width: 64px;
+  --header-height: 64px;
 
   /* 60% — Background */
   --background: 247 245 242;
@@ -21,7 +26,7 @@
   /* 30% — Structural */
   --primary: 90 30 42;
   --primary-foreground: 251 240 242;
-  --secondary: 247 245 242;
+  --secondary: 240 237 232;
   --secondary-foreground: 90 30 42;
   --muted: 237 233 227;
   --muted-foreground: 120 112 105;
@@ -33,7 +38,7 @@
   /* UI tokens */
   --destructive: 220 38 38;
   --destructive-foreground: 255 255 255;
-  --border: 237 233 227;
+  --border: 232 228 222;
   --input: 224 219 211;
   --ring: 166 25 46;
 
@@ -51,6 +56,14 @@
   /* Surface elevation */
   --surface: 255 255 255;
   --surface-raised: 250 248 245;
+  --surface-2: 245 242 238;
+
+  /* Sidebar */
+  --sidebar-background: 255 255 255;
+  --sidebar-foreground: 42 30 35;
+  --sidebar-border: 237 233 227;
+  --sidebar-accent: 247 245 242;
+  --sidebar-accent-foreground: 90 30 42;
 }
 
 /* ═══════════════════════════════════════════════
@@ -67,7 +80,7 @@
 
   --primary: 212 136 155;
   --primary-foreground: 18 18 18;
-  --secondary: 42 42 42;
+  --secondary: 38 38 38;
   --secondary-foreground: 212 136 155;
   --muted: 42 42 42;
   --muted-foreground: 168 160 152;
@@ -77,7 +90,7 @@
 
   --destructive: 248 113 113;
   --destructive-foreground: 18 18 18;
-  --border: 55 50 48;
+  --border: 50 47 45;
   --input: 55 50 48;
   --ring: 212 136 155;
 
@@ -93,6 +106,13 @@
 
   --surface: 26 26 26;
   --surface-raised: 34 34 34;
+  --surface-2: 42 42 42;
+
+  --sidebar-background: 22 22 22;
+  --sidebar-foreground: 237 233 227;
+  --sidebar-border: 50 47 45;
+  --sidebar-accent: 34 34 34;
+  --sidebar-accent-foreground: 212 136 155;
 }
 
 /* ═══════════════════════════════════════════════
@@ -121,10 +141,11 @@
   button:focus-visible,
   a:focus-visible,
   select:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
     outline: 2px solid rgb(var(--ring) / 0.6);
     outline-offset: 2px;
-    transition: outline-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: outline-color 0.15s ease;
   }
 
   /* RTL Support */
@@ -140,9 +161,49 @@
 }
 
 /* ═══════════════════════════════════════════════
-   Component Layer — Utility Classes
+   Component Layer — Typography Scale
    ═══════════════════════════════════════════════ */
 @layer components {
+  /* Display — large hero text, serif */
+  .text-display {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+  }
+
+  /* Title — page titles */
+  .text-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+
+  /* Heading — section headings */
+  .text-heading {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  /* Body is default: 1rem/1.6 */
+
+  /* Small — secondary text */
+  .text-small {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Caption — metadata, timestamps */
+  .text-caption {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+
   /* Premium serif heading utility */
   .heading-serif {
     font-family: var(--font-serif), Georgia, serif;
