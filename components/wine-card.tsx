@@ -192,30 +192,36 @@ export function WineCard({
         </div>
 
         {/* Rating badge */}
-        {wine.vivino_rating != null && (
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-1.5 rounded-full bg-bordeaux-600 px-3.5 py-1.5 text-white shadow-soft dark:bg-bordeaux-500">
-              <Star className="h-3.5 w-3.5 fill-copper-400 text-copper-400" />
-              <span className="text-sm font-semibold">{Number(wine.vivino_rating).toFixed(1)}</span>
+        {wine.vivino_rating != null && (() => {
+          const rating = Number(wine.vivino_rating);
+          const low = Math.max(1.0, rating - 0.2);
+          const high = Math.min(5.0, rating + 0.2);
+          const rangeText = `${low.toFixed(1)}-${high.toFixed(1)}`;
+          return (
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-1.5 rounded-full bg-bordeaux-600 px-3.5 py-1.5 text-white shadow-soft dark:bg-bordeaux-500">
+                <Star className="h-3.5 w-3.5 fill-copper-400 text-copper-400" />
+                <span className="text-sm font-semibold">{rangeText}</span>
+              </div>
+              <span className="text-sm text-stone-600 dark:text-stone-400">
+                {wine.vivino_reviews != null ? (
+                  <>{wine.vivino_reviews.toLocaleString()} {t('reviews')}</>
+                ) : (
+                  t('ratingEstimate')
+                )}
+              </span>
+              <a
+                href={`https://www.vivino.com/search/wines?q=${encodeURIComponent(`${wine.winery} ${wine.name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center text-bordeaux-400 hover:text-bordeaux-600 transition-colors duration-200 dark:text-bordeaux-300 dark:hover:text-bordeaux-200"
+                title={t('verifyOnVivino')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </a>
             </div>
-            <span className="text-sm text-stone-600 dark:text-stone-400">
-              {wine.vivino_reviews != null ? (
-                <>{wine.vivino_reviews.toLocaleString()} {t('reviews')}</>
-              ) : (
-                t('vivinoRating')
-              )}
-            </span>
-            <a
-              href={`https://www.vivino.com/search/wines?q=${encodeURIComponent(`${wine.winery} ${wine.name}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center text-bordeaux-400 hover:text-bordeaux-600 transition-colors duration-200 dark:text-bordeaux-300 dark:hover:text-bordeaux-200"
-              title={t('verifyOnVivino')}
-            >
-              <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
-            </a>
-          </div>
-        )}
+          );
+        })()}
       </CardHeader>
 
       <CardContent className="space-y-6">

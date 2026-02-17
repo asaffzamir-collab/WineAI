@@ -459,12 +459,17 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     </p>
                   )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    {wine?.vivino_rating != null && (
-                      <span className="flex items-center gap-0.5">
-                        <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
-                        {Number(wine.vivino_rating).toFixed(1)}
-                      </span>
-                    )}
+                    {wine?.vivino_rating != null && (() => {
+                      const r = Number(wine.vivino_rating);
+                      const lo = Math.max(1.0, r - 0.2);
+                      const hi = Math.min(5.0, r + 0.2);
+                      return (
+                        <span className="flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-copper-400 text-copper-400" />
+                          {lo.toFixed(1)}-{hi.toFixed(1)}
+                        </span>
+                      );
+                    })()}
                     {wine?.alcohol != null && (
                       <span>{wine.alcohol}%</span>
                     )}

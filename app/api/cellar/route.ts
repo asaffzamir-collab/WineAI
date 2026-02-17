@@ -82,7 +82,21 @@ export async function POST(request: Request) {
 
     let { data: existingWine } = await supabase.from('wines').select('id').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
     let wineId = existingWine?.id;
-    if (!wineId) {
+    if (wineId) {
+      // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
+      const updates: Record<string, unknown> = {};
+      if (wineRow.image_url) updates.image_url = wineRow.image_url;
+      if (wineRow.serving) updates.serving = wineRow.serving;
+      if (wineRow.food_pairings) updates.food_pairings = wineRow.food_pairings;
+      if (wineRow.vivino_rating != null) updates.vivino_rating = wineRow.vivino_rating;
+      if (wineRow.vivino_reviews != null) updates.vivino_reviews = wineRow.vivino_reviews;
+      if (wineRow.tasting_notes) updates.tasting_notes = wineRow.tasting_notes;
+      if (wineRow.ai_description) updates.ai_description = wineRow.ai_description;
+      if (wineRow.alcohol != null) updates.alcohol = wineRow.alcohol;
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('wines').update(updates).eq('id', wineId);
+      }
+    } else {
       const { data: newWine, error: wineError } = await supabase.from('wines').insert(wineRow).select('id').single();
       if (wineError) throw wineError;
       wineId = newWine.id;
