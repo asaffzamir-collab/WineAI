@@ -39,9 +39,9 @@ export async function POST(request: Request) {
     }
     const supabase = await createClient();
 
-    let { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings').eq('name', wine.name).eq('winery', wine.winery).single();
+    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings').eq('name', wine.name).eq('winery', wine.winery).single();
     let wineId = existingWine?.id;
-    if (wineId) {
+    if (wineId && existingWine) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
       // Uses admin client to bypass RLS (wines table has no UPDATE policy by default)
       const updates: Record<string, unknown> = {};
