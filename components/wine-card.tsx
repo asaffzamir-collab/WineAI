@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
@@ -131,10 +131,36 @@ export function WineCard({
 }: WineCardProps) {
   const t = useTranslations('wineCard');
   const [imageError, setImageError] = useState(false);
+  const [lazyImageUrl, setLazyImageUrl] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const lazyFetchDone = useRef(false);
 
   useEffect(() => {
     setImageError(false);
+    setLazyImageUrl(null);
+    lazyFetchDone.current = false;
   }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url]);
+
+  // Lazy-fetch wine image from Vivino when no image is available
+  useEffect(() => {
+    const hasImage = wine.image_url || uploadedImageUrl;
+    if (hasImage && !imageError) return;
+    if (lazyImageUrl || isLoadingImage || lazyFetchDone.current) return;
+    if (!wine.name || !wine.winery) return;
+
+    let cancelled = false;
+    setIsLoadingImage(true);
+    lazyFetchDone.current = true;
+    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data.imageUrl) setLazyImageUrl(data.imageUrl);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsLoadingImage(false); });
+
+    return () => { cancelled = true; };
+  }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url, imageError, lazyImageUrl, isLoadingImage]);
 
   const wineTypeColors = {
     red: 'bg-bordeaux-600',
@@ -149,16 +175,25 @@ export function WineCard({
       {/* Wine Header */}
       <CardHeader className="space-y-4 pb-4">
         <div className="flex items-start gap-4">
-          {(uploadedImageUrl || wine.image_url) && !imageError ? (
+          {((wine.image_url || uploadedImageUrl) && !imageError) || lazyImageUrl ? (
             <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
               <Image
-                src={(uploadedImageUrl || wine.image_url) as string}
+                src={(imageError ? (lazyImageUrl || uploadedImageUrl) : (wine.image_url || uploadedImageUrl || lazyImageUrl)) as string}
                 alt={`${wine.name} by ${wine.winery}`}
                 fill
                 className="object-contain"
                 sizes="(max-width: 640px) 120px, 160px"
-                onError={() => setImageError(true)}
+                onError={() => {
+                  if (lazyImageUrl) {
+                    setLazyImageUrl(null);
+                  }
+                  setImageError(true);
+                }}
               />
+            </div>
+          ) : isLoadingImage ? (
+            <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-ivory-200 to-ivory-400 dark:from-charcoal-600 dark:to-charcoal-800" />
             </div>
           ) : (
             <a

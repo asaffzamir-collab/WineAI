@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
+import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -50,7 +51,12 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
+      // Fetch Vivino image and profile match in parallel
+      const [imageUrl, match] = await Promise.all([
+        fetchWineImageUrl(wine.name, wine.winery),
+        getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale),
+      ]);
+      if (imageUrl) wine.image_url = imageUrl;
       return NextResponse.json({ wine, match });
     }
 
@@ -63,8 +69,19 @@ export async function POST(request: Request) {
         );
       }
       if (wines.length === 1) {
-        const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
+        // Fetch Vivino image and profile match in parallel
+        const [imageUrl, match] = await Promise.all([
+          fetchWineImageUrl(wines[0].name, wines[0].winery),
+          getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale),
+        ]);
+        if (imageUrl) wines[0].image_url = imageUrl;
         return NextResponse.json({ wine: wines[0], match });
+      }
+      // Multiple candidates — fetch images for all in parallel
+      const imageResults = await fetchWineImagesForMany(wines);
+      for (let i = 0; i < wines.length; i++) {
+        const imgUrl = imageResults.get(`${i}`);
+        if (imgUrl) wines[i].image_url = imgUrl;
       }
       return NextResponse.json({ wines });
     }

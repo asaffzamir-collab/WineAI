@@ -288,10 +288,9 @@ export function SearchPage({ userId }: SearchPageProps) {
         setError(data.error);
       } else {
         if (data.wine) {
-          // Save the user's uploaded photo as the wine's image_url so it
-          // persists when the wine is added to cellar/wishlist.  OpenAI
-          // cannot provide reliable image URLs (it hallucinates them).
-          data.wine.image_url = dataUrl;
+          // Vivino image is now fetched server-side and set on wine.image_url.
+          // The user's uploaded photo is kept separately in uploadedImageUrl
+          // as a fallback if no Vivino image was found.
           addRecentSearch(userId, data.wine);
           setRecentSearches(getRecentSearches(userId));
         }

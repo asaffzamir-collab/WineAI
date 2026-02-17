@@ -93,7 +93,7 @@ LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This include
 
 For images: ALWAYS try your best to identify the wine. Read any text visible on the label including winery name, wine name, vintage year, region, grape varieties, etc. Even if you're not 100% certain about the exact wine, make your best educated guess based on what you can see. Use visual cues like label design, bottle shape, and any visible text.
 
-PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
+image_url: Always set to null. Wine images are fetched separately from Vivino — do NOT attempt to guess or fabricate image URLs.
 
 Vivino Rating: ALWAYS provide a vivino_rating (1.0-5.0). Use the real Vivino rating if you know it. Otherwise, provide your best estimate based on wine reputation, region, and producer quality. Use conservative round numbers when estimating (e.g. 3.5, 3.8, 4.0, 4.2). Typical ranges: prestigious/iconic wines 4.0-4.6, well-regarded wines 3.8-4.2, solid everyday wines 3.3-3.8, basic wines 3.0-3.3. For vivino_reviews use null unless you know an approximate count.
 
@@ -127,7 +127,7 @@ Return this exact JSON structure:
   },
   "food_pairings": ["grilled lamb", "aged cheese", "pasta"],
   "price_range_usd": "25-35",
-  "image_url": "https://images.vivino.com/thumbs/...",
+  "image_url": null,
   "taste_spectrum": { "body": 72, "tannin": 65, "sweetness": 8, "acidity": 55 }
 }
 
@@ -137,7 +137,7 @@ taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric 
 - sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
 - acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
 
-For fields you cannot determine, use null. But ALWAYS return a wine object with at least the name, winery, country, wine_type, grapes, vivino_rating, and image_url fields filled in based on your best interpretation of the image or query. Only return { "error": "Could not identify wine" } if the image is completely unreadable, doesn't show a wine, or shows no useful information at all.`;
+For fields you cannot determine, use null. But ALWAYS return a wine object with at least the name, winery, country, wine_type, grapes, and vivino_rating fields filled in based on your best interpretation of the image or query. Only return { "error": "Could not identify wine" } if the image is completely unreadable, doesn't show a wine, or shows no useful information at all.`;
 
 const WINE_TEXT_SEARCH_SYSTEM_PROMPT = `You are a wine expert. The user is typing a wine name, winery, or partial description to find a wine.
 
@@ -160,7 +160,7 @@ taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric 
 - sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
 - acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
 
-PRIORITY - Image URL: Try hard to provide a working bottle image in image_url. Vivino hosts images at images.vivino.com (e.g. https://images.vivino.com/thumbs/...). If you know this wine's Vivino listing or a direct image URL from any reliable source, include it. Only set image_url to null when you truly cannot find a usable image URL.
+image_url: Always set to null. Wine images are fetched separately from Vivino — do NOT attempt to guess or fabricate image URLs.
 
 Vivino Rating: ALWAYS provide a vivino_rating (1.0-5.0). Use the real Vivino rating if you know it. Otherwise, provide your best estimate based on wine reputation, region, and producer quality. Use conservative round numbers when estimating (e.g. 3.5, 3.8, 4.0, 4.2). Typical ranges: prestigious/iconic wines 4.0-4.6, well-regarded wines 3.8-4.2, solid everyday wines 3.3-3.8, basic wines 3.0-3.3. For vivino_reviews use null unless you know an approximate count.
 
@@ -168,7 +168,7 @@ LANGUAGE: Write ALL descriptive text values in Hebrew (עברית). This include
 
 Example format:
 {"wines": [
-  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": "https://images.vivino.com/thumbs/...", "taste_spectrum": {"body": 80, "tannin": 70, "sweetness": 5, "acidity": 65}}
+  {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": null, "taste_spectrum": {"body": 80, "tannin": 70, "sweetness": 5, "acidity": 65}}
 ]}`;
 
 export async function searchWinesByText(query: string): Promise<WineData[]> {
@@ -242,7 +242,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
           content: [
             {
               type: 'text',
-              text: 'Look at this wine bottle/label image carefully. Read ALL text visible on the label including the winery name, wine name, vintage year, region, appellation, grape variety, and any other details. Based on what you can see, identify this wine and provide detailed information. Make your best guess even if you are not 100% certain - use the visual information available. When you identify the wine, try to provide a bottle image URL (e.g. from Vivino, images.vivino.com) in the image_url field if you know one.',
+              text: 'Look at this wine bottle/label image carefully. Read ALL text visible on the label including the winery name, wine name, vintage year, region, appellation, grape variety, and any other details. Based on what you can see, identify this wine and provide detailed information. Make your best guess even if you are not 100% certain - use the visual information available. Set image_url to null — images are handled separately.',
             },
             {
               type: 'image_url',
