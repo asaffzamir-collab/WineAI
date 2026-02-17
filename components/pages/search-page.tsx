@@ -287,12 +287,16 @@ export function SearchPage({ userId }: SearchPageProps) {
       if (data.error) {
         setError(data.error);
       } else {
-        setWineResult(data.wine);
-        setMatchResult(data.match);
         if (data.wine) {
+          // Save the user's uploaded photo as the wine's image_url so it
+          // persists when the wine is added to cellar/wishlist.  OpenAI
+          // cannot provide reliable image URLs (it hallucinates them).
+          data.wine.image_url = dataUrl;
           addRecentSearch(userId, data.wine);
           setRecentSearches(getRecentSearches(userId));
         }
+        setWineResult(data.wine);
+        setMatchResult(data.match);
       }
       setIsSearching(false);
     } catch (err) {

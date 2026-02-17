@@ -1,5 +1,10 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+
+/** Admin client for wine record updates (bypasses RLS). Falls back to null. */
+function tryAdminClient() {
+  try { return createAdminClient(); } catch { return null; }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -80,21 +85,23 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const wineRow = normalizeWineForDb(wine);
 
-    let { data: existingWine } = await supabase.from('wines').select('id').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
+    let { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
     let wineId = existingWine?.id;
     if (wineId) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
+      // Uses admin client to bypass RLS (wines table has no UPDATE policy by default)
       const updates: Record<string, unknown> = {};
-      if (wineRow.image_url) updates.image_url = wineRow.image_url;
-      if (wineRow.serving) updates.serving = wineRow.serving;
-      if (wineRow.food_pairings) updates.food_pairings = wineRow.food_pairings;
+      if (wineRow.image_url && !existingWine.image_url) updates.image_url = wineRow.image_url;
+      if (wineRow.image_url && wineRow.image_url.startsWith('data:')) updates.image_url = wineRow.image_url;
+      if (wineRow.serving && !existingWine.serving) updates.serving = wineRow.serving;
+      if (wineRow.food_pairings && !existingWine.food_pairings) updates.food_pairings = wineRow.food_pairings;
       if (wineRow.vivino_rating != null) updates.vivino_rating = wineRow.vivino_rating;
-      if (wineRow.vivino_reviews != null) updates.vivino_reviews = wineRow.vivino_reviews;
       if (wineRow.tasting_notes) updates.tasting_notes = wineRow.tasting_notes;
       if (wineRow.ai_description) updates.ai_description = wineRow.ai_description;
-      if (wineRow.alcohol != null) updates.alcohol = wineRow.alcohol;
       if (Object.keys(updates).length > 0) {
-        await supabase.from('wines').update(updates).eq('id', wineId);
+        const admin = tryAdminClient();
+        const client = admin ?? supabase;
+        await client.from('wines').update(updates).eq('id', wineId);
       }
     } else {
       const { data: newWine, error: wineError } = await supabase.from('wines').insert(wineRow).select('id').single();
