@@ -45,8 +45,9 @@ export async function POST(request: Request) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
       // Uses admin client to bypass RLS (wines table has no UPDATE policy by default)
       const updates: Record<string, unknown> = {};
-      if (wine.image_url && !existingWine.image_url) updates.image_url = wine.image_url;
-      if (wine.image_url && wine.image_url.startsWith('data:')) updates.image_url = wine.image_url;
+      const imgUrl = typeof wine.image_url === 'string' ? wine.image_url : null;
+      if (imgUrl && !existingWine.image_url) updates.image_url = imgUrl;
+      if (imgUrl && imgUrl.startsWith('data:')) updates.image_url = imgUrl;
       if (wine.serving && !existingWine.serving) updates.serving = wine.serving;
       if (wine.food_pairings && Array.isArray(wine.food_pairings) && wine.food_pairings.length > 0 && !existingWine.food_pairings) updates.food_pairings = wine.food_pairings;
       if (wine.vivino_rating != null) updates.vivino_rating = wine.vivino_rating;

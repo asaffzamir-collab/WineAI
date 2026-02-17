@@ -70,7 +70,7 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
     wine_type: safeWineType,
     tasting_notes: wine.tasting_notes ?? null,
     ai_description: wine.winery_description ?? wine.ai_description ?? null,
-    image_url: wine.image_url ?? null,
+    image_url: (typeof wine.image_url === 'string' ? wine.image_url : null) as string | null,
     serving: wine.serving ?? null,
     food_pairings: Array.isArray(wine.food_pairings) ? wine.food_pairings : null,
   };
@@ -91,8 +91,9 @@ export async function POST(request: Request) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
       // Uses admin client to bypass RLS (wines table has no UPDATE policy by default)
       const updates: Record<string, unknown> = {};
-      if (wineRow.image_url && !existingWine.image_url) updates.image_url = wineRow.image_url;
-      if (wineRow.image_url && wineRow.image_url.startsWith('data:')) updates.image_url = wineRow.image_url;
+      const imgUrl = wineRow.image_url;
+      if (imgUrl && !existingWine.image_url) updates.image_url = imgUrl;
+      if (imgUrl && typeof imgUrl === 'string' && imgUrl.startsWith('data:')) updates.image_url = imgUrl;
       if (wineRow.serving && !existingWine.serving) updates.serving = wineRow.serving;
       if (wineRow.food_pairings && !existingWine.food_pairings) updates.food_pairings = wineRow.food_pairings;
       if (wineRow.vivino_rating != null) updates.vivino_rating = wineRow.vivino_rating;
