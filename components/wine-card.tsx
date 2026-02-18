@@ -108,6 +108,7 @@ function MatchSpectrumChart({
 interface WineCardProps {
   wine: WineData;
   matchResult?: ProfileMatchResult;
+  matchLoading?: boolean;
   onAddToCellar?: () => void;
   onAddToWishlist?: () => void;
   onAddToProfile?: () => void;
@@ -120,6 +121,7 @@ interface WineCardProps {
 export function WineCard({
   wine,
   matchResult,
+  matchLoading,
   onAddToCellar,
   onAddToWishlist,
   onAddToProfile,
@@ -392,7 +394,7 @@ export function WineCard({
         )}
 
         {/* Profile Match */}
-        {matchResult && (
+        {matchResult ? (
           <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{t('matchToProfile')}</h3>
@@ -455,7 +457,24 @@ export function WineCard({
               </p>
             )}
           </section>
-        )}
+        ) : matchLoading ? (
+          <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800 animate-pulse">
+            <div className="flex items-center justify-between mb-4">
+              <div className="h-5 w-36 rounded bg-ivory-300 dark:bg-charcoal-700" />
+              <div className="h-14 w-14 rounded-full bg-ivory-300 dark:bg-charcoal-700" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+              <div className="h-3 w-4/5 rounded bg-ivory-300 dark:bg-charcoal-700" />
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="h-2 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+              <div className="h-2 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+              <div className="h-2 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+              <div className="h-2 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+            </div>
+          </section>
+        ) : null}
 
         {/* Like this wine */}
         {onAddToProfile && (

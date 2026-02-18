@@ -6,7 +6,6 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
   Wine,
-  Search,
   Sparkles,
   TrendingUp,
   Clock,
@@ -20,13 +19,12 @@ import {
   Wallet,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { AppShell } from '@/components/app-shell';
 import { WineLogo } from '@/components/wine-logo';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import type { WineData } from '@/lib/openai';
+import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
   loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
@@ -53,6 +51,7 @@ interface RecentCellarItem {
   tastingNotes?: { nose?: string[]; palate?: string[]; finish?: string } | null;
   serving?: { drink_from?: string; drink_until?: string; decant_minutes?: number; temperature_celsius?: number } | null;
   foodPairings?: string[] | null;
+  aiDescription?: string | null;
   purchasePrice?: number | null;
   quantity?: number | null;
 }
@@ -136,15 +135,39 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const [guideDismissed, setGuideDismissed] = useState(true);
   const [selectedRecentItem, setSelectedRecentItem] = useState<RecentCellarItem | null>(null);
   const [recentDetailWine, setRecentDetailWine] = useState<WineData | null>(null);
+  const [recentDetailMatch, setRecentDetailMatch] = useState<ProfileMatchResult | null>(null);
   const [isFetchingRecentDetails, setIsFetchingRecentDetails] = useState(false);
+  const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
 
   useEffect(() => {
     setGuideDismissed(localStorage.getItem(GUIDE_DISMISSED_KEY) === 'true');
   }, []);
 
   useEffect(() => {
+    if (!recentDetailWine || !selectedRecentItem) {
+      setRecentDetailMatch(null);
+      setIsFetchingRecentMatch(false);
+      return;
+    }
+    let cancelled = false;
+    setIsFetchingRecentMatch(true);
+    setRecentDetailMatch(null);
+    fetch('/api/wine-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wine: recentDetailWine, userId }),
+    })
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setRecentDetailMatch(data.match ?? null); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsFetchingRecentMatch(false); });
+    return () => { cancelled = true; };
+  }, [recentDetailWine, selectedRecentItem, userId]);
+
+  useEffect(() => {
     if (!selectedRecentItem) {
       setRecentDetailWine(null);
+      setRecentDetailMatch(null);
       return;
     }
 
@@ -164,6 +187,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       tasting_notes: rawNotes ? { nose: rawNotes.nose || [], palate: rawNotes.palate || [], finish: rawNotes.finish || '' } : undefined,
       serving: rawServing ? { drink_from: Number(rawServing.drink_from) || undefined, drink_until: Number(rawServing.drink_until) || undefined, decant_minutes: rawServing.decant_minutes, temperature_celsius: rawServing.temperature_celsius != null ? String(rawServing.temperature_celsius) : undefined } : undefined,
       food_pairings: selectedRecentItem.foodPairings ?? undefined,
+      winery_description: selectedRecentItem.aiDescription ?? undefined,
       image_url: selectedRecentItem.imageUrl ?? undefined,
     };
 
@@ -536,46 +560,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
         </div>{/* close two-column grid */}
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="mb-3 text-heading text-sm text-foreground uppercase tracking-wider">
-            {t('quickActions')}
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/search">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                  <Search className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
-                </div>
-                <span className="text-sm">{t('searchWine')}</span>
-              </Button>
-            </Link>
-            <Link href="/cellar">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                  <Wine className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
-                </div>
-                <span className="text-sm">{t('viewCellar')}</span>
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-copper-50 dark:bg-copper-700/20">
-                  <Sparkles className="h-5 w-5 text-copper-400" strokeWidth={1.5} />
-                </div>
-                <span className="text-sm">{t('viewProfile')}</span>
-              </Button>
-            </Link>
-            <Link href="/wishlist">
-              <Button variant="secondary" className="h-auto w-full flex-col gap-2 py-5 shadow-soft rounded-2xl">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ruby-50 dark:bg-ruby-900/20">
-                  <Heart className="h-5 w-5 text-ruby-500 dark:text-ruby-400" strokeWidth={1.5} />
-                </div>
-                <span className="text-sm">{t('viewWishlist')}</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
       </div>
 
       {/* Recent Activity Detail Modal */}
@@ -585,6 +569,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           if (!open) {
             setSelectedRecentItem(null);
             setRecentDetailWine(null);
+            setRecentDetailMatch(null);
           }
         }}
       >
@@ -592,8 +577,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           onClose={() => {
             setSelectedRecentItem(null);
             setRecentDetailWine(null);
+            setRecentDetailMatch(null);
           }}
-          className="max-w-lg"
+          className="max-w-lg max-h-[90vh] overflow-y-auto"
         >
           {selectedRecentItem && (
             <>
@@ -602,7 +588,11 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 </div>
               ) : recentDetailWine ? (
-                <WineCard wine={recentDetailWine} />
+                <WineCard
+                  wine={recentDetailWine}
+                  matchResult={recentDetailMatch || undefined}
+                  matchLoading={isFetchingRecentMatch}
+                />
               ) : null}
             </>
           )}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check } from 'lucide-react';
+import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,7 @@ export function SlotDetailPanel() {
   const {
     selectedSlotId, setSelectedSlotId, selectedPlacement, placementMap,
     activeRack, racks, unassignSlot, moveBottle, assignSlot,
-    unassignedPlacements, refreshCellar, userId,
+    unassignedPlacements, refreshCellar, userId, setWineCardPlacement,
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
 
@@ -261,6 +261,17 @@ export function SlotDetailPanel() {
                 )}
               </CardContent>
             </Card>
+
+            {/* View Full Wine Card */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs border-bordeaux-200 dark:border-bordeaux-800"
+              onClick={() => setWineCardPlacement(placement)}
+            >
+              <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
+              {t('actionViewDetails')}
+            </Button>
 
             {/* Quick Actions — all wired */}
             <div className="grid grid-cols-2 gap-2">

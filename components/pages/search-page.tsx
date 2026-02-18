@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Search, Camera, Upload, Loader2, Wine } from 'lucide-react';
+import { Search, Camera, Upload, Loader2, Wine, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -55,6 +55,7 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
+  const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,12 +68,14 @@ export function SearchPage({ userId }: SearchPageProps) {
       setDisplayWine(null);
       setDisplayMatch(null);
       setIsFetchingDetails(false);
+      setIsFetchingRecentMatch(false);
       return;
     }
     let cancelled = false;
     setDisplayWine(selectedRecentWine);
     setDisplayMatch(null);
     setIsFetchingDetails(false);
+    setIsFetchingRecentMatch(true);
 
     fetch('/api/wine-match', {
       method: 'POST',
@@ -83,7 +86,8 @@ export function SearchPage({ userId }: SearchPageProps) {
       .then((data) => {
         if (!cancelled) setDisplayMatch(data.match ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsFetchingRecentMatch(false); });
     return () => { cancelled = true; };
   }, [selectedRecentWine, userId]);
 
@@ -506,18 +510,30 @@ export function SearchPage({ userId }: SearchPageProps) {
               <Wine className="h-5 w-5" strokeWidth={1.5} />
               {t('recentSearches')}
             </h2>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {recentSearches.slice(0, MAX_RECENT).map((w, idx) => (
-                <li key={`${w.name}|${w.winery}|${idx}`}>
-                  <WineListItem
-                    name={w.name}
-                    winery={w.winery}
-                    metadata={buildWineMetadata(w, tProfile)}
-                    onClick={() => setSelectedRecentWine(w)}
-                  />
-                </li>
+                <button key={`${w.name}|${w.winery}|${idx}`} onClick={() => setSelectedRecentWine(w)} className="w-full text-start">
+                  <Card className="card-hover">
+                    <CardContent className="flex items-center gap-3 p-3">
+                      {w.image_url ? (
+                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                          <img src={w.image_url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                        </div>
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                          <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{w.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{w.winery}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                    </CardContent>
+                  </Card>
+                </button>
               ))}
-            </ul>
+            </div>
           </section>
         )}
 
@@ -553,6 +569,7 @@ export function SearchPage({ userId }: SearchPageProps) {
                 <WineCard
                   wine={displayWine || selectedRecentWine}
                   matchResult={displayMatch || undefined}
+                  matchLoading={isFetchingRecentMatch}
                   onAddToCellar={() => openAddToCellarModal(displayWine || selectedRecentWine)}
                   onAddToWishlist={() => handleAddToWishlist(displayWine || selectedRecentWine)}
                   onAddToProfile={() => handleAddToProfile(displayWine || selectedRecentWine)}

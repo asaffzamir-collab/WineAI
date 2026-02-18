@@ -238,6 +238,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
   const [displayWine, setDisplayWine] = useState<Record<string, unknown> | null>(null);
   const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
+  const [isFetchingMatch, setIsFetchingMatch] = useState(false);
   const [isFetchingWineDetails, setIsFetchingWineDetails] = useState(false);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
   const [isAddingToCellar, setIsAddingToCellar] = useState(false);
@@ -313,11 +314,13 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     if (!selectedWine?.name || !selectedWine?.winery) {
       setDisplayWine(null);
       setDisplayMatch(null);
+      setIsFetchingMatch(false);
       return;
     }
     let cancelled = false;
     setDisplayWine(null);
     setDisplayMatch(null);
+    setIsFetchingMatch(true);
 
     if (hasFullWineData(selectedWine)) {
       setDisplayWine(selectedWine);
@@ -330,7 +333,8 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         .then((data) => {
           if (!cancelled) setDisplayMatch(data.match ?? null);
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
       return () => { cancelled = true; };
     }
 
@@ -347,6 +351,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         if (data.wine) {
           setDisplayWine(data.wine);
           setDisplayMatch(data.match ?? null);
+          setIsFetchingMatch(false);
         } else if (Array.isArray(data.wines) && data.wines.length > 0) {
           const bestWine = data.wines[0];
           setDisplayWine(bestWine);
@@ -359,13 +364,15 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
             .then((matchData) => {
               if (!cancelled) setDisplayMatch(matchData.match ?? null);
             })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
         } else {
           setDisplayWine(selectedWine);
+          setIsFetchingMatch(false);
         }
       })
       .catch(() => {
-        if (!cancelled) setDisplayWine(selectedWine);
+        if (!cancelled) { setDisplayWine(selectedWine); setIsFetchingMatch(false); }
       })
       .finally(() => {
         if (!cancelled) setIsFetchingWineDetails(false);
@@ -752,6 +759,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                     <WineCard
                       wine={toWineData(displayWine ?? selectedWine)}
                       matchResult={displayMatch || undefined}
+                      matchLoading={isFetchingMatch}
                       onAddToCellar={() => openAddToCellarModal(toWineData(displayWine ?? selectedWine))}
                       isAddingToCellar={isAddingToCellar}
                       uploadedImageUrl={(displayWine ?? selectedWine).image_url ? String((displayWine ?? selectedWine).image_url) : undefined}

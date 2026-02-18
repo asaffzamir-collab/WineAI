@@ -116,6 +116,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [detailMatch, setDetailMatch] = useState<import('@/lib/openai').ProfileMatchResult | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [isFetchingMatch, setIsFetchingMatch] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editPrice, setEditPrice] = useState('');
@@ -163,6 +164,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     if (!selectedItem) {
       setDetailWine(null);
       setDetailMatch(null);
+      setIsFetchingMatch(false);
       return;
     }
     const wine = getWine(selectedItem);
@@ -170,6 +172,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     const wineData = toWineData(wine);
     setDetailWine(wineData);
     setDetailMatch(null);
+    setIsFetchingMatch(true);
 
     let cancelled = false;
     fetch('/api/wine-match', {
@@ -181,7 +184,8 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
       .then((data) => {
         if (!cancelled) setDetailMatch(data.match ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
 
@@ -536,6 +540,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                   <WineCard
                     wine={detailWine}
                     matchResult={detailMatch || undefined}
+                    matchLoading={isFetchingMatch}
                     uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
                   />
 

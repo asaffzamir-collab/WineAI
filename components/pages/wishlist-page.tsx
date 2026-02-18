@@ -109,6 +109,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [detailMatch, setDetailMatch] = useState<ProfileMatchResult | null>(null);
+  const [isFetchingMatch, setIsFetchingMatch] = useState(false);
 
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
@@ -122,6 +123,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     if (!selectedItem) {
       setDetailWine(null);
       setDetailMatch(null);
+      setIsFetchingMatch(false);
       return;
     }
     const wine = getWine(selectedItem);
@@ -129,6 +131,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
 
     setDetailWine(toWineData(wine));
     setDetailMatch(null);
+    setIsFetchingMatch(true);
 
     let cancelled = false;
     fetch('/api/wine-match', {
@@ -140,7 +143,8 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       .then((data) => {
         if (!cancelled) setDetailMatch(data.match ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
 
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
@@ -344,6 +348,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
               <WineCard
                 wine={detailWine}
                 matchResult={detailMatch || undefined}
+                matchLoading={isFetchingMatch}
               />
               <div className="flex gap-2">
                 <Button

@@ -294,6 +294,7 @@
     "actionMove": "הזז",
     "actionNote": "הערה",
     "actionAskSommelier": "סומלייה",
+    "actionViewDetails": "פרטי היין",
     "actionRemoveFromSlot": "הסר מהמשבצת",
     "unassignedCount": "{count, plural, one {בקבוק אחד צריך מקום} other {# בקבוקים צריכים מקום}}",
     "unassignedPlace": "מקם",

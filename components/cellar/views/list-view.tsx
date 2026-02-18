@@ -100,7 +100,7 @@ function ListItem({ placement, onSelect }: { placement: Placement; onSelect: () 
 
 export function ListView() {
   const t = useTranslations('cellar');
-  const { filteredPlacements, setSelectedSlotId, setActiveTab } = useCellarRack();
+  const { filteredPlacements, setWineCardPlacement } = useCellarRack();
 
   if (filteredPlacements.length === 0) {
     return (
@@ -120,14 +120,7 @@ export function ListView() {
         <ListItem
           key={p.cellarItemId}
           placement={p}
-          onSelect={() => {
-            if (p.slotId) {
-              setSelectedSlotId(p.slotId);
-              setActiveTab('rack');
-            } else {
-              setSelectedSlotId(`unassigned:${p.cellarItemId}`);
-            }
-          }}
+          onSelect={() => setWineCardPlacement(p)}
         />
       ))}
     </div>

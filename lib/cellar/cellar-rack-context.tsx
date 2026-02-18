@@ -57,6 +57,9 @@ interface CellarRackContextValue {
   isPickerMode: boolean;
   setIsPickerMode: (v: boolean) => void;
 
+  wineCardPlacement: Placement | null;
+  setWineCardPlacement: (p: Placement | null) => void;
+
   userId: string;
   refreshCellar: () => Promise<void>;
 }
@@ -124,6 +127,7 @@ export function CellarRackProvider({
   const [isRackBuilderOpen, setIsRackBuilderOpen] = useState(false);
   const [editingRack, setEditingRack] = useState<Rack | null>(null);
   const [isPickerMode, setIsPickerMode] = useState(false);
+  const [wineCardPlacement, setWineCardPlacement] = useState<Placement | null>(null);
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
 
@@ -344,6 +348,8 @@ export function CellarRackProvider({
     setEditingRack,
     isPickerMode,
     setIsPickerMode,
+    wineCardPlacement,
+    setWineCardPlacement,
     userId,
     refreshCellar,
   }), [
@@ -354,6 +360,7 @@ export function CellarRackProvider({
     filters, resetFilters, filteredPlacements,
     viewMode, activeTab,
     heatmapEnabled, isRackBuilderOpen, editingRack, isPickerMode,
+    wineCardPlacement,
     userId, refreshCellar,
   ]);
 

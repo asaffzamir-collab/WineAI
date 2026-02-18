@@ -12,7 +12,7 @@ import { trackCellar } from '@/lib/cellar/analytics';
 
 const READINESS_GLOW: Record<string, string> = {
   ready: 'ring-2 ring-green-400/60',
-  hold: '',
+  hold: 'ring-2 ring-amber-400/60',
   'past-peak': 'ring-2 ring-red-400/60',
 };
 

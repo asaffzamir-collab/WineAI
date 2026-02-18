@@ -5,9 +5,9 @@ import * as THREE from 'three';
 import type { SlotId, Placement, WineCategory } from '@/lib/cellar/types';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
 
-const READINESS_EMISSIVE: Record<string, string> = {
+const READINESS_COLORS: Record<string, string> = {
   ready: '#22c55e',
-  hold: '#000000',
+  hold: '#f59e0b',
   'past-peak': '#ef4444',
 };
 
@@ -120,10 +120,11 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      // Bottle lies on its side pointing along +Z (outward from rack).
-      // Rotate -90° around X so Y-up bottle points along Z.
-      dummy.position.set(item.x, item.y + 0.25, item.z + 0.35);
-      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      // Bottle lies on its side with cork pointing toward +Z (outward).
+      // +90° around X maps Y-up cork to +Z; Z offset compensates so
+      // the neck/cork protrudes from the shelf front.
+      dummy.position.set(item.x, item.y + 0.25, item.z - 1.15);
+      dummy.rotation.set(Math.PI / 2, 0, 0);
       dummy.scale.setScalar(2.5);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
@@ -132,7 +133,7 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
       if (isSelected) {
         tempColor.set('#d4a050');
       } else if (heatmapEnabled && item.placement.readinessTag) {
-        tempColor.set(READINESS_EMISSIVE[item.placement.readinessTag] || color);
+        tempColor.set(READINESS_COLORS[item.placement.readinessTag] || color);
       } else {
         tempColor.set(color);
       }
@@ -146,7 +147,7 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
   return (
     <instancedMesh ref={meshRef} args={[bottleGeom, undefined, items.length]} castShadow>
       <meshStandardMaterial
-        color={color}
+        color="#ffffff"
         roughness={isLight ? 0.25 : 0.4}
         metalness={isLight ? 0.15 : 0.08}
         transparent

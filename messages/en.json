@@ -294,6 +294,7 @@
     "actionMove": "Move",
     "actionNote": "Note",
     "actionAskSommelier": "Sommelier",
+    "actionViewDetails": "View Wine Details",
     "actionRemoveFromSlot": "Remove from slot",
     "unassignedCount": "{count, plural, one {# bottle needs a spot} other {# bottles need a spot}}",
     "unassignedPlace": "Place",

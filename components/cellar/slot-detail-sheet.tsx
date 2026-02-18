@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check } from 'lucide-react';
+import { Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -25,7 +25,7 @@ export function SlotDetailSheet() {
     selectedSlotId, setSelectedSlotId, selectedPlacement,
     unassignSlot, moveBottle, assignSlot,
     racks, placementMap, unassignedPlacements,
-    refreshCellar,
+    refreshCellar, setWineCardPlacement,
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
   const isDesktop = useMediaQuery('(min-width: 1280px)');
@@ -225,6 +225,17 @@ export function SlotDetailSheet() {
               {placement.notes && (
                 <p className="text-xs italic text-muted-foreground px-1">{placement.notes}</p>
               )}
+
+              {/* View Full Wine Card */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 text-xs border-bordeaux-200 dark:border-bordeaux-800"
+                onClick={() => { setWineCardPlacement(placement); setSelectedSlotId(null); }}
+              >
+                <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
+                {t('actionViewDetails')}
+              </Button>
 
               {/* Horizontal quick actions — all wired */}
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">

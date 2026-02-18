@@ -175,30 +175,6 @@ export function InsightsView() {
         </Card>
       )}
 
-      {/* Ready to Drink */}
-      {ready.length > 0 && (
-        <Card className="border-green-200 dark:border-green-900/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-green-600 dark:text-green-400">
-              <Clock className="h-4 w-4" strokeWidth={1.5} />
-              {t('insightsReadyTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-1">
-              {ready.slice(0, 5).map((p) => (
-                <li key={p.cellarItemId} className="text-sm text-muted-foreground">
-                  {p.wineName} — {p.winery}
-                </li>
-              ))}
-              {ready.length > 5 && (
-                <li className="text-xs text-muted-foreground">+{ready.length - 5} more</li>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Fill My Rack CTA */}
       {emptySlots > 0 && emptySlots > (activeRack ? activeRack.columns * activeRack.rows * 0.3 : 0) && (
         <Card>
