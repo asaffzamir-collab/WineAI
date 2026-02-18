@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -179,6 +179,24 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
             </Card>
           </Link>
         )}
+
+        {/* App Guide */}
+        <Link href="/guide">
+          <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                  <BookOpen className="h-4.5 w-4.5 text-bordeaux-500 dark:text-bordeaux-400" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{t('guideCard')}</p>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">{t('guideCardDesc')}</p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-stone-400" strokeWidth={1.5} />
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Sign Out */}
         <Separator />

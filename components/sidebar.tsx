@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -7,6 +8,7 @@ import { Home, Search, Wine, Heart, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WineLogo } from '@/components/wine-logo';
 import { Separator } from '@/components/ui/separator';
+import { hasUnseenUpdates } from '@/lib/changelog';
 
 const mainNavItems = [
   { href: '/', icon: Home, labelKey: 'home' },
@@ -23,6 +25,17 @@ const bottomNavItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const [showBadge, setShowBadge] = useState(false);
+
+  useEffect(() => {
+    setShowBadge(hasUnseenUpdates());
+  }, []);
+
+  useEffect(() => {
+    if (pathname === '/guide') {
+      setShowBadge(false);
+    }
+  }, [pathname]);
 
   return (
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-16 lg:w-64 md:border-r md:border-sidebar-border md:bg-sidebar">
@@ -76,7 +89,7 @@ export function Sidebar() {
         <Separator className="mb-4" />
         <ul className="space-y-1">
           {bottomNavItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname === '/guide';
             const Icon = item.icon;
 
             return (
@@ -86,20 +99,28 @@ export function Sidebar() {
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
-                    'min-h-[44px]',
+                    'min-h-[44px] relative',
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                   )}
                 >
-                  <Icon
-                    className={cn(
-                      'h-5 w-5 flex-shrink-0 transition-colors',
-                      isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70'
+                  <span className="relative flex-shrink-0">
+                    <Icon
+                      className={cn(
+                        'h-5 w-5 transition-colors',
+                        isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70'
+                      )}
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    {showBadge && (
+                      <span className="absolute -top-0.5 -end-0.5 h-2 w-2 rounded-full bg-garnet-500 ring-2 ring-sidebar" />
                     )}
-                    strokeWidth={isActive ? 2 : 1.5}
-                  />
+                  </span>
                   <span className="hidden lg:block">{t(item.labelKey)}</span>
+                  {showBadge && (
+                    <span className="hidden lg:inline-flex ms-auto h-1.5 w-1.5 rounded-full bg-garnet-500" />
+                  )}
                 </Link>
               </li>
             );

@@ -353,7 +353,9 @@
     "account": "Account",
     "adminPanel": "Admin Panel",
     "adminPanelDesc": "Manage users and app settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "guideCard": "App Guide & What's New",
+    "guideCardDesc": "Learn about features and see recent updates"
   },
   "admin": {
     "title": "Admin Panel",
@@ -542,5 +544,28 @@
     "fillRackSubtitle": "Personalized suggestions for your empty spots",
     "fillRackDesc": "Based on your taste profile and what's missing in your collection, here are some great additions.",
     "fillRackCta": "Discover wines"
+  },
+  "guide": {
+    "title": "App Guide",
+    "subtitle": "Everything you need to get the most out of WineJourney.",
+    "tabFeatures": "Features",
+    "tabWhatsNew": "What's New",
+    "featuresIntro": "WineJourney helps you discover, collect, and enjoy wine — with an AI sommelier by your side. Here's what you can do.",
+    "tryIt": "Try it",
+    "feature_search_title": "Search & Discover",
+    "feature_search_desc": "Scan a wine label with your camera or search by name. Get detailed tasting notes, ratings, and a personal match score that shows how well it fits your taste.",
+    "feature_sommelier_title": "My Personal Sommelier",
+    "feature_sommelier_desc": "Your AI wine advisor. Ask for food pairings, discover new wines based on your taste, or get a recommendation for tonight's dinner.",
+    "feature_cellar_title": "Wine Cellar & 3D Rack",
+    "feature_cellar_desc": "Organize your collection in a customizable wine rack. See readiness heatmaps, track drinking windows, and manage your inventory with a visual overview.",
+    "feature_wishlist_title": "Wishlist",
+    "feature_wishlist_desc": "Save wines you want to try. When you buy one, mark it as purchased and it moves straight to your cellar — with an option to place it in your rack.",
+    "feature_profile_title": "Taste Profile",
+    "feature_profile_desc": "Your evolving wine personality. The app learns what you love across reds, whites, and more, and refines every recommendation over time.",
+    "tag_new": "New",
+    "tag_improved": "Improved",
+    "tag_fix": "Fix",
+    "settingsCard": "App Guide & What's New",
+    "settingsCardDesc": "Learn about features and see recent updates"
   }
 }
