@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -17,6 +18,13 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const prefetchedRef = useRef(false);
+
+  const prefetchCellar3D = useCallback(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    import('@/components/cellar/rack/rack-3d-canvas').catch(() => {});
+  }, []);
 
   return (
     <nav
@@ -27,6 +35,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
+          const isCellar = item.href === '/cellar';
 
           return (
             <Link
@@ -34,6 +43,8 @@ export function BottomNav() {
               href={item.href}
               aria-label={t(item.labelKey)}
               aria-current={isActive ? 'page' : undefined}
+              onMouseEnter={isCellar ? prefetchCellar3D : undefined}
+              onTouchStart={isCellar ? prefetchCellar3D : undefined}
               className={cn(
                 'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
                 isActive

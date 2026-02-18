@@ -7,21 +7,21 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect('/');
   }
 
-  const userId = user.id;
+  const userId = session.user.id;
   let cellarItems: CellarItem[] = [];
   try {
     const { data } = await supabase
       .from('cellar_items')
       .select(`
-        id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
+        id, quantity, purchase_price, purchase_date, notes,
         drink_from, drink_until,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

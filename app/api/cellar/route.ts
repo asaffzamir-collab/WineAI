@@ -15,27 +15,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
     const supabase = await createClient();
-    // Try with bottle_photo_url first; if the column doesn't exist, retry without it
     let { data, error } = await supabase
       .from('cellar_items')
       .select(`
-        id, quantity, purchase_price, purchase_date, storage_location, notes, bottle_photo_url,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
+        id, quantity, purchase_price, purchase_date, notes,
+        drink_from, drink_until,
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-    if (error && error.message?.includes('bottle_photo_url')) {
-      const retry = await supabase
-        .from('cellar_items')
-        .select(`
-          id, quantity, purchase_price, purchase_date, storage_location, notes,
-          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      data = retry.data as typeof data;
-      error = retry.error;
-    }
     if (error) throw error;
     const resp = NextResponse.json({ items: data || [] });
     resp.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');

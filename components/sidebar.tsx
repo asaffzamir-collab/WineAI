@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -26,6 +26,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const [showBadge, setShowBadge] = useState(false);
+  const prefetchedRef = useRef(false);
+
+  const prefetchCellar3D = useCallback(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    import('@/components/cellar/rack/rack-3d-canvas').catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (pathname === '/guide' || pathname === '/settings') {
@@ -54,12 +61,15 @@ export function Sidebar() {
           {mainNavItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
+            const isCellar = item.href === '/cellar';
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
+                  onMouseEnter={isCellar ? prefetchCellar3D : undefined}
+                  onTouchStart={isCellar ? prefetchCellar3D : undefined}
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
                     'min-h-[44px]',

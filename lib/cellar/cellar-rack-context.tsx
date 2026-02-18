@@ -117,7 +117,15 @@ export function CellarRackProvider({
 }: CellarRackProviderProps) {
   const [racks, setRacks] = useState<Rack[]>([]);
   const [activeRackId, setActiveRackIdState] = useState<string | null>(null);
-  const [cellarItems, setCellarItems] = useState<CellarItem[]>(initialItems);
+  const [cellarItems, setCellarItems] = useState<CellarItem[]>(() => {
+    if (initialItems.length > 0) return initialItems;
+    try {
+      const cached = sessionStorage.getItem(`cellar-data:${userId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [slotAssignments, setSlotAssignments] = useState<Record<string, SlotId>>({});
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
   const [filters, setFilters] = useState<CellarFilters>(DEFAULT_FILTERS);
@@ -292,18 +300,21 @@ export function CellarRackProvider({
     return sortPlacements(matching, filters.sort);
   }, [allPlacements, filters]);
 
+  const cellarCacheKey = `cellar-data:${userId}`;
+
   const refreshCellar = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
       const res = await fetch(
-        `/api/cellar?userId=${encodeURIComponent(userId)}&_t=${Date.now()}`,
-        { cache: 'no-store' },
+        `/api/cellar?userId=${encodeURIComponent(userId)}`,
+        { cache: 'no-cache' },
       );
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.items)) {
           setCellarItems(data.items);
+          try { sessionStorage.setItem(cellarCacheKey, JSON.stringify(data.items)); } catch {}
         }
       }
     } catch {
@@ -311,7 +322,7 @@ export function CellarRackProvider({
     } finally {
       fetchingRef.current = false;
     }
-  }, [userId]);
+  }, [userId, cellarCacheKey]);
 
   const value = useMemo<CellarRackContextValue>(() => ({
     racks,

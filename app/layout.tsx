@@ -6,8 +6,6 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
-export const dynamic = 'force-dynamic';
-
 const heebo = Heebo({
   subsets: ['latin', 'hebrew'],
   variable: '--font-heebo',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
@@ -38,9 +38,15 @@ function CellarContent() {
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [isMatchLoading, setIsMatchLoading] = useState(false);
 
+  const initialLoadRef = useRef(true);
+
   useEffect(() => {
     trackCellar('cellar_opened');
-    refreshCellar();
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+    } else {
+      refreshCellar();
+    }
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshCellar();
     };
