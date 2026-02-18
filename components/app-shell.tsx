@@ -1,27 +1,48 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { BottomNav } from '@/components/bottom-nav';
+import { SommelierProvider, useSommelier } from '@/components/sommelier/sommelier-context';
+import { SommelierTrigger } from '@/components/sommelier/sommelier-trigger';
+import { SommelierPanel } from '@/components/sommelier/sommelier-panel';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
+function SommelierAutoOpen() {
+  const params = useSearchParams();
+  const { open } = useSommelier();
+
+  useEffect(() => {
+    if (params.get('sommelier') === 'open') {
+      const flow = params.get('flow') || undefined;
+      open(flow);
+    }
+  }, [params, open]);
+
+  return null;
+}
+
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="min-h-screen">
-      {/* Desktop sidebar */}
-      <Sidebar />
+    <SommelierProvider>
+      <div className="min-h-screen">
+        <Sidebar />
 
-      {/* Main content area — offset by sidebar width on desktop */}
-      <div className="md:pl-16 lg:pl-64">
-        <main className="min-h-screen pb-20 md:pb-0">
-          {children}
-        </main>
+        <div className="md:pl-16 lg:pl-64">
+          <main className="min-h-screen pb-20 md:pb-0">
+            {children}
+          </main>
+        </div>
+
+        <BottomNav />
+        <SommelierTrigger />
+        <SommelierPanel />
+        <SommelierAutoOpen />
       </div>
-
-      {/* Mobile bottom nav */}
-      <BottomNav />
-    </div>
+    </SommelierProvider>
   );
 }

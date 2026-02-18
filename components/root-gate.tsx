@@ -39,7 +39,7 @@ export function RootGate() {
         }
         const me: Me = await res.json();
         if (!me.onboardingCompleted) {
-          router.replace('/onboarding');
+          router.replace('/sommelier/welcome');
           return;
         }
         setUserId(me.id);

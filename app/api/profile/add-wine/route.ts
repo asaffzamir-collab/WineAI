@@ -220,6 +220,45 @@ export async function POST(request: Request) {
       }
     }
 
+    // --- Sommelier engagement: phase transition ---
+    if (liked) {
+      try {
+        const { data: allProfiles } = await supabase
+          .from('taste_profiles')
+          .select('profile_data')
+          .eq('user_id', userId);
+
+        let totalLiked = 0;
+        if (allProfiles) {
+          for (const tp of allProfiles) {
+            const pd = tp.profile_data as Record<string, unknown> | null;
+            if (pd && Array.isArray(pd.liked_wines)) totalLiked += pd.liked_wines.length;
+          }
+        }
+
+        let newPhase: string | undefined;
+        let newPrecision: number | undefined;
+        if (totalLiked >= 2) {
+          newPhase = 'personalization';
+          newPrecision = Math.min(40 + totalLiked * 10, 95);
+        } else if (totalLiked === 1) {
+          newPhase = 'learning';
+          newPrecision = 30;
+        }
+
+        if (newPhase) {
+          await supabase.from('sommelier_profiles').upsert({
+            user_id: userId,
+            phase: newPhase,
+            taste_precision: newPrecision,
+            last_interaction: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        }
+      } catch (engErr) {
+        console.error('Sommelier engagement error (non-fatal):', engErr);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error('Add wine to profile error:', error);
