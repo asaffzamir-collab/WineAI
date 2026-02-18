@@ -185,21 +185,22 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
       {/* Header */}
       <header className="bg-charcoal-800 px-4 pb-6 pt-8 dark:bg-charcoal-900 dark:border-b dark:border-charcoal-700">
         <div className="mx-auto max-w-3xl">
-          <Link
-            href="/settings"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-charcoal-300 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('backToSettings')}
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-charcoal-700">
-              <Shield className="h-5 w-5 text-copper-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-charcoal-700">
+                <Shield className="h-5 w-5 text-copper-400" />
+              </div>
+              <div>
+                <h1 className="heading-serif text-xl text-white">{t('title')}</h1>
+                <p className="text-xs text-charcoal-400">{adminEmail}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="heading-serif text-xl text-white">{t('title')}</h1>
-              <p className="text-xs text-charcoal-400">{adminEmail}</p>
-            </div>
+            <Link href="/settings">
+              <Button variant="outline" size="sm" className="border-charcoal-600 bg-charcoal-700 text-charcoal-200 hover:bg-charcoal-600 hover:text-white">
+                <ArrowLeft className="h-4 w-4 me-1.5" />
+                {t('backToSettings')}
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
