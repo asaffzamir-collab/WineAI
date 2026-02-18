@@ -70,7 +70,7 @@ export function LocationPickerModal({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onClose={onClose} className={cn("max-w-md", contentClassName)}>
         <div className="space-y-3">
-          <div>
+          <div className="pe-8">
             <h2 className="heading-serif text-base text-foreground">{t('pickerTitle')}</h2>
             <p className="text-xs text-muted-foreground">{t('pickerHint')}</p>
           </div>
