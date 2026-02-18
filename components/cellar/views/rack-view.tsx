@@ -1,9 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
+import { Wine } from 'lucide-react';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { Rack2DGrid } from '@/components/cellar/rack/rack-2d-grid';
 import { UnassignedBin } from '@/components/cellar/unassigned-bin';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Rack3DCanvas = dynamic(
@@ -19,10 +22,22 @@ const Rack3DCanvas = dynamic(
 );
 
 export function RackView() {
-  const { activeRack, viewMode } = useCellarRack();
+  const t = useTranslations('cellar');
+  const { activeRack, viewMode, setIsRackBuilderOpen, setEditingRack } = useCellarRack();
 
   if (!activeRack) {
-    return null;
+    return (
+      <EmptyState
+        icon={Wine}
+        title={t('noRack')}
+        description={t('noRackDesc')}
+        actionLabel={t('createRack')}
+        onAction={() => {
+          setEditingRack(null);
+          setIsRackBuilderOpen(true);
+        }}
+      />
+    );
   }
 
   return (

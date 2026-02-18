@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { RackShelfMesh } from './rack-shelf-mesh';
@@ -24,6 +24,16 @@ export function RackScene({ rack }: RackSceneProps) {
     heatmapEnabled, filters, isPickerMode,
   } = useCellarRack();
   const { invalidate } = useThree();
+
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   const slotPositions = useMemo(() => {
     const positions: { slotId: SlotId; x: number; y: number; z: number; row: number }[] = [];
@@ -108,7 +118,7 @@ export function RackScene({ rack }: RackSceneProps) {
       {/* Ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[rack.columns * CELL_WIDTH / 2 - CELL_WIDTH / 2, -0.2, 0]} receiveShadow>
         <planeGeometry args={[rack.columns * CELL_WIDTH + 3, rack.depth * LAYER_DEPTH + 3]} />
-        <meshStandardMaterial color="#e8e4df" opacity={0.3} transparent />
+        <meshStandardMaterial color={isDark ? '#2a2a2e' : '#e8e4df'} opacity={0.3} transparent />
       </mesh>
     </group>
   );

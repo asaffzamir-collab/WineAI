@@ -166,6 +166,7 @@ export function MobileFilterSheet() {
       {/* Floating filter button - mobile only */}
       <button
         type="button"
+        aria-label={t('filterTitle')}
         onClick={() => setOpen(true)}
         className="fixed bottom-20 start-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-lift border border-border/50 lg:hidden md:bottom-6"
       >

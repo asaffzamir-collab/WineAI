@@ -10,10 +10,7 @@ import {
   Sparkles,
   TrendingUp,
   Clock,
-  GlassWater,
   Heart,
-  AlertTriangle,
-  User,
   ChevronRight,
   X,
   Camera,
@@ -228,63 +225,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   };
 
   const showGuide = !guideDismissed && !isLoading && stats.bottlesInCellar === 0 && stats.winesTasted === 0;
-
-  const notifications = useMemo(() => {
-    if (isLoading) return [];
-    const items: { key: string; icon: React.ElementType; text: string; color: string; bg: string; href?: string }[] = [];
-
-    if (stats.readyToDrink > 0) {
-      items.push({
-        key: 'ready',
-        icon: GlassWater,
-        text: t('notifReadyToDrink', { count: stats.readyToDrink }),
-        color: 'text-success',
-        bg: 'bg-success-muted',
-        href: '/cellar',
-      });
-    }
-    if (stats.expiringWines > 0) {
-      items.push({
-        key: 'expiring',
-        icon: AlertTriangle,
-        text: t('notifExpiring', { count: stats.expiringWines }),
-        color: 'text-warning',
-        bg: 'bg-warning-muted',
-        href: '/cellar',
-      });
-    }
-    if (!stats.hasRedProfile) {
-      items.push({
-        key: 'red-profile',
-        icon: User,
-        text: t('notifMissingProfile', { type: t('notifProfileRed') }),
-        color: 'text-bordeaux-500',
-        bg: 'bg-bordeaux-50',
-        href: '/profile',
-      });
-    }
-    if (!stats.hasWhiteProfile) {
-      items.push({
-        key: 'white-profile',
-        icon: User,
-        text: t('notifMissingProfile', { type: t('notifProfileWhite') }),
-        color: 'text-bordeaux-500',
-        bg: 'bg-bordeaux-50',
-        href: '/profile',
-      });
-    }
-    if (!stats.hasRoseProfile) {
-      items.push({
-        key: 'rose-profile',
-        icon: User,
-        text: t('notifMissingProfile', { type: t('notifProfileRose') }),
-        color: 'text-bordeaux-500',
-        bg: 'bg-bordeaux-50',
-        href: '/profile',
-      });
-    }
-    return items;
-  }, [isLoading, stats, t]);
 
   const typeTotal = Object.values(stats.wineTypeDistribution).reduce((a, b) => a + b, 0);
   const typeEntries = Object.entries(stats.wineTypeDistribution).sort((a, b) => b[1] - a[1]);

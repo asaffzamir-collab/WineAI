@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import type { SlotId, Placement } from '@/lib/cellar/types';
 
@@ -21,13 +21,17 @@ export function SlotTargets({
   const [hoveredSlot, setHoveredSlot] = useState<SlotId | null>(null);
   const { invalidate } = useThree();
 
+  useEffect(() => {
+    return () => { document.body.style.cursor = 'auto'; };
+  }, []);
+
   return (
     <group>
       {slotPositions.map(({ slotId, x, y, z }) => {
-        const hasBotlle = placementMap.has(slotId);
+        const hasBottle = placementMap.has(slotId);
         const isSelected = slotId === selectedSlotId;
         const isHovered = slotId === hoveredSlot;
-        const showHighlight = isPickerMode && !hasBotlle;
+        const showHighlight = isPickerMode && !hasBottle;
 
         return (
           <mesh

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,14 @@ import { useSommelier } from '@/components/sommelier/sommelier-context';
 import { WINE_TYPE_COLORS, parseSlotId } from '@/lib/cellar/types';
 import { formatCurrency } from '@/lib/utils';
 import { trackCellar } from '@/lib/cellar/analytics';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { LocationPickerModal } from './location-picker/location-picker-modal';
 
 type SheetMode = 'view' | 'note';
 
 export function SlotDetailSheet() {
   const t = useTranslations('cellar');
+  const router = useRouter();
   const {
     selectedSlotId, setSelectedSlotId, selectedPlacement,
     unassignSlot, moveBottle, assignSlot,
@@ -25,6 +28,7 @@ export function SlotDetailSheet() {
     refreshCellar,
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
+  const isDesktop = useMediaQuery('(min-width: 1280px)');
 
   const [mode, setMode] = useState<SheetMode>('view');
   const [noteText, setNoteText] = useState('');
@@ -87,10 +91,10 @@ export function SlotDetailSheet() {
   return (
     <>
       <Sheet
-        open={!!selectedSlotId}
+        open={!!selectedSlotId && !isDesktop}
         onOpenChange={(open) => { if (!open) { setSelectedSlotId(null); setMode('view'); } }}
       >
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto xl:hidden">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
           <div className="flex justify-center py-2 mb-2">
             <div className="h-1.5 w-12 rounded-full bg-muted" />
           </div>
@@ -139,7 +143,7 @@ export function SlotDetailSheet() {
                 </div>
               )}
 
-              <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={() => window.location.href = '/search'}>
+              <Button className="w-full gap-1.5" size="sm" variant="outline" onClick={() => router.push('/search')}>
                 <Wine className="h-3.5 w-3.5" strokeWidth={1.5} />
                 {t('addWine')}
               </Button>

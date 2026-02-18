@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 interface Props {
   children: ReactNode;
   fallbackMessage?: string;
+  errorTitle?: string;
+  retryLabel?: string;
 }
 
 interface State {
@@ -35,9 +37,11 @@ export class CellarErrorBoundary extends Component<Props, State> {
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 mb-4">
             <AlertTriangle className="h-7 w-7 text-destructive" strokeWidth={1.5} />
           </div>
-          <h3 className="text-heading text-foreground mb-1">Something went wrong</h3>
+          <h3 className="text-heading text-foreground mb-1">
+            {this.props.errorTitle || 'Something went wrong'}
+          </h3>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            {this.props.fallbackMessage || 'An error occurred while loading the cellar. Please try again.'}
+            {this.props.fallbackMessage || 'An error occurred. Please try again.'}
           </p>
           <Button
             variant="outline"
@@ -46,7 +50,7 @@ export class CellarErrorBoundary extends Component<Props, State> {
             onClick={() => this.setState({ hasError: false, error: undefined })}
           >
             <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.5} />
-            Try again
+            {this.props.retryLabel || 'Try again'}
           </Button>
         </div>
       );

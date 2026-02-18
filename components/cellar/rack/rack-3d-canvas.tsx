@@ -5,16 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { RackScene } from './rack-scene';
-import { Skeleton } from '@/components/ui/skeleton';
 import type { Rack } from '@/lib/cellar/types';
-
-function CanvasFallback() {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <Skeleton className="w-full h-full rounded-xl" />
-    </div>
-  );
-}
 
 interface Rack3DCanvasProps {
   rack: Rack;
@@ -34,7 +25,7 @@ export function Rack3DCanvas({ rack }: Rack3DCanvasProps) {
   }, [rack.columns, rack.rows]);
 
   return (
-    <div ref={canvasRef} className="w-full h-[400px] md:h-[500px] lg:h-[560px] rounded-2xl bg-card shadow-soft overflow-hidden">
+    <div ref={canvasRef} role="img" aria-label={rack.name} className="w-full h-[400px] md:h-[500px] lg:h-[560px] rounded-2xl bg-card shadow-soft overflow-hidden">
       <Canvas
         frameloop="demand"
         dpr={[1, 1.5]}
@@ -67,7 +58,7 @@ export function Rack3DCanvas({ rack }: Rack3DCanvasProps) {
         <directionalLight position={[10, 15, 10]} intensity={0.8} castShadow />
         <directionalLight position={[-5, 8, -5]} intensity={0.3} />
 
-        <Suspense fallback={null}>
+        <Suspense>
           <RackScene rack={rack} />
         </Suspense>
       </Canvas>

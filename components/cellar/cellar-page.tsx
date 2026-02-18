@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { AppShell } from '@/components/app-shell';
 import { CellarRackProvider, useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { CellarHeader } from './cellar-header';
@@ -85,9 +86,14 @@ function CellarContent() {
 }
 
 export function NewCellarPage({ userId, initialItems }: NewCellarPageProps) {
+  const t = useTranslations('cellar');
   return (
     <AppShell>
-      <CellarErrorBoundary>
+      <CellarErrorBoundary
+        errorTitle={t('errorTitle')}
+        fallbackMessage={t('errorDesc')}
+        retryLabel={t('errorRetry')}
+      >
         <CellarRackProvider userId={userId} initialItems={initialItems}>
           <CellarContent />
         </CellarRackProvider>

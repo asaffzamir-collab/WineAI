@@ -330,6 +330,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         body: JSON.stringify({ userId, wine: target }),
       });
       if (!response.ok) throw new Error('Failed to add');
+      setTimeout(() => setIsAddingToWishlist(false), 2000);
     } catch (err) {
       console.error('Failed to add to wishlist:', err);
       setIsAddingToWishlist(false);
@@ -354,6 +355,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         return;
       }
       setError('');
+      setTimeout(() => setIsAddingToProfile(false), 2000);
     } catch (err) {
       console.error('Failed to add to profile:', err);
       setError('Failed to add to profile. Please try again.');

@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
-  Search, Sparkles, Wine, Heart, User, ArrowRight,
-  Zap, TrendingUp, Star, ChevronLeft,
+  Search, Sparkles, Wine, Heart, User, ArrowRight, ChevronLeft,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 import { changelog, markUpdatesSeen } from '@/lib/changelog';
+import { useSommelier } from '@/components/sommelier/sommelier-context';
 import type { ChangelogEntry, ChangelogHighlight } from '@/lib/changelog';
 
 type Tab = 'features' | 'whats-new';
@@ -31,10 +31,11 @@ const TAG_STYLES: Record<ChangelogHighlight['tag'], string> = {
   fix: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 };
 
-function FeatureCard({ feature, t }: { feature: typeof FEATURES[number]; t: ReturnType<typeof useTranslations> }) {
+function FeatureCard({ feature, t, onClick }: { feature: typeof FEATURES[number]; t: ReturnType<typeof useTranslations>; onClick?: () => void }) {
   const Icon = feature.icon;
+  const isInteractive = !!feature.href || !!onClick;
   const content = (
-    <Card className="h-full card-hover transition-all duration-200 group">
+    <Card className={cn('h-full transition-all duration-200 group', isInteractive && 'card-hover')}>
       <CardContent className="p-5 flex flex-col h-full">
         <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl mb-4', feature.color)}>
           <Icon className="h-5.5 w-5.5" strokeWidth={1.5} />
@@ -45,7 +46,7 @@ function FeatureCard({ feature, t }: { feature: typeof FEATURES[number]; t: Retu
         <p className="text-sm text-muted-foreground leading-relaxed flex-1">
           {t(`feature_${feature.id}_desc`)}
         </p>
-        {feature.href && (
+        {isInteractive && (
           <div className="mt-4 flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all duration-200">
             {t('tryIt')}
             <ArrowRight className="h-3 w-3" strokeWidth={2} />
@@ -57,6 +58,9 @@ function FeatureCard({ feature, t }: { feature: typeof FEATURES[number]; t: Retu
 
   if (feature.href) {
     return <Link href={feature.href} className="block h-full">{content}</Link>;
+  }
+  if (onClick) {
+    return <button type="button" onClick={onClick} className="block h-full w-full text-start">{content}</button>;
   }
   return content;
 }
@@ -112,6 +116,7 @@ function ChangelogCard({ entry, locale, t }: { entry: ChangelogEntry; locale: st
 export function GuidePage() {
   const t = useTranslations('guide');
   const tNav = useTranslations('nav');
+  const { open: openSommelier } = useSommelier();
   const [activeTab, setActiveTab] = useState<Tab>('features');
   const [locale, setLocale] = useState('en');
 
@@ -181,7 +186,12 @@ export function GuidePage() {
                 <p className="text-muted-foreground max-w-2xl">{t('featuresIntro')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {FEATURES.map((feature) => (
-                    <FeatureCard key={feature.id} feature={feature} t={t} />
+                    <FeatureCard
+                      key={feature.id}
+                      feature={feature}
+                      t={t}
+                      onClick={feature.id === 'sommelier' ? () => openSommelier() : undefined}
+                    />
                   ))}
                 </div>
               </div>

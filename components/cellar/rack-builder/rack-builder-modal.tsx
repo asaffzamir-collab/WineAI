@@ -12,7 +12,7 @@ import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { trackCellar } from '@/lib/cellar/analytics';
 import type { Rack, StackingStyle, Shelf, ShelfZone } from '@/lib/cellar/types';
 import { createDefaultRack } from '@/lib/cellar/types';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Layers } from 'lucide-react';
 
 const STACKING_OPTIONS: { id: StackingStyle; labelKey: string }[] = [
   { id: 'aligned', labelKey: 'stackAligned' },
@@ -254,7 +254,7 @@ export function RackBuilderModal() {
             <div className="space-y-2">
               {shelves.map((shelf) => (
                 <div key={shelf.id} className="flex items-center gap-2 rounded-lg bg-muted/30 p-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 cursor-grab" />
+                  <Layers className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
                   <Input
                     value={shelf.name}
                     onChange={(e) => updateShelf(shelf.id, { name: e.target.value })}
@@ -264,6 +264,7 @@ export function RackBuilderModal() {
                   <select
                     value={shelf.zone || 'custom'}
                     onChange={(e) => updateShelf(shelf.id, { zone: e.target.value as ShelfZone })}
+                    aria-label={t('shelfZone')}
                     className="h-8 text-xs rounded-md border border-input bg-background px-2"
                   >
                     {ZONE_OPTIONS.map(({ id, labelKey }) => (

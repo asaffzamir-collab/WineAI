@@ -1,32 +1,26 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Wine, Clock, Lightbulb, Sparkles, ArrowLeft, Loader2, Search } from 'lucide-react';
+import { Wine, Clock, Lightbulb, Sparkles, ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
 
 const CELLAR_ACTIONS = [
-  { id: 'tonight', icon: Clock, labelKey: 'cellarActionTonight', flow: 'tonight' },
-  { id: 'organize', icon: Lightbulb, labelKey: 'cellarActionOrganize', flow: null },
-  { id: 'gaps', icon: Search, labelKey: 'cellarActionGaps', flow: null },
-  { id: 'suggestions', icon: Sparkles, labelKey: 'cellarActionSuggestions', flow: 'wine-discovery' },
+  { id: 'tonight', icon: Clock, labelKey: 'cellarActionTonight', flow: 'tonight', comingSoon: false },
+  { id: 'organize', icon: Lightbulb, labelKey: 'cellarActionOrganize', flow: null, comingSoon: true },
+  { id: 'gaps', icon: Search, labelKey: 'cellarActionGaps', flow: null, comingSoon: true },
+  { id: 'suggestions', icon: Sparkles, labelKey: 'cellarActionSuggestions', flow: 'wine-discovery', comingSoon: false },
 ] as const;
 
 export function CellarActions() {
   const t = useTranslations('sommelier');
   const { setActiveFlow } = useSommelier();
-  const [loading, setLoading] = useState<string | null>(null);
 
-  const handleAction = async (action: typeof CELLAR_ACTIONS[number]) => {
-    if (action.flow) {
-      setActiveFlow(action.flow);
-    } else {
-      setLoading(action.id);
-      // Simulate a brief delay for non-flow actions
-      setTimeout(() => setLoading(null), 500);
-    }
+  const handleAction = (action: typeof CELLAR_ACTIONS[number]) => {
+    if (action.comingSoon || !action.flow) return;
+    setActiveFlow(action.flow);
   };
 
   return (
@@ -36,6 +30,7 @@ export function CellarActions() {
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
+          aria-label={t('back') ?? 'Back'}
           onClick={() => setActiveFlow(null)}
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
@@ -49,23 +44,32 @@ export function CellarActions() {
       <div className="space-y-2">
         {CELLAR_ACTIONS.map((action) => {
           const Icon = action.icon;
+          const disabled = action.comingSoon;
           return (
             <Card
               key={action.id}
-              className="cursor-pointer card-hover"
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              aria-disabled={disabled}
+              className={cn(
+                'transition-all duration-200',
+                disabled ? 'opacity-60 cursor-default' : 'cursor-pointer card-hover',
+              )}
               onClick={() => handleAction(action)}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !disabled) { e.preventDefault(); handleAction(action); } }}
             >
               <CardContent className="p-3 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-garnet-500/10 flex-shrink-0">
-                  {loading === action.id ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-garnet-600" />
-                  ) : (
-                    <Icon className="h-5 w-5 text-garnet-600 dark:text-garnet-400" strokeWidth={1.5} />
-                  )}
+                  <Icon className="h-5 w-5 text-garnet-600 dark:text-garnet-400" strokeWidth={1.5} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">{t(action.labelKey)}</p>
                 </div>
+                {disabled && (
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
+                    {t('comingSoon')}
+                  </span>
+                )}
               </CardContent>
             </Card>
           );
@@ -86,6 +90,7 @@ export function FillRackFlow() {
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
+          aria-label={t('back') ?? 'Back'}
           onClick={() => setActiveFlow(null)}
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />

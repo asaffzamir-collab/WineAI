@@ -31,6 +31,7 @@ export function UnassignedBin() {
       <div className="rounded-xl bg-warning-muted/30 border border-warning/20 overflow-hidden">
         <button
           type="button"
+          aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center gap-3 px-4 py-3 text-start"
         >

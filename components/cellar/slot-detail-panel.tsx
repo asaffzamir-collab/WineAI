@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ type PanelMode = 'view' | 'note' | 'move' | 'place';
 
 export function SlotDetailPanel() {
   const t = useTranslations('cellar');
+  const router = useRouter();
   const {
     selectedSlotId, setSelectedSlotId, selectedPlacement, placementMap,
     activeRack, racks, unassignSlot, moveBottle, assignSlot,
@@ -29,7 +31,6 @@ export function SlotDetailPanel() {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showMovePicker, setShowMovePicker] = useState(false);
-  const [showPlacePicker, setShowPlacePicker] = useState(false);
 
   if (!selectedSlotId) return null;
 
@@ -88,17 +89,6 @@ export function SlotDetailPanel() {
     trackCellar('bottle_moved');
   };
 
-  const handlePlaceUnassigned = (slotId: string) => {
-    if (!slotId) return;
-    const nextUnassigned = unassignedPlacements[0];
-    if (nextUnassigned) {
-      assignSlot(nextUnassigned.cellarItemId, selectedSlotId);
-      trackCellar('bottle_added_to_slot');
-    }
-    setShowPlacePicker(false);
-    setMode('view');
-  };
-
   const handleAskSommelier = () => {
     if (placement) {
       openSommelier('food-pairing');
@@ -120,6 +110,7 @@ export function SlotDetailPanel() {
             variant="ghost"
             size="sm"
             className="h-7 w-7 p-0"
+            aria-label={t('close')}
             onClick={() => { setSelectedSlotId(null); setMode('view'); }}
           >
             <X className="h-4 w-4" strokeWidth={1.5} />
@@ -174,7 +165,7 @@ export function SlotDetailPanel() {
               className="w-full gap-1.5"
               size="sm"
               variant="outline"
-              onClick={() => window.location.href = '/search'}
+              onClick={() => router.push('/search')}
             >
               <Wine className="h-3.5 w-3.5" strokeWidth={1.5} />
               {t('addWine')}

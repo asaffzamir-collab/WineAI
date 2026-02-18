@@ -243,7 +243,16 @@ export function CellarRackProvider({
   );
 
   const assignSlot = useCallback((cellarItemId: string, slotId: SlotId) => {
-    setSlotAssignments((prev) => ({ ...prev, [cellarItemId]: slotId }));
+    setSlotAssignments((prev) => {
+      const next = { ...prev };
+      for (const [existingItemId, existingSlotId] of Object.entries(next)) {
+        if (existingSlotId === slotId && existingItemId !== cellarItemId) {
+          delete next[existingItemId];
+        }
+      }
+      next[cellarItemId] = slotId;
+      return next;
+    });
   }, []);
 
   const unassignSlot = useCallback((slotId: SlotId) => {

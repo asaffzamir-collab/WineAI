@@ -123,15 +123,13 @@ export async function POST(request: Request) {
     if (bottlePhotoUrl) {
       cellarRow.bottle_photo_url = bottlePhotoUrl;
     }
-    let { error: cellarError } = await supabase.from('cellar_items').insert(cellarRow);
-    if (cellarError && cellarError.message?.includes('bottle_photo_url')) {
-      // Column doesn't exist — retry without it
+    let cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
+    if (cellarResult.error && cellarResult.error.message?.includes('bottle_photo_url')) {
       delete cellarRow.bottle_photo_url;
-      const retry = await supabase.from('cellar_items').insert(cellarRow);
-      cellarError = retry.error;
+      cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
     }
-    if (cellarError) throw cellarError;
-    return NextResponse.json({ success: true });
+    if (cellarResult.error) throw cellarResult.error;
+    return NextResponse.json({ success: true, cellarItemId: cellarResult.data?.id });
   } catch (error: unknown) {
     console.error('Cellar add error:', error);
     const message = error && typeof error === 'object' && 'message' in error ? String((error as { message: unknown }).message) : 'Failed to add to cellar';

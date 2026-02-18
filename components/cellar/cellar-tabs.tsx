@@ -16,11 +16,13 @@ export function CellarTabs() {
   const { activeTab, setActiveTab } = useCellarRack();
 
   return (
-    <div className="flex rounded-xl bg-muted/60 p-1 gap-1">
+    <div role="tablist" className="flex rounded-xl bg-muted/60 p-1 gap-1">
       {tabs.map(({ id, icon: Icon, labelKey }) => (
         <button
           key={id}
           type="button"
+          role="tab"
+          aria-selected={activeTab === id}
           onClick={() => setActiveTab(id)}
           className={cn(
             'flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',

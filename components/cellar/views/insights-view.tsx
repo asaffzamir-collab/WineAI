@@ -9,17 +9,22 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
-import type { Placement, WineCategory } from '@/lib/cellar/types';
+import type { Placement, WineCategory, ReadinessTag } from '@/lib/cellar/types';
+import { DEFAULT_FILTERS } from '@/lib/cellar/types';
 import { formatCurrency } from '@/lib/utils';
 
-function StatCard({ icon: Icon, label, value, accent }: {
+function StatCard({ icon: Icon, label, value, accent, onClick }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   accent?: string;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      className={onClick ? 'cursor-pointer transition-shadow hover:shadow-md' : undefined}
+      onClick={onClick}
+    >
       <CardContent className="p-4 flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accent || 'bg-muted'}`}>
           <Icon className="h-5 w-5 text-foreground/70" strokeWidth={1.5} />
@@ -88,8 +93,13 @@ function TypeDistribution({ placements }: { placements: Placement[] }) {
 
 export function InsightsView() {
   const t = useTranslations('cellar');
-  const { allPlacements, activeRack, unassignedPlacements } = useCellarRack();
+  const { allPlacements, activeRack, unassignedPlacements, setActiveTab, setFilters } = useCellarRack();
   const { open: openSommelier } = useSommelier();
+
+  const filterByReadiness = (tag: ReadinessTag) => {
+    setFilters({ ...DEFAULT_FILTERS, readiness: [tag] });
+    setActiveTab('list');
+  };
 
   const { ready, hold, pastPeak } = useMemo(() => {
     const r: Placement[] = [];
@@ -127,8 +137,8 @@ export function InsightsView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={Wine} label={t('totalBottles')} value={totalBottles} accent="bg-garnet-500/10" />
         <StatCard icon={TrendingUp} label={t('totalValue')} value={formatCurrency(totalValue)} accent="bg-copper-100 dark:bg-copper-700/20" />
-        <StatCard icon={Clock} label={t('insightsReady')} value={ready.length} accent="bg-green-100 dark:bg-green-900/20" />
-        <StatCard icon={AlertTriangle} label={t('insightsPastPeak')} value={pastPeak.length} accent="bg-red-100 dark:bg-red-900/20" />
+        <StatCard icon={Clock} label={t('insightsReady')} value={ready.length} accent="bg-green-100 dark:bg-green-900/20" onClick={ready.length > 0 ? () => filterByReadiness('ready') : undefined} />
+        <StatCard icon={AlertTriangle} label={t('insightsPastPeak')} value={pastPeak.length} accent="bg-red-100 dark:bg-red-900/20" onClick={pastPeak.length > 0 ? () => filterByReadiness('past-peak') : undefined} />
       </div>
 
       {/* Distribution */}

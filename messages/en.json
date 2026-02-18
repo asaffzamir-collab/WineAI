@@ -251,6 +251,13 @@
     "askSommelier": "Ask Sommelier",
     "editRack": "Edit Rack",
     "createRack": "New Rack",
+    "close": "Close",
+    "shelfZone": "Shelf zone",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "An error occurred while loading the cellar. Please try again.",
+    "errorRetry": "Try again",
+    "noRack": "No wine rack yet",
+    "noRackDesc": "Create your first rack to start organizing your collection visually.",
     "saveRack": "Save",
     "racks": "My Racks",
     "newRack": "New Rack",
@@ -354,6 +361,8 @@
     "adminPanel": "Admin Panel",
     "adminPanelDesc": "Manage users and app settings",
     "signOut": "Sign out",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
     "guideCard": "App Guide & What's New",
     "guideCardDesc": "Learn about features and see recent updates"
   },
@@ -543,7 +552,9 @@
     "fillRackTitle": "Fill Your Rack",
     "fillRackSubtitle": "Personalized suggestions for your empty spots",
     "fillRackDesc": "Based on your taste profile and what's missing in your collection, here are some great additions.",
-    "fillRackCta": "Discover wines"
+    "fillRackCta": "Discover wines",
+    "comingSoon": "Coming soon",
+    "back": "Back"
   },
   "guide": {
     "title": "App Guide",

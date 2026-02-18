@@ -219,7 +219,7 @@ function SectionHeading({
   subtitle: string;
 }) {
   return (
-    <div dir="rtl" className="text-right">
+    <div>
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{title}</h3>
@@ -603,7 +603,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
 
                         {(profile.liked_wines_detail && profile.liked_wines_detail.length > 0) && (
                           <section>
-                            <h3 dir="rtl" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-right">
+                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>
@@ -684,7 +684,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           profile.liked_wines &&
                           profile.liked_wines.length > 0 && (
                           <section>
-                            <h3 dir="rtl" className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200 text-right">
+                            <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
                             </h3>

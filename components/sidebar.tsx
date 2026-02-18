@@ -8,7 +8,7 @@ import { Home, Search, Wine, Heart, User, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WineLogo } from '@/components/wine-logo';
 import { Separator } from '@/components/ui/separator';
-import { hasUnseenUpdates } from '@/lib/changelog';
+import { hasUnseenUpdates, markUpdatesSeen } from '@/lib/changelog';
 
 const mainNavItems = [
   { href: '/', icon: Home, labelKey: 'home' },
@@ -28,12 +28,11 @@ export function Sidebar() {
   const [showBadge, setShowBadge] = useState(false);
 
   useEffect(() => {
-    setShowBadge(hasUnseenUpdates());
-  }, []);
-
-  useEffect(() => {
-    if (pathname === '/guide') {
+    if (pathname === '/guide' || pathname === '/settings') {
+      markUpdatesSeen();
       setShowBadge(false);
+    } else {
+      setShowBadge(hasUnseenUpdates());
     }
   }, [pathname]);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { BottomNav } from '@/components/bottom-nav';
@@ -41,7 +41,9 @@ export function AppShell({ children }: AppShellProps) {
         <BottomNav />
         <SommelierTrigger />
         <SommelierPanel />
-        <SommelierAutoOpen />
+        <Suspense fallback={null}>
+          <SommelierAutoOpen />
+        </Suspense>
       </div>
     </SommelierProvider>
   );

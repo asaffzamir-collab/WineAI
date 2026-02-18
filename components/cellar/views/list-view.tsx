@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Wine, MapPin, Star, Calendar } from 'lucide-react';
+import { Wine, MapPin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
@@ -124,6 +124,8 @@ export function ListView() {
             if (p.slotId) {
               setSelectedSlotId(p.slotId);
               setActiveTab('rack');
+            } else {
+              setSelectedSlotId(`unassigned:${p.cellarItemId}`);
             }
           }}
         />

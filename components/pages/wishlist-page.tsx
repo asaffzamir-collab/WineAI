@@ -203,7 +203,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
           const assignments: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
           const map = new Map<SlotId, Placement>();
           for (const [, slotId] of Object.entries(assignments)) {
-            if (slotId) map.set(slotId, { slotId } as Placement);
+            if (slotId) map.set(slotId, { slotId, wineType: 'other' } as Placement);
           }
           setLocationPlacements(map);
           setShowLocationPicker(true);

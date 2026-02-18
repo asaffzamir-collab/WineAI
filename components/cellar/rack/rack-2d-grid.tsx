@@ -47,8 +47,8 @@ function BottleSvg({ type }: { type: WineCategory }) {
 }
 
 function SlotCell({
-  slotId, placement, isSelected, isFiltered, heatmapEnabled, isPickerMode, onSelect, stackingOffset,
-}: SlotCellProps) {
+  slotId, placement, isSelected, isFiltered, heatmapEnabled, isPickerMode, onSelect, stackingOffset, emptyLabel,
+}: SlotCellProps & { emptyLabel: string }) {
   const isEmpty = !placement;
   const dimmed = !isEmpty && !isFiltered;
   const pickerHighlight = isPickerMode && isEmpty;
@@ -74,7 +74,7 @@ function SlotCell({
         readinessGlow,
       )}
       style={{ marginInlineStart: `${stackingOffset}px` }}
-      aria-label={isEmpty ? 'Empty slot' : placement.wineName}
+      aria-label={isEmpty ? emptyLabel : placement.wineName}
       aria-selected={isSelected}
       tabIndex={isSelected ? 0 : -1}
     >
@@ -238,6 +238,7 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
                       isPickerMode={isPickerMode}
                       onSelect={handleSelect}
                       stackingOffset={getStackingOffset(row)}
+                      emptyLabel={t('slotEmpty')}
                     />
                   );
                 })}

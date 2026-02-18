@@ -16,6 +16,7 @@ interface LocationPickerModalProps {
   onSelectSlot: (slotId: SlotId) => void;
   racks: Rack[];
   placementMap: Map<SlotId, Placement>;
+  contentClassName?: string;
 }
 
 function MiniBottleSvg({ type }: { type: WineCategory }) {
@@ -30,7 +31,7 @@ function MiniBottleSvg({ type }: { type: WineCategory }) {
 }
 
 export function LocationPickerModal({
-  open, onClose, onSelectSlot, racks, placementMap,
+  open, onClose, onSelectSlot, racks, placementMap, contentClassName,
 }: LocationPickerModalProps) {
   const t = useTranslations('cellar');
   const [activeRackIdx, setActiveRackIdx] = useState(0);
@@ -57,15 +58,14 @@ export function LocationPickerModal({
   }, [selectedSlot, onSelectSlot, onClose]);
 
   const handleSkip = useCallback(() => {
-    onSelectSlot('');
     onClose();
-  }, [onSelectSlot, onClose]);
+  }, [onClose]);
 
   if (!activeRack) return null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent onClose={onClose} className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent onClose={onClose} className={cn("max-w-lg max-h-[90vh] overflow-y-auto", contentClassName)}>
         <div className="space-y-4">
           <div>
             <h2 className="heading-serif text-lg text-foreground">{t('pickerTitle')}</h2>

@@ -36,7 +36,7 @@ function loadPlacements(userId: string): Map<SlotId, Placement> {
     const map = new Map<SlotId, Placement>();
     for (const [, slotId] of Object.entries(assignments)) {
       if (slotId) {
-        map.set(slotId, { slotId } as Placement);
+        map.set(slotId, { slotId, wineType: 'other' } as Placement);
       }
     }
     return map;
@@ -104,26 +104,29 @@ export function AddToCellarDialog({
       if (!response.ok) {
         const message = typeof data?.error === 'string' ? data.error : 'Failed to add to cellar';
         setError(message);
+        setShowPicker(false);
         return;
       }
 
-      // If a slot was chosen, save the assignment
       const finalSlot = slotId ?? selectedSlotId;
-      if (finalSlot) {
+      const newItemId: string | undefined = data?.cellarItemId;
+      if (finalSlot && newItemId) {
         try {
           const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
           const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
-          slots[`pending-${Date.now()}`] = finalSlot;
+          slots[newItemId] = finalSlot;
           localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
         } catch { /* silent */ }
         trackCellar('bottle_added_to_slot');
       }
 
+      setShowPicker(false);
       onClose();
       onAdded();
     } catch (err) {
       console.error('Failed to add to cellar:', err);
       setError('Network error. Please try again.');
+      setShowPicker(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -140,21 +143,16 @@ export function AddToCellarDialog({
 
   const handleSlotSelected = (slotId: SlotId) => {
     setSelectedSlotId(slotId);
-    setShowPicker(false);
-    if (slotId) {
-      handleConfirm(slotId);
-    } else {
-      handleConfirm();
-    }
+    handleConfirm(slotId).finally(() => setShowPicker(false));
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) onClose();
+    if (!open && !showPicker) onClose();
   };
 
   return (
     <>
-      <Dialog open={!!wine} onOpenChange={handleOpenChange}>
+      <Dialog open={!!wine && !showPicker} onOpenChange={handleOpenChange}>
         <DialogContent onClose={onClose} className="max-w-sm z-[100]">
           {wine && (
             <>
@@ -241,16 +239,13 @@ export function AddToCellarDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Location picker modal on top */}
       <LocationPickerModal
         open={showPicker}
-        onClose={() => {
-          setShowPicker(false);
-          handleConfirm();
-        }}
+        onClose={() => setShowPicker(false)}
         onSelectSlot={handleSlotSelected}
         racks={racks}
         placementMap={placementMap}
+        contentClassName="z-[100]"
       />
     </>
   );
