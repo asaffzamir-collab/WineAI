@@ -156,10 +156,10 @@ export function AddToCellarDialog({
         <DialogContent onClose={onClose} className="max-w-sm z-[100]">
           {wine && (
             <>
-              <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200">
+              <h3 className="heading-serif text-lg text-bordeaux-600 dark:text-ivory-200 pe-8">
                 {tCellar('addWine')}: {wine.name}
               </h3>
-              <p className="text-sm text-stone-600 dark:text-stone-400">{wine.winery}</p>
+              <p className="text-sm text-stone-600 dark:text-stone-400 pe-8">{wine.winery}</p>
               <div className="mt-4 space-y-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
