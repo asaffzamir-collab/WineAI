@@ -1,14 +1,11 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { CellarPage, type CellarItem } from '@/components/pages/cellar-page';
+import { NewCellarPage } from '@/components/cellar/cellar-page';
+import type { CellarItem } from '@/components/pages/cellar-page';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: string }>;
-}) {
+export default async function Page() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -16,8 +13,6 @@ export default async function Page({
     redirect('/');
   }
 
-  const params = await searchParams;
-  const filter = params.filter ?? undefined;
   const userId = user.id;
   let cellarItems: CellarItem[] = [];
   try {
@@ -34,5 +29,6 @@ export default async function Page({
   } catch (e) {
     console.error('Cellar page error:', e);
   }
-  return <CellarPage userId={userId} initialItems={cellarItems} initialFilter={filter} />;
+
+  return <NewCellarPage userId={userId} initialItems={cellarItems} />;
 }

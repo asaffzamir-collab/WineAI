@@ -16,6 +16,7 @@ import { BuyingIntelligence } from './personalized/buying-intelligence';
 import { FoodPairing } from './personalized/food-pairing';
 import { WineDiscovery } from './personalized/wine-discovery';
 import { TasteEvolution } from './personalized/taste-evolution';
+import { CellarActions, FillRackFlow } from './personalized/cellar-actions';
 
 export function SommelierPanel() {
   const { isOpen, close, activeFlow } = useSommelier();
@@ -49,6 +50,8 @@ export function SommelierPanel() {
       case 'food-pairing': return <FoodPairing />;
       case 'wine-discovery': return <WineDiscovery />;
       case 'taste-evolution': return <TasteEvolution />;
+      case 'cellar-context': return <CellarActions />;
+      case 'fill-rack': return <FillRackFlow />;
       default: return null;
     }
   };

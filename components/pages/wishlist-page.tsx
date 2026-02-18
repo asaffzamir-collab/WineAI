@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { LocationPickerModal } from '@/components/cellar/location-picker/location-picker-modal';
+import type { Rack, Placement, SlotId } from '@/lib/cellar/types';
+import { trackCellar } from '@/lib/cellar/analytics';
 import dynamic from 'next/dynamic';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
@@ -111,6 +114,9 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [locationRacks, setLocationRacks] = useState<Rack[]>([]);
+  const [locationPlacements, setLocationPlacements] = useState<Map<SlotId, Placement>>(new Map());
 
   useEffect(() => {
     if (!selectedItem) {
@@ -186,11 +192,42 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       await fetch(`/api/wishlist?id=${purchaseModalItem.id}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.id !== purchaseModalItem.id));
       setPurchaseModalItem(null);
+
+      // Offer to choose rack location
+      try {
+        const raw = localStorage.getItem(`cellar-racks:${userId}`);
+        const racks: Rack[] = raw ? JSON.parse(raw) : [];
+        if (racks.length > 0) {
+          setLocationRacks(racks);
+          const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
+          const assignments: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
+          const map = new Map<SlotId, Placement>();
+          for (const [, slotId] of Object.entries(assignments)) {
+            if (slotId) map.set(slotId, { slotId } as Placement);
+          }
+          setLocationPlacements(map);
+          setShowLocationPicker(true);
+          trackCellar('location_picker_opened');
+        }
+      } catch { /* silent */ }
     } catch (error) {
       console.error('Failed to mark as purchased:', error);
     } finally {
       setIsSubmittingPurchase(false);
     }
+  };
+
+  const handleLocationSelected = (slotId: SlotId) => {
+    if (slotId) {
+      try {
+        const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
+        const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
+        slots[`wishlist-${Date.now()}`] = slotId;
+        localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
+        trackCellar('bottle_added_to_slot');
+      } catch { /* silent */ }
+    }
+    setShowLocationPicker(false);
   };
 
   return (
@@ -408,6 +445,14 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       </Dialog>
         </div>
       </div>
+
+      <LocationPickerModal
+        open={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onSelectSlot={handleLocationSelected}
+        racks={locationRacks}
+        placementMap={locationPlacements}
+      />
     </AppShell>
   );
 }

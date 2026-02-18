@@ -156,6 +156,7 @@ export async function PATCH(request: Request) {
     if ('notes' in body) updates.notes = body.notes ?? null;
     if ('storageLocation' in body) updates.storage_location = body.storageLocation ?? null;
     if ('purchaseDate' in body) updates.purchase_date = body.purchaseDate ?? null;
+    if ('slotId' in body) updates.slot_id = body.slotId ?? null;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
