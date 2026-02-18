@@ -118,7 +118,7 @@ export function CellarRackProvider({
   const [slotAssignments, setSlotAssignments] = useState<Record<string, SlotId>>({});
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
   const [filters, setFilters] = useState<CellarFilters>(DEFAULT_FILTERS);
-  const [viewMode, setViewMode] = useState<ViewMode>('2d');
+  const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [activeTab, setActiveTab] = useState<TabId>('rack');
   const [heatmapEnabled, setHeatmapEnabled] = useState(false);
   const [isRackBuilderOpen, setIsRackBuilderOpen] = useState(false);

@@ -47,8 +47,8 @@ function BottleSvg({ type }: { type: WineCategory }) {
 }
 
 function SlotCell({
-  slotId, placement, isSelected, isFiltered, heatmapEnabled, isPickerMode, onSelect, stackingOffset, emptyLabel,
-}: SlotCellProps & { emptyLabel: string }) {
+  slotId, placement, isSelected, isFiltered, heatmapEnabled, isPickerMode, onSelect, stackingOffset, emptyLabel, maxWidth,
+}: SlotCellProps & { emptyLabel: string; maxWidth: number }) {
   const isEmpty = !placement;
   const dimmed = !isEmpty && !isFiltered;
   const pickerHighlight = isPickerMode && isEmpty;
@@ -63,7 +63,7 @@ function SlotCell({
       data-slot={slotId}
       onClick={() => onSelect(slotId)}
       className={cn(
-        'relative aspect-[3/5] rounded-lg transition-all duration-200 group outline-none',
+        'relative aspect-[3/5] rounded-lg transition-all duration-200 group outline-none flex-shrink-0',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
         isEmpty
           ? 'border border-dashed border-border/40 hover:border-border hover:bg-muted/30'
@@ -73,7 +73,7 @@ function SlotCell({
         pickerHighlight && 'border-garnet-500/50 bg-garnet-500/5 hover:bg-garnet-500/10',
         readinessGlow,
       )}
-      style={{ marginInlineStart: `${stackingOffset}px` }}
+      style={{ marginInlineStart: `${stackingOffset}px`, width: maxWidth, maxWidth }}
       aria-label={isEmpty ? emptyLabel : placement.wineName}
       aria-selected={isSelected}
       tabIndex={isSelected ? 0 : -1}
@@ -189,6 +189,9 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
     [rack.stackingStyle],
   );
 
+  const totalSlots = rack.columns * rack.shelves.reduce((s, sh) => s + sh.heightRows, 0);
+  const maxCellWidth = totalSlots <= 12 ? 64 : totalSlots <= 30 ? 48 : 40;
+
   return (
     <div
       ref={gridRef}
@@ -200,7 +203,6 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
       <div className="min-w-fit space-y-1">
         {shelfGroups.map(({ shelf, rows }) => (
           <div key={shelf.id} role="rowgroup">
-            {/* Shelf label */}
             {rack.shelves.length > 1 && (
               <div className="flex items-center gap-2 py-1.5 mb-1">
                 {shelf.labelColor && (
@@ -216,13 +218,11 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
               </div>
             )}
 
-            {/* Rows */}
             {rows.map(({ row, cells }) => (
               <div
                 key={row}
                 role="row"
-                className="grid gap-1.5 mb-1.5"
-                style={{ gridTemplateColumns: `repeat(${rack.columns}, minmax(36px, 1fr))` }}
+                className="flex gap-1.5 mb-1.5"
               >
                 {cells.map(({ slotId }) => {
                   const placement = placementMap.get(slotId);
@@ -239,13 +239,13 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
                       onSelect={handleSelect}
                       stackingOffset={getStackingOffset(row)}
                       emptyLabel={t('slotEmpty')}
+                      maxWidth={maxCellWidth}
                     />
                   );
                 })}
               </div>
             ))}
 
-            {/* Shelf divider */}
             <div className="h-1 rounded-full bg-stone-300/30 dark:bg-stone-700/30 mx-2" />
           </div>
         ))}
