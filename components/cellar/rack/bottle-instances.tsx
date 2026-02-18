@@ -2,20 +2,56 @@
 
 import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
 import type { SlotId, Placement, WineCategory } from '@/lib/cellar/types';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
-
-const BOTTLE_RADIUS = 0.12;
-const BOTTLE_HEIGHT = 0.7;
-const NECK_RADIUS = 0.06;
-const NECK_HEIGHT = 0.2;
 
 const READINESS_EMISSIVE: Record<string, string> = {
   ready: '#22c55e',
   hold: '#000000',
   'past-peak': '#ef4444',
 };
+
+/**
+ * Wine-bottle profile revolved around Y axis via LatheGeometry.
+ * The bottle stands upright (along Y) and is rotated into place by the instance matrix.
+ * Total height ≈ 0.75, body radius ≈ 0.10, neck radius ≈ 0.035.
+ */
+function createBottleGeometry(): THREE.LatheGeometry {
+  const pts: THREE.Vector2[] = [
+    // Punt (bottom recess)
+    new THREE.Vector2(0.00, 0.00),
+    new THREE.Vector2(0.06, 0.01),
+    new THREE.Vector2(0.09, 0.02),
+    // Body
+    new THREE.Vector2(0.10, 0.04),
+    new THREE.Vector2(0.10, 0.38),
+    // Shoulder curve
+    new THREE.Vector2(0.095, 0.41),
+    new THREE.Vector2(0.08, 0.44),
+    new THREE.Vector2(0.06, 0.47),
+    new THREE.Vector2(0.045, 0.49),
+    // Neck
+    new THREE.Vector2(0.035, 0.51),
+    new THREE.Vector2(0.033, 0.64),
+    // Collar / lip
+    new THREE.Vector2(0.038, 0.66),
+    new THREE.Vector2(0.040, 0.68),
+    new THREE.Vector2(0.038, 0.70),
+    new THREE.Vector2(0.035, 0.71),
+    // Top
+    new THREE.Vector2(0.033, 0.73),
+    new THREE.Vector2(0.00, 0.74),
+  ];
+  const geom = new THREE.LatheGeometry(pts, 12);
+  geom.computeVertexNormals();
+  return geom;
+}
+
+let _sharedGeom: THREE.LatheGeometry | null = null;
+function getBottleGeometry(): THREE.LatheGeometry {
+  if (!_sharedGeom) _sharedGeom = createBottleGeometry();
+  return _sharedGeom;
+}
 
 interface BottleInstancesProps {
   slotPositions: { slotId: SlotId; x: number; y: number; z: number }[];
@@ -73,24 +109,25 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const color = WINE_TYPE_COLORS[category];
   const isLight = category === 'white' || category === 'sparkling';
+  const bottleGeom = useMemo(() => getBottleGeometry(), []);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const tempColor = useMemo(() => new THREE.Color(), []);
 
   useEffect(() => {
     if (!meshRef.current) return;
-
     const mesh = meshRef.current;
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      dummy.position.set(item.x, item.y + BOTTLE_RADIUS + 0.05, item.z);
-      dummy.rotation.set(Math.PI / 2, 0, 0);
+      // Bottle lies on its side pointing along +Z (outward from rack).
+      // Rotate -90° around X so Y-up bottle points along Z.
+      dummy.position.set(item.x, item.y + 0.10, item.z + 0.35);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Color per instance
       const isSelected = item.slotId === selectedSlotId;
       if (isSelected) {
         tempColor.set('#d4a050');
@@ -107,14 +144,13 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
   }, [items, selectedSlotId, heatmapEnabled, dummy, tempColor, color]);
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, items.length]} castShadow>
-      <capsuleGeometry args={[BOTTLE_RADIUS, BOTTLE_HEIGHT, 4, 8]} />
+    <instancedMesh ref={meshRef} args={[bottleGeom, undefined, items.length]} castShadow>
       <meshStandardMaterial
         color={color}
-        roughness={isLight ? 0.3 : 0.5}
-        metalness={isLight ? 0.1 : 0.05}
+        roughness={isLight ? 0.25 : 0.4}
+        metalness={isLight ? 0.15 : 0.08}
         transparent
-        opacity={0.9}
+        opacity={0.92}
       />
     </instancedMesh>
   );
