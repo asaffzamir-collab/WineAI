@@ -372,6 +372,7 @@
   "admin": {
     "title": "פאנל ניהול",
     "backToApp": "חזרה לאפליקציה",
+    "backToSettings": "חזרה להגדרות",
     "totalUsers": "סה\"כ משתמשים",
     "admins": "מנהלים",
     "onboarded": "השלימו הרשמה",

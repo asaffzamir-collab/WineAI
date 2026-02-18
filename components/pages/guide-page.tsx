@@ -114,6 +114,14 @@ function ChangelogCard({ entry, locale, t }: { entry: ChangelogEntry; locale: st
 }
 
 export function GuidePage() {
+  return (
+    <AppShell>
+      <GuideContent />
+    </AppShell>
+  );
+}
+
+function GuideContent() {
   const t = useTranslations('guide');
   const tNav = useTranslations('nav');
   const { open: openSommelier } = useSommelier();
@@ -134,77 +142,75 @@ export function GuidePage() {
   }, [activeTab]);
 
   return (
-    <AppShell>
-      <div className="animate-page py-6 md:py-8 lg:py-10">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          {/* Back to settings */}
-          <Link
-            href="/settings"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+    <div className="animate-page py-6 md:py-8 lg:py-10">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        {/* Back to settings */}
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+        >
+          <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
+          {tNav('settings')}
+        </Link>
+
+        <PageHeader
+          title={t('title')}
+          description={t('subtitle')}
+        />
+
+        {/* Tabs */}
+        <div className="mt-6 flex gap-1 rounded-xl bg-muted/50 p-1 max-w-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab('features')}
+            className={cn(
+              'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+              activeTab === 'features'
+                ? 'bg-background text-foreground shadow-soft'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
           >
-            <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
-            {tNav('settings')}
-          </Link>
+            {t('tabFeatures')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('whats-new')}
+            className={cn(
+              'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
+              activeTab === 'whats-new'
+                ? 'bg-background text-foreground shadow-soft'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t('tabWhatsNew')}
+          </button>
+        </div>
 
-          <PageHeader
-            title={t('title')}
-            description={t('subtitle')}
-          />
-
-          {/* Tabs */}
-          <div className="mt-6 flex gap-1 rounded-xl bg-muted/50 p-1 max-w-sm">
-            <button
-              type="button"
-              onClick={() => setActiveTab('features')}
-              className={cn(
-                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
-                activeTab === 'features'
-                  ? 'bg-background text-foreground shadow-soft'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {t('tabFeatures')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('whats-new')}
-              className={cn(
-                'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200',
-                activeTab === 'whats-new'
-                  ? 'bg-background text-foreground shadow-soft'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {t('tabWhatsNew')}
-            </button>
-          </div>
-
-          {/* Tab content */}
-          <div className="mt-8">
-            {activeTab === 'features' ? (
-              <div className="space-y-8">
-                <p className="text-muted-foreground max-w-2xl">{t('featuresIntro')}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {FEATURES.map((feature) => (
-                    <FeatureCard
-                      key={feature.id}
-                      feature={feature}
-                      t={t}
-                      onClick={feature.id === 'sommelier' ? () => openSommelier() : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 max-w-2xl">
-                {changelog.map((entry) => (
-                  <ChangelogCard key={entry.version} entry={entry} locale={locale} t={t} />
+        {/* Tab content */}
+        <div className="mt-8">
+          {activeTab === 'features' ? (
+            <div className="space-y-8">
+              <p className="text-muted-foreground max-w-2xl">{t('featuresIntro')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {FEATURES.map((feature) => (
+                  <FeatureCard
+                    key={feature.id}
+                    feature={feature}
+                    t={t}
+                    onClick={feature.id === 'sommelier' ? () => openSommelier() : undefined}
+                  />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-2xl">
+              {changelog.map((entry) => (
+                <ChangelogCard key={entry.version} entry={entry} locale={locale} t={t} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

@@ -186,11 +186,11 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
       <header className="bg-charcoal-800 px-4 pb-6 pt-8 dark:bg-charcoal-900 dark:border-b dark:border-charcoal-700">
         <div className="mx-auto max-w-3xl">
           <Link
-            href="/"
+            href="/settings"
             className="mb-3 inline-flex items-center gap-1.5 text-sm text-charcoal-300 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            {t('backToApp')}
+            {t('backToSettings')}
           </Link>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-charcoal-700">

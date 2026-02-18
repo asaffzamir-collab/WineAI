@@ -122,9 +122,9 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
       const item = items[i];
       // Bottle lies on its side pointing along +Z (outward from rack).
       // Rotate -90° around X so Y-up bottle points along Z.
-      dummy.position.set(item.x, item.y + 0.10, item.z + 0.35);
+      dummy.position.set(item.x, item.y + 0.25, item.z + 0.35);
       dummy.rotation.set(-Math.PI / 2, 0, 0);
-      dummy.scale.set(1, 1, 1);
+      dummy.scale.setScalar(2.5);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 

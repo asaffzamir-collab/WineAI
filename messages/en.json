@@ -372,6 +372,7 @@
   "admin": {
     "title": "Admin Panel",
     "backToApp": "Back to app",
+    "backToSettings": "Back to settings",
     "totalUsers": "Total users",
     "admins": "Admins",
     "onboarded": "Onboarded",
