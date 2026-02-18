@@ -42,6 +42,19 @@ interface RecentCellarItem {
   wineName: string;
   winery: string;
   createdAt: string;
+  imageUrl?: string | null;
+  wineType?: string;
+  country?: string;
+  region?: string;
+  grapes?: string[];
+  vivinoRating?: number | null;
+  vivinoReviews?: number | null;
+  alcohol?: number | null;
+  tastingNotes?: { nose?: string[]; palate?: string[]; finish?: string } | null;
+  serving?: { drink_from?: string; drink_until?: string; decant_minutes?: number; temperature_celsius?: number } | null;
+  foodPairings?: string[] | null;
+  purchasePrice?: number | null;
+  quantity?: number | null;
 }
 
 interface TopCountry {
@@ -135,48 +148,56 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       return;
     }
 
+    // Build WineData from the already-fetched stats data (instant, no API call)
+    const rawNotes = selectedRecentItem.tastingNotes;
+    const rawServing = selectedRecentItem.serving;
+    const wineFromStats: WineData = {
+      name: selectedRecentItem.wineName,
+      winery: selectedRecentItem.winery,
+      wine_type: (selectedRecentItem.wineType as WineData['wine_type']) || 'red',
+      country: selectedRecentItem.country || '',
+      region: selectedRecentItem.region || '',
+      grapes: selectedRecentItem.grapes || [],
+      vivino_rating: selectedRecentItem.vivinoRating ?? undefined,
+      vivino_reviews: selectedRecentItem.vivinoReviews ?? undefined,
+      alcohol: selectedRecentItem.alcohol ?? undefined,
+      tasting_notes: rawNotes ? { nose: rawNotes.nose || [], palate: rawNotes.palate || [], finish: rawNotes.finish || '' } : undefined,
+      serving: rawServing ? { drink_from: Number(rawServing.drink_from) || undefined, drink_until: Number(rawServing.drink_until) || undefined, decant_minutes: rawServing.decant_minutes, temperature_celsius: rawServing.temperature_celsius != null ? String(rawServing.temperature_celsius) : undefined } : undefined,
+      food_pairings: selectedRecentItem.foodPairings ?? undefined,
+      image_url: selectedRecentItem.imageUrl ?? undefined,
+    };
+
+    // If stats already provided full data, use it directly
+    if (wineFromStats.country || wineFromStats.grapes?.length) {
+      setRecentDetailWine(wineFromStats);
+      setIsFetchingRecentDetails(false);
+      return;
+    }
+
+    // Fallback: fetch from DB (not OpenAI) via the lightweight endpoint
     let cancelled = false;
     setIsFetchingRecentDetails(true);
     setRecentDetailWine(null);
 
-    const query = `${selectedRecentItem.wineName} ${selectedRecentItem.winery}`;
-    fetch('/api/wine-search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, userId }),
-    })
+    fetch(`/api/cellar/${selectedRecentItem.id}`)
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
         if (data.wine) {
           setRecentDetailWine(data.wine);
         } else {
-          setRecentDetailWine({
-            name: selectedRecentItem.wineName,
-            winery: selectedRecentItem.winery,
-            wine_type: 'red',
-            country: '',
-            grapes: [],
-          });
+          setRecentDetailWine(wineFromStats);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setRecentDetailWine({
-            name: selectedRecentItem.wineName,
-            winery: selectedRecentItem.winery,
-            wine_type: 'red',
-            country: '',
-            grapes: [],
-          });
-        }
+        if (!cancelled) setRecentDetailWine(wineFromStats);
       })
       .finally(() => {
         if (!cancelled) setIsFetchingRecentDetails(false);
       });
 
     return () => { cancelled = true; };
-  }, [selectedRecentItem, userId]);
+  }, [selectedRecentItem]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -491,9 +512,15 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                 <button key={item.id} onClick={() => setSelectedRecentItem(item)} className="w-full text-start">
                   <Card className="card-hover">
                     <CardContent className="flex items-center gap-3 p-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                        <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
-                      </div>
+                      {item.imageUrl ? (
+                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                          <img src={item.imageUrl} alt="" className="h-full w-full object-contain" loading="lazy" />
+                        </div>
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                          <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">{item.wineName}</p>
                         <p className="truncate text-xs text-muted-foreground">{item.winery}</p>

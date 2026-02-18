@@ -23,7 +23,11 @@ export async function GET(request: Request) {
 
   try {
     const imageUrl = await fetchWineImageUrl(name, winery);
-    return NextResponse.json({ imageUrl });
+    const resp = NextResponse.json({ imageUrl });
+    if (imageUrl) {
+      resp.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    }
+    return resp;
   } catch (err) {
     console.error('Wine image fetch error:', err);
     return NextResponse.json({ imageUrl: null });

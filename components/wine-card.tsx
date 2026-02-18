@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,12 +176,11 @@ export function WineCard({
         <div className="flex items-start gap-4">
           {((wine.image_url || uploadedImageUrl) && !imageError) || lazyImageUrl ? (
             <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
-              <Image
+              <img
                 src={(imageError ? (lazyImageUrl || uploadedImageUrl) : (wine.image_url || uploadedImageUrl || lazyImageUrl)) as string}
                 alt={`${wine.name} by ${wine.winery}`}
-                fill
-                className="object-contain"
-                sizes="(max-width: 640px) 120px, 160px"
+                className="absolute inset-0 h-full w-full object-contain"
+                loading="lazy"
                 onError={() => {
                   if (lazyImageUrl) {
                     setLazyImageUrl(null);
