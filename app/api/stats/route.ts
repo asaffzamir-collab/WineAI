@@ -35,6 +35,11 @@ export async function GET(request: Request) {
       0
     );
 
+    const cellarItemValues: { id: string; value: number }[] = cellarItems.map((item) => ({
+      id: item.id,
+      value: (item.purchase_price || 0) * (item.quantity || 0),
+    }));
+
     const readyToDrink = cellarItems.filter((item) => {
       const drinkFrom = item.drink_from ? new Date(item.drink_from).getFullYear() : 0;
       const drinkUntil = item.drink_until ? new Date(item.drink_until).getFullYear() : 9999;
@@ -94,6 +99,7 @@ export async function GET(request: Request) {
       wishlistCount: wishlistRes.count ?? 0,
       readyToDrink,
       totalSpent,
+      cellarItemValues,
       expiringWines,
       recentCellarItems,
       wineTypeDistribution: typeCount,

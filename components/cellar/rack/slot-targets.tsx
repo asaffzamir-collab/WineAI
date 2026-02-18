@@ -10,13 +10,14 @@ interface SlotTargetsProps {
   selectedSlotId: SlotId | null;
   isPickerMode: boolean;
   onSlotClick: (slotId: SlotId) => void;
+  onSlotHover?: (slotId: SlotId | null) => void;
 }
 
 const TARGET_WIDTH = 0.7;
 const TARGET_HEIGHT = 0.85;
 
 export function SlotTargets({
-  slotPositions, placementMap, selectedSlotId, isPickerMode, onSlotClick,
+  slotPositions, placementMap, selectedSlotId, isPickerMode, onSlotClick, onSlotHover,
 }: SlotTargetsProps) {
   const [hoveredSlot, setHoveredSlot] = useState<SlotId | null>(null);
   const { invalidate } = useThree();
@@ -44,11 +45,13 @@ export function SlotTargets({
             onPointerOver={(e) => {
               e.stopPropagation();
               setHoveredSlot(slotId);
+              onSlotHover?.(slotId);
               document.body.style.cursor = 'pointer';
               invalidate();
             }}
             onPointerOut={() => {
               setHoveredSlot(null);
+              onSlotHover?.(null);
               document.body.style.cursor = 'auto';
               invalidate();
             }}

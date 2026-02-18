@@ -41,11 +41,11 @@ export const changelog: ChangelogEntry[] = [
     title: 'Premium Cellar Experience',
     titleHe: 'חוויית מרתף פרימיום',
     highlights: [
-      { text: 'Customizable 3D wine rack — build your own rack with shelves, zones, and stacking styles', textHe: 'מתלה יין תלת-ממדי מותאם אישית — בנה מתלה עם מדפים, אזורים וסגנונות ערימה', tag: 'new' },
+      { text: 'Customizable 3D wine rack — build your own rack with shelves, zones, and stacking styles', textHe: 'מקרר יין תלת-ממדי מותאם אישית — בנה מקרר עם מדפים, אזורים וסגנונות ערימה', tag: 'new' },
       { text: 'Readiness heatmap shows which bottles to drink now, hold, or are past peak', textHe: 'מפת חום מוכנות מציגה אילו בקבוקים לשתות עכשיו, לשמור, או עברו שיא', tag: 'new' },
-      { text: 'Location picker — assign bottles to specific rack slots when adding to cellar', textHe: 'בוחר מיקום — שייך בקבוקים למשבצות ספציפיות במתלה', tag: 'new' },
+      { text: 'Location picker — assign bottles to specific rack slots when adding to cellar', textHe: 'בוחר מיקום — שייך בקבוקים למשבצות ספציפיות במקרר', tag: 'new' },
       { text: 'Cellar Insights tab with collection stats, drinking windows, and gap analysis', textHe: 'לשונית תובנות מרתף עם סטטיסטיקות אוסף, חלונות שתייה וניתוח פערים', tag: 'new' },
-      { text: 'Sommelier integration — ask for food pairings, tonight\'s pick, or rack-filling suggestions', textHe: 'שילוב סומלייה — בקש המלצות לאוכל, בחירה להערב, או הצעות למילוי המתלה', tag: 'improved' },
+      { text: 'Sommelier integration — ask for food pairings, tonight\'s pick, or rack-filling suggestions', textHe: 'שילוב סומלייה — בקש המלצות לאוכל, בחירה להערב, או הצעות למילוי המקרר', tag: 'improved' },
     ],
   },
   {

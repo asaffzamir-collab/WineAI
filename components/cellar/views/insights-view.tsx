@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Wine, Clock, AlertTriangle, Sparkles, TrendingUp } from 'lucide-react';
+import { Wine, Clock, AlertTriangle, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -115,6 +115,8 @@ export function InsightsView() {
 
   const totalBottles = allPlacements.reduce((s, p) => s + p.quantity, 0);
   const totalValue = allPlacements.reduce((s, p) => s + (p.purchasePrice ?? 0) * p.quantity, 0);
+  const unassignedValue = unassignedPlacements.reduce((s, p) => s + (p.purchasePrice ?? 0) * p.quantity, 0);
+  const rackValue = totalValue - unassignedValue;
   const emptySlots = activeRack
     ? activeRack.columns * activeRack.rows * activeRack.depth - allPlacements.filter((p) => p.slotId).length
     : 0;
@@ -133,10 +135,15 @@ export function InsightsView() {
 
   return (
     <div className="space-y-4">
+      {/* Spend Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={TrendingUp} label={t('totalInvested')} value={formatCurrency(totalValue)} accent="bg-copper-100 dark:bg-copper-700/20" />
+        <StatCard icon={Wallet} label={t('currentRackValue')} value={formatCurrency(rackValue)} accent="bg-green-100 dark:bg-green-900/20" />
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <StatCard icon={Wine} label={t('totalBottles')} value={totalBottles} accent="bg-garnet-500/10" />
-        <StatCard icon={TrendingUp} label={t('totalValue')} value={formatCurrency(totalValue)} accent="bg-copper-100 dark:bg-copper-700/20" />
         <StatCard icon={Clock} label={t('insightsReady')} value={ready.length} accent="bg-green-100 dark:bg-green-900/20" onClick={ready.length > 0 ? () => filterByReadiness('ready') : undefined} />
         <StatCard icon={AlertTriangle} label={t('insightsPastPeak')} value={pastPeak.length} accent="bg-red-100 dark:bg-red-900/20" onClick={pastPeak.length > 0 ? () => filterByReadiness('past-peak') : undefined} />
       </div>

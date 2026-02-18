@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { Wine } from 'lucide-react';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
-import { Rack2DGrid } from '@/components/cellar/rack/rack-2d-grid';
 import { UnassignedBin } from '@/components/cellar/unassigned-bin';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +22,7 @@ const Rack3DCanvas = dynamic(
 
 export function RackView() {
   const t = useTranslations('cellar');
-  const { activeRack, viewMode, setIsRackBuilderOpen, setEditingRack } = useCellarRack();
+  const { activeRack, setIsRackBuilderOpen, setEditingRack } = useCellarRack();
 
   if (!activeRack) {
     return (
@@ -43,11 +42,7 @@ export function RackView() {
   return (
     <div className="space-y-4">
       <UnassignedBin />
-      {viewMode === '3d' ? (
-        <Rack3DCanvas rack={activeRack} />
-      ) : (
-        <Rack2DGrid rack={activeRack} />
-      )}
+      <Rack3DCanvas rack={activeRack} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { RackShelfMesh } from './rack-shelf-mesh';
 import { BottleInstances } from './bottle-instances';
 import { SlotTargets } from './slot-targets';
-import type { Rack, SlotId } from '@/lib/cellar/types';
+import type { Rack, SlotId, Placement } from '@/lib/cellar/types';
 import { buildSlotId } from '@/lib/cellar/types';
 import { trackCellar } from '@/lib/cellar/analytics';
 
@@ -16,9 +16,10 @@ const LAYER_DEPTH = 0.9;
 
 interface RackSceneProps {
   rack: Rack;
+  onBottleHover?: (placement: Placement | null) => void;
 }
 
-export function RackScene({ rack }: RackSceneProps) {
+export function RackScene({ rack, onBottleHover }: RackSceneProps) {
   const {
     placementMap, selectedSlotId, setSelectedSlotId,
     heatmapEnabled, filters, isPickerMode,
@@ -70,6 +71,14 @@ export function RackScene({ rack }: RackSceneProps) {
     invalidate();
   }, [selectedSlotId, setSelectedSlotId, placementMap, invalidate]);
 
+  const handleSlotHover = useCallback((slotId: SlotId | null) => {
+    if (slotId && placementMap.has(slotId)) {
+      onBottleHover?.(placementMap.get(slotId)!);
+    } else {
+      onBottleHover?.(null);
+    }
+  }, [placementMap, onBottleHover]);
+
   // Shelf geometry
   const shelfGeometry = useMemo(() => {
     return rack.shelves.map((shelf) => ({
@@ -113,6 +122,7 @@ export function RackScene({ rack }: RackSceneProps) {
         selectedSlotId={selectedSlotId}
         isPickerMode={isPickerMode}
         onSlotClick={handleSlotClick}
+        onSlotHover={handleSlotHover}
       />
 
       {/* Ground plane */}

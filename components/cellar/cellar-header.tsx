@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Wine, Settings2, Sparkles, LayoutGrid, Rows3 } from 'lucide-react';
+import { Settings2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
@@ -14,8 +14,6 @@ export function CellarHeader() {
     activeRack,
     setIsRackBuilderOpen,
     setEditingRack,
-    viewMode,
-    setViewMode,
     activeTab,
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
@@ -33,22 +31,6 @@ export function CellarHeader() {
         {activeTab === 'rack' && (
           <>
             <HeatmapToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0"
-              onClick={() => {
-                setViewMode(viewMode === '3d' ? '2d' : '3d');
-                trackCellar('view_switched', { mode: viewMode === '3d' ? '2d' : '3d' });
-              }}
-              title={viewMode === '3d' ? '2D View' : '3D View'}
-            >
-              {viewMode === '3d' ? (
-                <Rows3 className="h-4 w-4" strokeWidth={1.5} />
-              ) : (
-                <LayoutGrid className="h-4 w-4" strokeWidth={1.5} />
-              )}
-            </Button>
             <Button
               variant="ghost"
               size="sm"

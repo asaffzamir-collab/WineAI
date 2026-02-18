@@ -17,6 +17,7 @@ import {
   BookmarkPlus,
   Compass,
   Loader2,
+  Wallet,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ interface Stats {
   wishlistCount: number;
   readyToDrink: number;
   totalSpent: number;
+  cellarItemValues: { id: string; value: number }[];
   displayName?: string;
   expiringWines: number;
   recentCellarItems: RecentCellarItem[];
@@ -107,6 +109,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     wishlistCount: 0,
     readyToDrink: 0,
     totalSpent: 0,
+    cellarItemValues: [],
     displayName: initialDisplayName,
     expiringWines: 0,
     recentCellarItems: [],
@@ -187,6 +190,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         wishlistCount: data.wishlistCount ?? 0,
         readyToDrink: data.readyToDrink ?? 0,
         totalSpent: data.totalSpent ?? 0,
+        cellarItemValues: data.cellarItemValues ?? [],
         expiringWines: data.expiringWines ?? 0,
         recentCellarItems: data.recentCellarItems ?? [],
         wineTypeDistribution: data.wineTypeDistribution ?? {},
@@ -214,6 +218,21 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [fetchStats]);
+
+  const rackValue = useMemo(() => {
+    if (stats.cellarItemValues.length === 0) return 0;
+    try {
+      const raw = localStorage.getItem(`cellar-slots:${userId}`);
+      if (!raw) return 0;
+      const assignments: Record<string, string> = JSON.parse(raw);
+      const assignedIds = new Set(Object.keys(assignments));
+      return stats.cellarItemValues
+        .filter(({ id }) => assignedIds.has(id))
+        .reduce((sum, { value }) => sum + value, 0);
+    } catch {
+      return 0;
+    }
+  }, [stats.cellarItemValues, userId]);
 
   const name = stats.displayName || initialDisplayName;
   const greetingKey = getTimeGreetingKey(!!name);
@@ -368,22 +387,35 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           ))}
         </div>
 
-        {/* Total Spent */}
-        <Link href="/cellar" className="block">
-          <Card className="cursor-pointer card-hover">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('totalSpent')}</p>
+        {/* Spend Cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/cellar">
+            <Card className="cursor-pointer card-hover">
+              <CardContent className="p-4">
+                <div className="mb-2 inline-flex rounded-xl p-2.5 bg-copper-50 dark:bg-copper-700/20">
+                  <TrendingUp className="h-5 w-5 text-copper-400" strokeWidth={1.5} />
+                </div>
                 <p className="heading-serif text-2xl text-foreground tabular-nums">
                   {isLoading ? '—' : formatCurrency(stats.totalSpent)}
                 </p>
-              </div>
-              <div className="rounded-2xl bg-copper-50 p-3 dark:bg-copper-700/20">
-                <TrendingUp className="h-6 w-6 text-copper-400" strokeWidth={1.5} />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('totalSpent')}</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/cellar">
+            <Card className="cursor-pointer card-hover">
+              <CardContent className="p-4">
+                <div className="mb-2 inline-flex rounded-xl p-2.5 bg-green-50 dark:bg-green-900/20">
+                  <Wallet className="h-5 w-5 text-green-500" strokeWidth={1.5} />
+                </div>
+                <p className="heading-serif text-2xl text-foreground tabular-nums">
+                  {isLoading ? '—' : formatCurrency(rackValue)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('currentRackValue')}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
 
         {/* Two-column layout for insights + activity on desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
