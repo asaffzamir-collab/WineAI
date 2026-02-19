@@ -586,6 +586,22 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
         </div>{/* close two-column grid */}
 
+        {/* Guide shortcut */}
+        <Link href="/guide" className="block">
+          <Card className="overflow-hidden border-copper-200/30 bg-gradient-to-r from-copper-50/40 to-ivory-50/60 dark:from-charcoal-700/40 dark:to-charcoal-800/30 dark:border-copper-700/20 card-hover">
+            <CardContent className="flex items-center gap-3.5 p-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-copper-100/80 dark:bg-copper-800/30">
+                <BookOpen className="h-5 w-5 text-copper-600 dark:text-copper-400" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">{t('guideCardTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('guideCardDesc')}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 flex-shrink-0 text-copper-400" strokeWidth={1.5} />
+            </CardContent>
+          </Card>
+        </Link>
+
       </div>
 
       {/* Recent Activity Detail Modal */}

@@ -93,7 +93,9 @@
     "typeRose": "רוזה",
     "typeSparkling": "מבעבע",
     "typeDessert": "קינוח",
-    "settings": "הגדרות"
+    "settings": "הגדרות",
+    "guideCardTitle": "טיפים ומדריך",
+    "guideCardDesc": "למדו איך להפיק את המרב מ-WineJourney"
   },
   "search": {
     "title": "חיפוש יין",

@@ -93,7 +93,9 @@
     "typeRose": "Rosé",
     "typeSparkling": "Sparkling",
     "typeDessert": "Dessert",
-    "settings": "Settings"
+    "settings": "Settings",
+    "guideCardTitle": "Tips & Guide",
+    "guideCardDesc": "Learn how to get the most out of WineJourney"
   },
   "search": {
     "title": "Search Wine",
