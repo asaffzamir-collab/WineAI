@@ -8,9 +8,10 @@ interface ResponseCardProps {
   item: ConversationItem;
   onAction?: (action: string, payload?: Record<string, unknown>) => void;
   className?: string;
+  openedActionIcon?: React.ReactNode;
 }
 
-export function ResponseCard({ item, onAction, className }: ResponseCardProps) {
+export function ResponseCard({ item, onAction, className, openedActionIcon }: ResponseCardProps) {
   return (
     <div className={cn('rounded-xl border border-border/60 bg-card p-4 shadow-soft animate-fade-in', className)}>
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -33,15 +34,25 @@ export function ResponseCard({ item, onAction, className }: ResponseCardProps) {
 
       {item.actions && item.actions.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
-          {item.actions.map((chip: ActionChip) => (
-            <button
-              key={chip.action}
-              onClick={() => onAction?.(chip.action, chip.payload)}
-              className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-bordeaux-50 hover:text-bordeaux-700 dark:hover:bg-bordeaux-900/20 dark:hover:text-bordeaux-300"
-            >
-              {chip.label}
-            </button>
-          ))}
+          {item.actions.map((chip: ActionChip) => {
+            const isNoop = chip.action === '__noop';
+            return (
+              <button
+                key={chip.action + chip.label}
+                onClick={() => !isNoop && onAction?.(chip.action, chip.payload)}
+                disabled={isNoop}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  isNoop
+                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 cursor-default flex items-center'
+                    : 'border-border/60 bg-background text-foreground hover:bg-bordeaux-50 hover:text-bordeaux-700 dark:hover:bg-bordeaux-900/20 dark:hover:text-bordeaux-300',
+                )}
+              >
+                {isNoop && openedActionIcon}
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -44,6 +44,7 @@ export function TonightMode() {
   const [result, setResult] = useState<{
     wine: string; winery?: string; region?: string; grape?: string; wine_type?: string;
     why: string; match: number; reasons?: string[]; image_url?: string | null;
+    cellar_item_id?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -74,7 +75,7 @@ export function TonightMode() {
           confidence: 'high',
           reasons: data.reasons,
           actions: [
-            { label: t('openBottle'), action: 'open', payload: { wine: data.wine } },
+            { label: t('openBottle'), action: 'open', payload: { wine: data.wine, cellar_item_id: data.cellar_item_id } },
             { label: t('tryAnother'), action: 'retry' },
           ],
           created_at: new Date().toISOString(),

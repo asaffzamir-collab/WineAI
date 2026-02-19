@@ -17,9 +17,10 @@ const LAYER_DEPTH = 0.9;
 interface RackSceneProps {
   rack: Rack;
   onBottleHover?: (placement: Placement | null) => void;
+  openedMap?: Record<string, string>;
 }
 
-export function RackScene({ rack, onBottleHover }: RackSceneProps) {
+export function RackScene({ rack, onBottleHover, openedMap }: RackSceneProps) {
   const {
     placementMap, selectedSlotId, setSelectedSlotId,
     heatmapEnabled, filters, isPickerMode,
@@ -113,6 +114,7 @@ export function RackScene({ rack, onBottleHover }: RackSceneProps) {
         placementMap={placementMap}
         selectedSlotId={selectedSlotId}
         heatmapEnabled={heatmapEnabled}
+        openedMap={openedMap}
       />
 
       {/* Invisible slot targets for click detection */}

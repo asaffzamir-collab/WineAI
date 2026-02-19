@@ -27,6 +27,20 @@ export async function POST(request: Request) {
     })) || [];
 
     const result = await generateTonightRecommendation({ occasion, food, mood }, cellarWines, combinedProfile, lang);
+
+    // Match the recommended wine back to a cellar item to include its ID
+    if (result && typeof result === 'object' && 'wine' in result) {
+      const rec = result as { wine?: string; winery?: string };
+      const match = cellarWines.find(w =>
+        (w.name && rec.wine && w.name.toLowerCase() === rec.wine.toLowerCase()) ||
+        (w.name && rec.wine && rec.wine.toLowerCase().includes(w.name.toLowerCase())) ||
+        (w.name && rec.winery && w.name.toLowerCase().includes(rec.winery?.toLowerCase() ?? ''))
+      );
+      if (match?.cellar_item_id) {
+        (result as Record<string, unknown>).cellar_item_id = match.cellar_item_id;
+      }
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Tonight error:', error);

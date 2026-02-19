@@ -1,15 +1,28 @@
 'use client';
 
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useTranslations } from 'next-intl';
+import { WineOff } from 'lucide-react';
 import { RackScene } from './rack-scene';
 import type { Rack, Placement, ReadinessTag } from '@/lib/cellar/types';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
 import { formatCurrency } from '@/lib/utils';
+import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 
-function WineTooltip({ placement }: { placement: Placement }) {
+const OPEN_WINE_DAYS: Record<string, number> = {
+  red: 5, white: 3, rose: 3, sparkling: 1, dessert: 14,
+};
+
+function getOpenedData(userId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(`cellar-opened:${userId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function WineTooltip({ placement, openedAt }: { placement: Placement; openedAt?: string | null }) {
   const t = useTranslations('cellar');
 
   const readinessConfig: Record<ReadinessTag, { color: string; label: string }> = {
@@ -19,6 +32,13 @@ function WineTooltip({ placement }: { placement: Placement }) {
   };
 
   const readiness = placement.readinessTag ? readinessConfig[placement.readinessTag] : null;
+
+  const openedInfo = openedAt ? (() => {
+    const maxDays = OPEN_WINE_DAYS[placement.wineType] ?? 5;
+    const elapsed = Math.floor((Date.now() - new Date(openedAt).getTime()) / 86400000);
+    const remaining = maxDays - elapsed;
+    return { remaining, isExpired: remaining <= 0 };
+  })() : null;
 
   return (
     <div className="bg-card/95 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 p-3 min-w-[200px] max-w-[260px]">
@@ -56,6 +76,25 @@ function WineTooltip({ placement }: { placement: Placement }) {
           </span>
         )}
       </div>
+
+      {openedInfo && (
+        <div className={`flex items-center gap-1.5 mt-2 rounded-md px-2 py-1 ${
+          openedInfo.isExpired
+            ? 'bg-red-50 dark:bg-red-950/40'
+            : 'bg-amber-50 dark:bg-amber-950/40'
+        }`}>
+          <WineOff className={`h-3 w-3 flex-shrink-0 ${
+            openedInfo.isExpired ? 'text-red-500' : 'text-amber-500'
+          }`} strokeWidth={1.5} />
+          <span className={`text-[11px] font-medium ${
+            openedInfo.isExpired
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-amber-700 dark:text-amber-400'
+          }`}>
+            {openedInfo.isExpired ? t('openedExpired') : t('openedTimeLeft', { days: openedInfo.remaining })}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -69,6 +108,18 @@ export function Rack3DCanvas({ rack }: Rack3DCanvasProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const [hoveredPlacement, setHoveredPlacement] = useState<Placement | null>(null);
+  const { userId } = useCellarRack();
+  const [openedMap, setOpenedMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!userId) return;
+    setOpenedMap(getOpenedData(userId));
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === `cellar-opened:${userId}`) setOpenedMap(getOpenedData(userId));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [userId]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mouseRef.current = { x: e.clientX, y: e.clientY };
@@ -131,7 +182,7 @@ export function Rack3DCanvas({ rack }: Rack3DCanvasProps) {
           <directionalLight position={[-5, 8, -5]} intensity={0.3} />
 
           <Suspense>
-            <RackScene rack={rack} onBottleHover={setHoveredPlacement} />
+            <RackScene rack={rack} onBottleHover={setHoveredPlacement} openedMap={openedMap} />
           </Suspense>
         </Canvas>
       </div>
@@ -142,7 +193,10 @@ export function Rack3DCanvas({ rack }: Rack3DCanvasProps) {
           className="fixed pointer-events-none z-50"
           style={{ left: mouseRef.current.x + 16, top: mouseRef.current.y - 8 }}
         >
-          <WineTooltip placement={hoveredPlacement} />
+          <WineTooltip
+            placement={hoveredPlacement}
+            openedAt={openedMap[hoveredPlacement.cellarItemId] ?? null}
+          />
         </div>
       )}
     </>

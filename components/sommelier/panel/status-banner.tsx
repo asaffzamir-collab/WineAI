@@ -101,11 +101,11 @@ export function StatusBanner() {
             {phase === 'personalization' && t('bannerPersonalized')}
           </p>
           {precision > 0 && (
-            <div className="flex items-center gap-2 mt-2">
-              <PrecisionMeter value={precision} className="flex-1" />
-              <span className="text-xs font-medium text-bordeaux-600 dark:text-bordeaux-300 flex-shrink-0">
+            <div className="flex items-center gap-3 mt-2.5">
+              <span className="text-sm font-bold text-bordeaux-600 dark:text-bordeaux-300 tabular-nums flex-shrink-0">
                 {precision}%
               </span>
+              <PrecisionMeter value={precision} className="flex-1" />
             </div>
           )}
         </div>

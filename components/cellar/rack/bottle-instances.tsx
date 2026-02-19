@@ -58,12 +58,13 @@ interface BottleInstancesProps {
   placementMap: Map<SlotId, Placement>;
   selectedSlotId: SlotId | null;
   heatmapEnabled: boolean;
+  openedMap?: Record<string, string>;
 }
 
 const CATEGORY_ORDER: WineCategory[] = ['red', 'white', 'rose', 'sparkling', 'other'];
 
 export function BottleInstances({
-  slotPositions, placementMap, selectedSlotId, heatmapEnabled,
+  slotPositions, placementMap, selectedSlotId, heatmapEnabled, openedMap,
 }: BottleInstancesProps) {
   const groups = useMemo(() => {
     const result: Record<WineCategory, { slotId: SlotId; x: number; y: number; z: number; placement: Placement }[]> = {
@@ -91,6 +92,7 @@ export function BottleInstances({
             items={items}
             selectedSlotId={selectedSlotId}
             heatmapEnabled={heatmapEnabled}
+            openedMap={openedMap}
           />
         );
       })}
@@ -103,9 +105,10 @@ interface BottleCategoryGroupProps {
   items: { slotId: SlotId; x: number; y: number; z: number; placement: Placement }[];
   selectedSlotId: SlotId | null;
   heatmapEnabled: boolean;
+  openedMap?: Record<string, string>;
 }
 
-function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }: BottleCategoryGroupProps) {
+function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled, openedMap }: BottleCategoryGroupProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const color = WINE_TYPE_COLORS[category];
   const isLight = category === 'white' || category === 'sparkling';
@@ -130,10 +133,13 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
       mesh.setMatrixAt(i, dummy.matrix);
 
       const isSelected = item.slotId === selectedSlotId;
+      const isOpened = openedMap && openedMap[item.placement.cellarItemId];
       if (isSelected) {
         tempColor.set('#d4a050');
       } else if (heatmapEnabled && item.placement.readinessTag) {
         tempColor.set(READINESS_COLORS[item.placement.readinessTag] || color);
+      } else if (isOpened) {
+        tempColor.set('#d97706');
       } else {
         tempColor.set(color);
       }
@@ -142,7 +148,7 @@ function BottleCategoryGroup({ category, items, selectedSlotId, heatmapEnabled }
 
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [items, selectedSlotId, heatmapEnabled, dummy, tempColor, color]);
+  }, [items, selectedSlotId, heatmapEnabled, openedMap, dummy, tempColor, color]);
 
   return (
     <instancedMesh ref={meshRef} args={[bottleGeom, undefined, items.length]} castShadow>
