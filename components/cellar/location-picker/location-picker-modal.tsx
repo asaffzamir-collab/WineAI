@@ -95,12 +95,12 @@ export function LocationPickerModal({
             </div>
           )}
 
-          <div className="rounded-xl bg-muted/20 border border-border/30 p-2.5 overflow-x-auto max-h-[50vh] overflow-y-auto">
-            <div className="flex flex-col items-center gap-0.5">
+          <div className="rounded-xl bg-muted/20 border border-border/30 p-2.5 overflow-x-auto max-h-[50vh] overflow-y-auto" dir="ltr">
+            <div className="flex flex-col-reverse items-center gap-0.5">
               {activeRack.shelves.map((shelf) => (
                 <div key={shelf.id} className="w-full">
                   {activeRack.shelves.length > 1 && (
-                    <div className="flex items-center gap-2 py-0.5 mb-0.5">
+                    <div className="flex items-center gap-2 py-0.5 mb-0.5" dir="auto">
                       <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
                         {shelf.name}
                       </span>
@@ -108,7 +108,7 @@ export function LocationPickerModal({
                     </div>
                   )}
                   {Array.from({ length: shelf.heightRows }).map((_, rowIdx) => {
-                    const row = shelf.yStartRow + rowIdx;
+                    const row = shelf.yStartRow + shelf.heightRows - 1 - rowIdx;
                     return (
                       <div
                         key={row}

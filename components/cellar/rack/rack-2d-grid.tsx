@@ -134,9 +134,12 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
     [selectedSlotId, setSelectedSlotId, placementMap],
   );
 
-  // Flat list of slot IDs in visual order for keyboard nav
+  // Flat list of slot IDs in visual order (rows descending, cols ascending) for keyboard nav
   const flatSlotIds = useMemo(() => {
-    return slots.filter((s) => s.layer === 0).map((s) => s.slotId);
+    return slots
+      .filter((s) => s.layer === 0)
+      .sort((a, b) => b.row - a.row || a.col - b.col)
+      .map((s) => s.slotId);
   }, [slots]);
 
   const handleGridKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -172,7 +175,7 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
         rowMap.get(s.row)!.push(s);
       }
       const rows = Array.from(rowMap.entries())
-        .sort(([a], [b]) => a - b)
+        .sort(([a], [b]) => b - a)
         .map(([row, cells]) => ({ row, cells }));
       groups.push({ shelf, rows });
     }
@@ -199,6 +202,7 @@ export function Rack2DGrid({ rack }: Rack2DGridProps) {
       role="grid"
       aria-label={rack.name}
       onKeyDown={handleGridKeyDown}
+      dir="ltr"
     >
       <div className="min-w-fit space-y-1">
         {shelfGroups.map(({ shelf, rows }) => (

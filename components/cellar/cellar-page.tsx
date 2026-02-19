@@ -16,7 +16,7 @@ import { InsightsView } from './views/insights-view';
 import { SlotDetailPanel } from './slot-detail-panel';
 import { SlotDetailSheet } from './slot-detail-sheet';
 import { RackBuilderModal } from './rack-builder/rack-builder-modal';
-import { MobileFilterSheet } from './filters/cellar-filters';
+import { MobileFilterSheet, CellarFiltersPanel } from './filters/cellar-filters';
 import { CellarErrorBoundary } from './cellar-error-boundary';
 import { trackCellar } from '@/lib/cellar/analytics';
 import type { CellarItem } from '@/components/pages/cellar-page';
@@ -29,6 +29,22 @@ const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.Wi
 interface NewCellarPageProps {
   userId: string;
   initialItems: CellarItem[];
+}
+
+function MobileInlineFilters() {
+  const { unassignedPlacements } = useCellarRack();
+  const t = useTranslations('cellar');
+
+  return (
+    <div className="rounded-2xl bg-card shadow-soft p-3 space-y-3">
+      {unassignedPlacements.length > 0 && (
+        <div className="rounded-lg bg-warning-muted/50 px-3 py-2 text-xs text-warning">
+          {t('unassignedCount', { count: unassignedPlacements.length })}
+        </div>
+      )}
+      <CellarFiltersPanel />
+    </div>
+  );
 }
 
 function MobileRackSelector() {
@@ -146,9 +162,10 @@ function CellarContent() {
           <CellarTabs />
         </div>
 
-        {/* Mobile rack selector */}
-        <div className="mt-3">
+        {/* Mobile rack selector + inline filters */}
+        <div className="mt-3 lg:hidden space-y-3">
           <MobileRackSelector />
+          <MobileInlineFilters />
         </div>
 
         {/* Desktop layout with sidebar */}
@@ -180,7 +197,6 @@ function CellarContent() {
 
       {/* Mobile bottom sheets */}
       <SlotDetailSheet />
-      <MobileFilterSheet />
       <RackBuilderModal />
 
       {/* Full Wine Card Dialog */}
