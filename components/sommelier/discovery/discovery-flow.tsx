@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import type { DiscoveryData, PreliminaryProfile } from '@/lib/sommelier-types';
@@ -17,14 +17,31 @@ const STEP_NUMBER: Record<Step, number> = { energy: 1, sliders: 2, occasions: 3,
 
 export function DiscoveryFlow() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow, refreshState, conversationItems } = useSommelier();
+  const { setActiveFlow, refreshState, conversationItems, hasDiscoveryData } = useSommelier();
   const [step, setStep] = useState<Step>('energy');
   const [data, setData] = useState<DiscoveryData>({});
   const [profile, setProfile] = useState<PreliminaryProfile | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+
+  useEffect(() => {
+    if (hasDiscoveryData && !initialLoaded) {
+      setInitialLoaded(true);
+      setStep('reveal');
+      setLoading(true);
+      fetch('/api/sommelier/discovery/existing')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(d => {
+          if (d.profile) setProfile(d.profile);
+          else setStep('energy');
+        })
+        .catch(() => setStep('energy'))
+        .finally(() => setLoading(false));
+    }
+  }, [hasDiscoveryData, initialLoaded]);
 
   const stepIndex = STEPS.indexOf(step);
-  const canGoBack = stepIndex > 0;
+  const canGoBack = stepIndex > 0 && initialLoaded === false;
 
   const goBack = () => {
     if (stepIndex > 0) setStep(STEPS[stepIndex - 1]);

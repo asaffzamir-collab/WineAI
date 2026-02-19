@@ -112,13 +112,13 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
         </button>
         <button
           onClick={() => onFeedback('not_really')}
-          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20"
         >
           {t('revealRetry')}
         </button>
         <button
           onClick={() => onFeedback('skip')}
-          className="w-full rounded-xl border-2 border-border/60 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+          className="w-full rounded-xl border-2 border-border/60 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20"
         >
           {t('revealSkip')}
         </button>

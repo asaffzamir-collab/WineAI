@@ -40,13 +40,13 @@ export function FeedbackLoop({ profile, loading, onComplete }: Props) {
         </button>
         <button
           onClick={() => onComplete('close')}
-          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20"
         >
           {t('feedbackClose')}
         </button>
         <button
           onClick={() => onComplete('not_really')}
-          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20"
         >
           {t('feedbackNotReally')}
         </button>

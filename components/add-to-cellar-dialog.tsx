@@ -123,6 +123,7 @@ export function AddToCellarDialog({
       setShowPicker(false);
       onClose();
       onAdded();
+      window.dispatchEvent(new Event('cellar-updated'));
     } catch (err) {
       console.error('Failed to add to cellar:', err);
       setError('Network error. Please try again.');

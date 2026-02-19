@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateRefinementChoices, processRefinementChoice } from '@/lib/sommelier-ai';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     const { data: userProfile } = await supabase.from('user_profiles').select('preferred_language').eq('id', user.id).single();
     const lang = userProfile?.preferred_language || 'he';
 
-    const { data: profiles } = await supabase.from('taste_profiles').select('profile_data').eq('user_id', user.id);
+    const { data: profiles } = await supabase.from('taste_profiles').select('*').eq('user_id', user.id);
     const combinedProfile = profiles?.reduce((acc, p) => ({ ...acc, ...(p.profile_data as object) }), {}) || {};
 
     if (action === 'generate') {
@@ -23,8 +24,37 @@ export async function POST(request: Request) {
     }
 
     if (action === 'choose' && choice) {
-      const result = await processRefinementChoice(combinedProfile, choice, lang);
-      await supabase.from('sommelier_profiles').update({ last_interaction: new Date().toISOString() }).eq('user_id', user.id);
+      const result = await processRefinementChoice(combinedProfile, choice, lang) as Record<string, unknown>;
+      const profileUpdates = result.profile_updates as Record<string, unknown> | undefined;
+
+      if (profileUpdates && profiles && profiles.length > 0) {
+        for (const tp of profiles) {
+          const existingData = (tp.profile_data as Record<string, unknown>) || {};
+          const merged: Record<string, unknown> = { ...existingData };
+
+          if (profileUpdates.overall_style) merged.overall_style = profileUpdates.overall_style;
+          if (profileUpdates.body_structure) merged.body_structure = profileUpdates.body_structure;
+          if (profileUpdates.style_notes) merged.style_notes = profileUpdates.style_notes;
+          if (profileUpdates.taste_spectrum) merged.taste_spectrum = profileUpdates.taste_spectrum;
+          if (Array.isArray(profileUpdates.recommended_grapes) && profileUpdates.recommended_grapes.length > 0) {
+            merged.recommended_grapes = profileUpdates.recommended_grapes;
+          }
+          if (Array.isArray(profileUpdates.recommended_regions) && profileUpdates.recommended_regions.length > 0) {
+            merged.recommended_regions = profileUpdates.recommended_regions;
+          }
+
+          await supabase.from('taste_profiles').update({
+            profile_data: merged,
+            updated_at: new Date().toISOString(),
+          }).eq('user_id', user.id).eq('wine_type', tp.wine_type);
+        }
+      }
+
+      await supabase.from('sommelier_profiles').update({
+        last_interaction: new Date().toISOString(),
+        taste_precision: Math.min((combinedProfile as { taste_precision?: number }).taste_precision ?? 30, 95) + 5,
+      }).eq('user_id', user.id);
+
       return NextResponse.json(result);
     }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { Loader2, ArrowLeft, Wine, ChevronRight, Grape, MapPin, AlertCircle } from 'lucide-react';
+import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import type { WineData } from '@/lib/openai';
 
 const WineCard = dynamic(
@@ -37,6 +38,40 @@ function discoveredToWineData(w: DiscoveredWine): WineData {
   };
 }
 
+function WineImageThumb({ name, winery }: { name: string; winery?: string }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current || !name) return;
+    fetchedRef.current = true;
+    fetch(`/api/wine-image?name=${encodeURIComponent(name)}&winery=${encodeURIComponent(winery || '')}`)
+      .then(r => r.json())
+      .then(d => { if (d.imageUrl) setImageUrl(d.imageUrl); })
+      .catch(() => {});
+  }, [name, winery]);
+
+  if (imageUrl) {
+    return (
+      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+        <img
+          src={imageUrl}
+          alt={name}
+          className="h-full w-full object-contain"
+          loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+      <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
+    </div>
+  );
+}
+
 export function WineDiscovery() {
   const t = useTranslations('sommelier');
   const { setActiveFlow, userId, refreshState } = useSommelier();
@@ -46,6 +81,8 @@ export function WineDiscovery() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
+  const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
+  const [isAddingToCellar, setIsAddingToCellar] = useState(false);
 
   useEffect(() => {
     const discover = async () => {
@@ -138,7 +175,7 @@ export function WineDiscovery() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => { setError(false); setLoading(true); setWines(null); fetch('/api/sommelier/discover-wines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.ok ? r.json() : Promise.reject()).then(d => { if (Array.isArray(d.wines) && d.wines.length > 0) setWines(d.wines); else setError(true); }).catch(() => setError(true)).finally(() => setLoading(false)); }}
-            className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+            className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors"
           >
             {t('tryAgain')}
           </button>
@@ -152,13 +189,19 @@ export function WineDiscovery() {
 
   const selectedWine = selectedIndex !== null ? wines[selectedIndex] ?? null : null;
 
+  const handleAddToCellar = () => {
+    if (selectedIndex === null || !wines) return;
+    const wine = wines[selectedIndex];
+    setAddToCellarWine(discoveredToWineData(wine));
+  };
+
   // Detail view for a selected wine
   if (selectedWine) {
     const wineData = discoveredToWineData(selectedWine);
     return (
       <div className="flex flex-col pt-4 px-4 pb-6">
         <button
-          onClick={() => { setSelectedIndex(null); setIsAddingToWishlist(false); setIsAddingToProfile(false); }}
+          onClick={() => { setSelectedIndex(null); setIsAddingToWishlist(false); setIsAddingToProfile(false); setIsAddingToCellar(false); }}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -168,11 +211,22 @@ export function WineDiscovery() {
         <WineCard
           wine={wineData}
           matchResult={{ match_percentage: selectedWine.match, explanation: selectedWine.reason, positive_matches: [], mismatches: [] }}
+          onAddToCellar={handleAddToCellar}
           onAddToWishlist={handleAddToWishlist}
           onAddToProfile={handleAddToProfile}
+          isAddingToCellar={isAddingToCellar}
           isAddingToWishlist={isAddingToWishlist}
           isAddingToProfile={isAddingToProfile}
         />
+
+        {userId && (
+          <AddToCellarDialog
+            wine={addToCellarWine}
+            userId={userId}
+            onClose={() => { setAddToCellarWine(null); setIsAddingToCellar(false); }}
+            onAdded={() => { setAddToCellarWine(null); setIsAddingToCellar(false); }}
+          />
+        )}
       </div>
     );
   }
@@ -196,12 +250,10 @@ export function WineDiscovery() {
           <button
             key={i}
             onClick={() => setSelectedIndex(i)}
-            className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-accent transition-colors animate-fade-in"
+            className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors animate-fade-in"
             style={{ animationDelay: `${i * 80}ms` }}
           >
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
-              <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
-            </div>
+            <WineImageThumb name={wine.name} winery={wine.winery} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{wine.name}</p>
               {wine.winery && <p className="text-xs text-muted-foreground truncate">{wine.winery}</p>}

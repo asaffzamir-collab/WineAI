@@ -57,7 +57,7 @@ export function FoodPairing() {
               </div>
             </div>
           ))}
-          <button onClick={() => { addConversationItem({ id: safeId(), type: 'response', title: t('pairingResultTitle', { meal }), content: result.suggestions.map(s => s.wine).join(', '), created_at: new Date().toISOString() }); setActiveFlow(null); }} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-accent transition-colors">
+          <button onClick={() => { addConversationItem({ id: safeId(), type: 'response', title: t('pairingResultTitle', { meal }), content: result.suggestions.map(s => s.wine).join(', '), created_at: new Date().toISOString() }); setActiveFlow(null); }} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors">
             {t('done')}
           </button>
         </div>

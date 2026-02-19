@@ -75,7 +75,7 @@ export function TonightMode() {
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <AlertCircle className="h-8 w-8 text-muted-foreground mb-4" />
           <p className="text-sm text-muted-foreground text-center mb-4">{t('discoveryError')}</p>
-          <button onClick={() => { setStep('occasion'); setResult(null); setError(false); setOccasion(''); setFood(''); }} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-accent transition-colors">
+          <button onClick={() => { setStep('occasion'); setResult(null); setError(false); setOccasion(''); setFood(''); }} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors">
             {t('tryAgain')}
           </button>
         </div>
@@ -128,7 +128,7 @@ export function TonightMode() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => { setStep('occasion'); setResult(null); setOccasion(''); setFood(''); }}
-            className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+            className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors"
           >
             {t('tryAnother')}
           </button>
@@ -158,7 +158,7 @@ export function TonightMode() {
           <h3 className="text-lg font-serif font-semibold text-foreground text-center mb-6">{t('tonightOccasion')}</h3>
           <div className="space-y-2.5">
             {OCCASIONS.map(occ => (
-              <button key={occ} onClick={() => handleOccasion(occ)} className="w-full rounded-xl border border-border/50 p-4 text-sm font-medium text-start hover:bg-accent transition-colors">
+              <button key={occ} onClick={() => handleOccasion(occ)} className="w-full rounded-xl border border-border/50 p-4 text-sm font-medium text-start hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors">
                 {t(`occasion_${occ}`)}
               </button>
             ))}

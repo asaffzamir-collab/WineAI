@@ -359,6 +359,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         return;
       }
       setError('');
+      window.dispatchEvent(new Event('wine-profile-updated'));
       setTimeout(() => setIsAddingToProfile(false), 2000);
     } catch (err) {
       console.error('Failed to add to profile:', err);

@@ -111,6 +111,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [detailMatch, setDetailMatch] = useState<ProfileMatchResult | null>(null);
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
 
+  const [isAddingToProfile, setIsAddingToProfile] = useState(false);
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
@@ -124,6 +125,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       setDetailWine(null);
       setDetailMatch(null);
       setIsFetchingMatch(false);
+      setIsAddingToProfile(false);
       return;
     }
     const wine = getWine(selectedItem);
@@ -163,6 +165,28 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     }
   };
 
+  const handleAddToProfile = async () => {
+    if (!selectedItem || isAddingToProfile) return;
+    const wine = getWine(selectedItem);
+    if (!wine) return;
+    setIsAddingToProfile(true);
+    try {
+      const res = await fetch('/api/profile/add-wine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, wine: toWineData(wine), liked: true }),
+      });
+      if (res.ok) {
+        window.dispatchEvent(new Event('wine-profile-updated'));
+        setTimeout(() => setIsAddingToProfile(false), 2000);
+      } else {
+        setIsAddingToProfile(false);
+      }
+    } catch {
+      setIsAddingToProfile(false);
+    }
+  };
+
   const openMarkPurchasedModal = (item: WishlistItem) => {
     setSelectedItem(null);
     setPurchaseModalItem(item);
@@ -196,6 +220,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       await fetch(`/api/wishlist?id=${purchaseModalItem.id}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.id !== purchaseModalItem.id));
       setPurchaseModalItem(null);
+      window.dispatchEvent(new Event('cellar-updated'));
 
       // Offer to choose rack location
       try {
@@ -349,6 +374,8 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                 wine={detailWine}
                 matchResult={detailMatch || undefined}
                 matchLoading={isFetchingMatch}
+                onAddToProfile={handleAddToProfile}
+                isAddingToProfile={isAddingToProfile}
               />
               <div className="flex gap-2">
                 <Button

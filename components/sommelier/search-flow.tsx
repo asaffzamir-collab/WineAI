@@ -276,7 +276,7 @@ export function SearchFlow() {
               <button
                 key={i}
                 onClick={() => { setSelectedRecent(wine); setMatchResult(null); }}
-                className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-accent transition-colors"
+                className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors"
               >
                 {wine.image_url ? (
                   <div className="h-10 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">

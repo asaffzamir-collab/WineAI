@@ -91,11 +91,27 @@ ${langInstr(language)}`;
 }
 
 export async function processRefinementChoice(profile: Record<string, unknown>, choice: string, language = 'he') {
-  const system = `You are a wine sommelier. The user chose option "${choice}" in a taste refinement exercise. Generate an insight about what this reveals about their palate.
-Return JSON: { "insight": "1-2 sentence insight about what this choice reveals" }
+  const system = `You are a wine sommelier. The user chose option "${choice}" in a taste refinement exercise.
+Based on this choice, generate:
+1. An insight about what this reveals about their palate
+2. Updated profile adjustments that should be applied
+
+Return JSON:
+{
+  "insight": "1-2 sentence insight about what this choice reveals",
+  "profile_updates": {
+    "overall_style": "updated overall style description (refine existing, don't replace entirely)",
+    "body_structure": "updated body structure preference",
+    "style_notes": "updated style notes",
+    "taste_spectrum": { "body": 0-100, "tannin": 0-100, "sweetness": 0-100, "acidity": 0-100 },
+    "recommended_grapes": ["grape1", "grape2", "grape3"],
+    "recommended_regions": ["region1", "region2"]
+  }
+}
+The profile_updates should REFINE the existing profile based on what the choice reveals, not replace everything.
 ${langInstr(language)}`;
 
-  return await ask(system, `User profile: ${JSON.stringify(profile)}\nChoice: ${choice}`);
+  return await ask(system, `User profile: ${JSON.stringify(profile)}\nChoice: ${choice}`, { maxTokens: 2500 });
 }
 
 export async function generatePalateGame(profile: Record<string, unknown>, language = 'he') {

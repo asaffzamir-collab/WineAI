@@ -256,8 +256,12 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     });
   }, []);
 
+  const lastFetchRef = useRef(0);
+
   useEffect(() => {
-    setProfiles(initialProfiles);
+    if (Date.now() - lastFetchRef.current > 500) {
+      setProfiles(initialProfiles);
+    }
   }, [initialProfiles]);
 
   useEffect(() => {
@@ -302,6 +306,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       );
       if (res.ok) {
         const data = await res.json();
+        lastFetchRef.current = Date.now();
         setProfiles(Array.isArray(data) ? data : []);
       }
     } catch {

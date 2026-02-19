@@ -39,7 +39,7 @@ export function TasteEvolution() {
     return (
       <div className="flex flex-col items-center pt-12 px-4">
         <p className="text-sm text-muted-foreground text-center">{t('noEvolutionData')}</p>
-        <button onClick={() => setActiveFlow(null)} className="mt-4 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-accent transition-colors">{t('goBack')}</button>
+        <button onClick={() => setActiveFlow(null)} className="mt-4 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors">{t('goBack')}</button>
       </div>
     );
   }

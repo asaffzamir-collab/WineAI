@@ -47,6 +47,7 @@ export function SmartRefinement() {
           created_at: new Date().toISOString(),
         });
         await refreshState();
+        window.dispatchEvent(new Event('wine-profile-updated'));
       }
     } catch { /* ignore */ }
     finally { setActiveFlow(null); }

@@ -106,11 +106,14 @@ function CellarContent() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshCellar();
     };
+    const handleCellarUpdate = () => refreshCellar();
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', refreshCellar);
+    window.addEventListener('cellar-updated', handleCellarUpdate);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', refreshCellar);
+      window.removeEventListener('cellar-updated', handleCellarUpdate);
     };
   }, [refreshCellar]);
 

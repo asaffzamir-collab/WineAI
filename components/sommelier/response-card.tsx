@@ -37,7 +37,7 @@ export function ResponseCard({ item, onAction, className }: ResponseCardProps) {
             <button
               key={chip.action}
               onClick={() => onAction?.(chip.action, chip.payload)}
-              className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-bordeaux-50 hover:text-bordeaux-700 dark:hover:bg-bordeaux-900/20 dark:hover:text-bordeaux-300"
             >
               {chip.label}
             </button>
