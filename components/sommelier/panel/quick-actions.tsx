@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { Compass, Search, HelpCircle, Sparkles, SlidersHorizontal, Wine, Target, GlassWater, ShoppingBag, UtensilsCrossed, Heart, TrendingUp, Gamepad2 } from 'lucide-react';
+import { Compass, Search, HelpCircle, Sparkles, Wine, GlassWater, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -23,9 +23,7 @@ const DISCOVERY_ACTIONS: QuickAction[] = [
 
 const LEARNING_ACTIONS: QuickAction[] = [
   { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
-  { id: 'palate', icon: Gamepad2, labelKey: 'actionTestPalate', flow: 'palate-game' },
   { id: 'similar', icon: Wine, labelKey: 'actionFindSimilar', flow: 'wine-discovery' },
-  { id: 'refine', icon: SlidersHorizontal, labelKey: 'actionRefineTaste', flow: 'refinement' },
 ];
 
 const PERSONALIZED_ACTIONS: QuickAction[] = [

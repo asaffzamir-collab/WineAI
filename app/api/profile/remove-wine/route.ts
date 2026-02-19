@@ -103,6 +103,50 @@ export async function POST(request: Request) {
       );
     }
 
+    // Recalculate sommelier phase based on remaining liked wines
+    try {
+      const { data: allProfiles } = await supabase
+        .from('taste_profiles')
+        .select('profile_data')
+        .eq('user_id', userId);
+
+      let totalLiked = 0;
+      if (allProfiles) {
+        for (const tp of allProfiles) {
+          const pd = tp.profile_data as Record<string, unknown> | null;
+          if (pd && Array.isArray(pd.liked_wines)) totalLiked += pd.liked_wines.length;
+        }
+      }
+
+      let newPhase: string;
+      let newPrecision: number;
+      if (totalLiked >= 2) {
+        newPhase = 'personalization';
+        newPrecision = Math.min(40 + totalLiked * 10, 95);
+      } else if (totalLiked === 1) {
+        newPhase = 'learning';
+        newPrecision = 30;
+      } else {
+        const { data: somProfile } = await supabase
+          .from('sommelier_profiles')
+          .select('discovery_data')
+          .eq('user_id', userId)
+          .single();
+        const hasDiscovery = somProfile?.discovery_data && Object.keys(somProfile.discovery_data as object).length > 0;
+        newPhase = 'discovery';
+        newPrecision = hasDiscovery ? 20 : 0;
+      }
+
+      await supabase.from('sommelier_profiles').upsert({
+        user_id: userId,
+        phase: newPhase,
+        taste_precision: newPrecision,
+        last_interaction: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    } catch (engErr) {
+      console.error('Sommelier phase recalculation error (non-fatal):', engErr);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Remove wine from profile error:', error);

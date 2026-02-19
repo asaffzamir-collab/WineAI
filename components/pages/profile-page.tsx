@@ -449,6 +449,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
         setDisplayWine(null);
       }
       await refreshProfiles();
+      window.dispatchEvent(new Event('wine-profile-updated'));
     } finally {
       setRemovingKey(null);
     }

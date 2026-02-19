@@ -75,6 +75,12 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshState]);
 
+  useEffect(() => {
+    const handler = () => { refreshState(); };
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [refreshState]);
+
   const toggle = useCallback(() => setIsOpen(prev => !prev), []);
   const open = useCallback((flow?: string) => {
     setIsOpen(true);

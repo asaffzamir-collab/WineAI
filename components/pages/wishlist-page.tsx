@@ -119,6 +119,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [locationRacks, setLocationRacks] = useState<Rack[]>([]);
   const [locationPlacements, setLocationPlacements] = useState<Map<SlotId, Placement>>(new Map());
+  const [lastCellarItemId, setLastCellarItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedItem) {
@@ -212,17 +213,20 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
       if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
         body.purchasePrice = purchasePrice;
       }
-      await fetch('/api/cellar', {
+      const cellarRes = await fetch('/api/cellar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      const cellarData = await cellarRes.json().catch(() => ({}));
+      const newCellarItemId = cellarData?.cellarItemId as string | undefined;
       await fetch(`/api/wishlist?id=${purchaseModalItem.id}`, { method: 'DELETE' });
       setItems((prev) => prev.filter((i) => i.id !== purchaseModalItem.id));
       setPurchaseModalItem(null);
       window.dispatchEvent(new Event('cellar-updated'));
 
       // Offer to choose rack location
+      if (newCellarItemId) setLastCellarItemId(newCellarItemId);
       try {
         const raw = localStorage.getItem(`cellar-racks:${userId}`);
         const racks: Rack[] = raw ? JSON.parse(raw) : [];
@@ -247,16 +251,24 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   };
 
   const handleLocationSelected = (slotId: SlotId) => {
-    if (slotId) {
+    if (slotId && lastCellarItemId) {
       try {
         const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
         const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
-        slots[`wishlist-${Date.now()}`] = slotId;
+        slots[lastCellarItemId] = slotId;
         localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
         trackCellar('bottle_added_to_slot');
       } catch { /* silent */ }
+      // Persist slot assignment to database
+      fetch('/api/cellar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: lastCellarItemId, slotId }),
+      }).catch(() => {});
+      window.dispatchEvent(new Event('cellar-updated'));
     }
     setShowLocationPicker(false);
+    setLastCellarItemId(null);
   };
 
   return (

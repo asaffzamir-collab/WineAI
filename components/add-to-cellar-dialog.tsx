@@ -117,6 +117,12 @@ export function AddToCellarDialog({
           slots[newItemId] = finalSlot;
           localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
         } catch { /* silent */ }
+        // Persist slot assignment to database so cellar rack shows it
+        fetch('/api/cellar', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: newItemId, slotId: finalSlot }),
+        }).catch(() => {});
         trackCellar('bottle_added_to_slot');
       }
 

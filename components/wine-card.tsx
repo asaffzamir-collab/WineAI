@@ -147,7 +147,7 @@ export function WineCard({
     const hasImage = wine.image_url || uploadedImageUrl;
     if (hasImage && !imageError) return;
     if (lazyImageUrl || isLoadingImage || lazyFetchDone.current) return;
-    if (!wine.name || !wine.winery) return;
+    if (!wine.name) return;
 
     let cancelled = false;
     setIsLoadingImage(true);
