@@ -10,6 +10,7 @@ interface SommelierContextValue {
   open: (flow?: string) => void;
   close: () => void;
   phase: SommelierPhase;
+  setPhase: (phase: SommelierPhase) => void;
   precision: number;
   likedWinesCount: number;
   hasDiscoveryData: boolean;
@@ -81,6 +82,15 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('wine-profile-updated', handler);
   }, [refreshState]);
 
+  const updatePhase = useCallback((newPhase: SommelierPhase) => {
+    setPhase(newPhase);
+    fetch('/api/sommelier/set-phase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase: newPhase }),
+    }).catch(() => {});
+  }, []);
+
   const toggle = useCallback(() => setIsOpen(prev => !prev), []);
   const open = useCallback((flow?: string) => {
     setIsOpen(true);
@@ -103,7 +113,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     <SommelierContext.Provider
       value={{
         isOpen, toggle, open, close,
-        phase, precision, likedWinesCount, hasDiscoveryData, userId,
+        phase, setPhase: updatePhase, precision, likedWinesCount, hasDiscoveryData, userId,
         conversationItems, addConversationItem, clearConversation,
         activeFlow, setActiveFlow,
         refreshState, isLoading,
