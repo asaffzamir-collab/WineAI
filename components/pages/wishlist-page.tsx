@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Heart, Star, Trash2, ShoppingCart, Loader2, Wine, MapPin, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -96,6 +96,48 @@ const wineTypeColors: Record<string, string> = {
   sparkling: 'bg-gold-50',
   dessert: 'bg-copper-400',
 };
+
+function WishlistItemImage({ wine }: { wine: WineRowData }) {
+  const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (wine.image_url || lazyUrl || loading || fetchedRef.current || !wine.name) return;
+    let cancelled = false;
+    setLoading(true);
+    fetchedRef.current = true;
+    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled && data.imageUrl) setLazyUrl(data.imageUrl); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [wine.name, wine.winery, wine.image_url, lazyUrl, loading]);
+
+  const src = imgError ? null : (wine.image_url || lazyUrl);
+
+  if (src) {
+    return (
+      <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+        <img src={src} alt={wine.name} className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+        <div className="h-full w-full animate-pulse bg-gradient-to-b from-ivory-200 to-ivory-400 dark:from-charcoal-600 dark:to-charcoal-800" />
+      </div>
+    );
+  }
+  return (
+    <div className={cn('flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl', wineTypeColors[wine.wine_type || ''] || 'bg-ivory-400')}>
+      <Wine className={cn('h-5 w-5', wine.wine_type === 'white' || wine.wine_type === 'sparkling' ? 'text-stone-600' : 'text-white/80')} strokeWidth={1.5} />
+    </div>
+  );
+}
 
 export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const t = useTranslations('wishlist');
@@ -302,27 +344,11 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                   'flex items-center gap-3',
                 )}
               >
-                {wine?.image_url ? (
-                  <div className="h-14 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-                    <img
-                      src={wine.image_url}
-                      alt={wine.name}
-                      className="h-full w-full object-contain"
-                      loading="lazy"
-                    />
-                  </div>
+                {wine ? (
+                  <WishlistItemImage wine={wine} />
                 ) : (
-                  <div
-                    className={cn(
-                      'flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl',
-                      wineTypeColors[wine?.wine_type || ''] || 'bg-ivory-400'
-                    )}
-                  >
-                    <Wine className={cn(
-                      'h-5 w-5',
-                      wine?.wine_type === 'white' || wine?.wine_type === 'sparkling'
-                        ? 'text-stone-600' : 'text-white/80'
-                    )} strokeWidth={1.5} />
+                  <div className={cn('flex h-14 w-10 flex-shrink-0 items-center justify-center rounded-xl', 'bg-ivory-400')}>
+                    <Wine className="h-5 w-5 text-white/80" strokeWidth={1.5} />
                   </div>
                 )}
 

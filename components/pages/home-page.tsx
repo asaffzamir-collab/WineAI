@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -570,15 +570,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                 <button key={item.id} onClick={() => setSelectedRecentItem(item)} className="w-full text-start">
                   <Card className="card-hover">
                     <CardContent className="flex items-center gap-3 p-3">
-                      {item.imageUrl ? (
-                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-                          <img src={item.imageUrl} alt="" className="h-full w-full object-contain" loading="lazy" />
-                        </div>
-                      ) : (
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                          <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
-                        </div>
-                      )}
+                      <RecentItemImage item={item} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">{item.wineName}</p>
                         <p className="truncate text-xs text-muted-foreground">{item.winery}</p>
@@ -635,6 +627,48 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       <FeatureTour />
       </div>
     </AppShell>
+  );
+}
+
+function RecentItemImage({ item }: { item: RecentCellarItem }) {
+  const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (item.imageUrl || lazyUrl || loading || fetchedRef.current || !item.wineName) return;
+    let cancelled = false;
+    setLoading(true);
+    fetchedRef.current = true;
+    fetch(`/api/wine-image?name=${encodeURIComponent(item.wineName)}&winery=${encodeURIComponent(item.winery)}`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled && data.imageUrl) setLazyUrl(data.imageUrl); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [item.wineName, item.winery, item.imageUrl, lazyUrl, loading]);
+
+  const src = imgError ? null : (item.imageUrl || lazyUrl);
+
+  if (src) {
+    return (
+      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+        <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+        <div className="h-full w-full animate-pulse bg-gradient-to-b from-ivory-200 to-ivory-400 dark:from-charcoal-600 dark:to-charcoal-800" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">
+      <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
+    </div>
   );
 }
 
