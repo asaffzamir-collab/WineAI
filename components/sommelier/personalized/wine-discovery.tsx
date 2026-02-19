@@ -108,6 +108,7 @@ export function WineDiscovery() {
       });
       if (res.ok) {
         await refreshState();
+        window.dispatchEvent(new Event('wine-profile-updated'));
         setTimeout(() => setIsAddingToProfile(false), 2000);
       } else setIsAddingToProfile(false);
     } catch { setIsAddingToProfile(false); }

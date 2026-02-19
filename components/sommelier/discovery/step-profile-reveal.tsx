@@ -1,29 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import type { PreliminaryProfile, WineSuggestion } from '@/lib/sommelier-types';
-import type { WineData } from '@/lib/openai';
+import type { PreliminaryProfile } from '@/lib/sommelier-types';
 import { RadarChart } from '../radar-chart';
-import { Loader2, MapPin, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-
-const WineCard = dynamic(
-  () => import('@/components/wine-card').then((m) => m.WineCard),
-  { loading: () => <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-bordeaux-500" /></div> }
-);
-
-function suggestionToWineData(s: WineSuggestion): WineData {
-  return {
-    name: s.name,
-    winery: s.winery,
-    wine_type: 'red',
-    country: 'Israel',
-    region: s.region,
-    grapes: s.grape ? [s.grape] : [],
-    winery_description: s.why_match,
-  };
-}
+import { Loader2, MapPin, Sparkles, Wine, ChevronRight } from 'lucide-react';
 
 interface Props {
   profile: PreliminaryProfile | null;
@@ -33,7 +13,6 @@ interface Props {
 
 export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
   const t = useTranslations('sommelier');
-  const [expandedAlt, setExpandedAlt] = useState<number | null>(null);
 
   if (loading || !profile) {
     return (
@@ -43,8 +22,6 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
       </div>
     );
   }
-
-  const mainWine = suggestionToWineData(profile.wine_suggestion);
 
   return (
     <div className="flex flex-col items-center pt-4">
@@ -81,42 +58,45 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
         </div>
       )}
 
-      {/* Wine suggestion - full WineCard */}
+      {/* Wine suggestion - compact card */}
       <div className="w-full mt-6">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="h-4 w-4 text-bordeaux-500" />
           <span className="text-sm font-semibold">{t('suggestedWine')}</span>
         </div>
-        <WineCard wine={mainWine} />
+        <div className="rounded-xl border border-border/50 bg-card p-3.5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+              <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">{profile.wine_suggestion.name}</p>
+              <p className="text-xs text-muted-foreground">{profile.wine_suggestion.winery} · {profile.wine_suggestion.region}</p>
+              {profile.wine_suggestion.grape && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">{profile.wine_suggestion.grape}</p>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{profile.wine_suggestion.why_match}</p>
+        </div>
       </div>
 
-      {/* Alternatives */}
+      {/* Alternatives - compact list */}
       {profile.alternatives.length > 0 && (
-        <div className="w-full mt-4 space-y-2">
+        <div className="w-full mt-3 space-y-1.5">
           <p className="text-xs text-muted-foreground font-medium">{t('alternatives')}</p>
-          {profile.alternatives.map((alt, i) => {
-            const altWine = suggestionToWineData(alt);
-            const isExpanded = expandedAlt === i;
-            return (
-              <div key={i} className="rounded-xl border border-border/50 overflow-hidden">
-                <button
-                  onClick={() => setExpandedAlt(isExpanded ? null : i)}
-                  className="w-full flex items-center justify-between p-3 text-start"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{alt.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{alt.winery} · {alt.region}</p>
-                  </div>
-                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                </button>
-                {isExpanded && (
-                  <div className="border-t border-border/30 animate-in fade-in-0 slide-in-from-top-1 duration-200">
-                    <WineCard wine={altWine} />
-                  </div>
-                )}
+          {profile.alternatives.map((alt, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-xl border border-border/40 bg-card p-3">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                <Wine className="h-4 w-4 text-bordeaux-400" strokeWidth={1.5} />
               </div>
-            );
-          })}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{alt.name}</p>
+                <p className="text-[11px] text-muted-foreground">{alt.winery} · {alt.region}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            </div>
+          ))}
         </div>
       )}
 

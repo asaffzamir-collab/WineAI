@@ -451,6 +451,7 @@
     "confidenceEarlyLearning": "Early Learning",
 
     "actionMapTaste": "Map My Taste",
+    "actionViewProfile": "View My Profile",
     "actionSearchWine": "Search a Wine",
     "actionHowItWorks": "How It Works",
     "actionSurpriseMe": "Surprise Me",
@@ -458,7 +459,7 @@
     "actionFindSimilar": "Find Similar",
     "actionImproveAccuracy": "Test Palate",
     "actionAddWine": "Add a Wine",
-    "actionTonight": "Tonight's Wine",
+    "actionTonight": "Wine & Pairing",
     "actionGoodBuy": "Good Buy?",
     "actionPairDinner": "Pair Dinner",
     "actionFindLove": "Wines I'll Love",

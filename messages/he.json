@@ -451,6 +451,7 @@
     "confidenceEarlyLearning": "למידה מוקדמת",
 
     "actionMapTaste": "מפה את הטעם שלי",
+    "actionViewProfile": "צפה בפרופיל שלי",
     "actionSearchWine": "חפש יין",
     "actionHowItWorks": "איך זה עובד",
     "actionSurpriseMe": "הפתע אותי",
@@ -458,10 +459,10 @@
     "actionFindSimilar": "מצא דומים",
     "actionImproveAccuracy": "בדוק חיך",
     "actionAddWine": "הוסף יין",
-    "actionTonight": "יין להערב",
+    "actionTonight": "יין להערב / לארוחה",
     "actionGoodBuy": "שווה לקנות?",
     "actionPairDinner": "התאם לארוחה",
-    "actionFindLove": "יינות שאאהב",
+    "actionFindLove": "יינות שתאהב",
     "actionEvolving": "ההתפתחות שלי",
 
     "energyTitle": "מה מושך אותך ביין?",

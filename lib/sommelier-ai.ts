@@ -61,7 +61,7 @@ Return ONLY valid JSON:
   "alternatives": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "description": "...", "why_match": "..." }, { "name": "...", "winery": "...", "region": "...", "grape": "...", "description": "...", "why_match": "..." }]
 }
 Use Vivino-style spectrum calibration for radar values.
-IMPORTANT: All wine_suggestion and alternatives MUST be wines produced in Israel by Israeli wineries (e.g. Golan Heights Winery, Yarden, Recanati, Barkan, Galil Mountain, Carmel, Psagot, Jezreel Valley, Tabor, Vitkin, etc.). The user needs to be able to find and buy these wines locally.
+IMPORTANT: All wine_suggestion and alternatives MUST be wines that are sold and available in Israel (Israeli wineries like Yarden, Recanati, Barkan, Galil Mountain, Carmel, Psagot, Tabor, Vitkin OR international wines widely distributed in Israeli wine shops). The user needs to be able to find and buy these wines locally in Israel.
 ${langInstr(language)}`;
 
   return await ask(system, `User calibration data: ${JSON.stringify(discoveryData)}`, { temperature: 0.7, maxTokens: 2000 });
@@ -76,7 +76,7 @@ export async function adjustDiscoveryProfile(
   const system = `You are a wine sommelier. The user said their preliminary profile is "${feedback}" (close but not quite / not really). Adjust ONE trait and regenerate a wine suggestion.
 Return the same JSON structure as before:
 { "traits": [...], "regions": [...], "styles": [...], "radar": {...}, "wine_suggestion": {...}, "alternatives": [{...}, {...}] }
-IMPORTANT: All wine_suggestion and alternatives MUST be wines produced in Israel by Israeli wineries.
+IMPORTANT: All wine_suggestion and alternatives MUST be wines that are sold and available in Israel.
 ${langInstr(language)}`;
 
   return await ask(system, `Current profile: ${JSON.stringify(currentProfile)}\nOriginal calibration: ${JSON.stringify(discoveryData)}\nFeedback: ${feedback}`);
@@ -123,7 +123,8 @@ export async function generateTonightRecommendation(
   const hasCellar = cellarWines.length > 0;
   const system = `You are a wine sommelier helping choose a wine for tonight.
 ${hasCellar ? 'Prioritize wines from the user\'s cellar.' : 'Suggest a general wine recommendation.'}
-Return JSON: { "wine": "wine name", "why": "2-3 sentence explanation", "match": 0-100, "reasons": ["reason1", "reason2", "reason3"] }
+IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel.
+Return JSON: { "wine": "wine name", "winery": "winery name", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "why": "2-3 sentence explanation", "match": 0-100, "reasons": ["reason1", "reason2", "reason3"] }
 ${langInstr(language)}`;
 
   return await ask(system, `Occasion: ${params.occasion}\nFood: ${params.food || 'not specified'}\nMood: ${params.mood}\nCellar: ${JSON.stringify(cellarWines.slice(0, 20))}\nProfile: ${JSON.stringify(profile)}`);
@@ -151,7 +152,8 @@ export async function generateFoodPairing(
   const hasCellar = cellarWines.length > 0;
   const system = `You are a wine sommelier. Suggest 2-3 wines that pair well with the described meal.
 ${hasCellar ? 'Prioritize wines from the user\'s cellar if they match.' : ''}
-Return JSON: { "suggestions": [{ "wine": "name", "reason": "brief pairing reason" }, ...] }
+IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel.
+Return JSON: { "suggestions": [{ "wine": "name", "winery": "winery name", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "reason": "brief pairing reason" }, ...] }
 ${langInstr(language)}`;
 
   return await ask(system, `Meal: "${meal}"\nProfile: ${JSON.stringify(profile)}\nCellar: ${JSON.stringify(cellarWines.slice(0, 20))}`);
@@ -163,7 +165,7 @@ export async function generateWineDiscovery(
   language = 'he'
 ) {
   const system = `You are a wine sommelier. Recommend 4 wines the user would love based on their profile. Avoid wines they've already tried. Mix familiar styles with one adventurous pick.
-IMPORTANT: All recommended wines MUST be wines produced in Israel by Israeli wineries, so the user can find and buy them locally.
+IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel (Israeli wineries or international wines distributed in Israeli wine shops), so the user can find and buy them locally.
 Return JSON: { "wines": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "wine_type": "red"|"white"|"rose"|"sparkling", "country": "Israel", "match": 0-100, "reason": "brief reason", "tasting_note": "1-2 sentence tasting description" }, ...] }
 ${langInstr(language)}`;
 

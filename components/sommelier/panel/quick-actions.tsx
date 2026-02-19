@@ -22,16 +22,16 @@ const DISCOVERY_ACTIONS: QuickAction[] = [
 ];
 
 const LEARNING_ACTIONS: QuickAction[] = [
-  { id: 'refine', icon: SlidersHorizontal, labelKey: 'actionRefineTaste', flow: 'refinement' },
-  { id: 'similar', icon: Wine, labelKey: 'actionFindSimilar', flow: 'wine-discovery' },
-  { id: 'accuracy', icon: Target, labelKey: 'actionImproveAccuracy', flow: 'palate-game' },
+  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
   { id: 'add', icon: PlusCircle, labelKey: 'actionAddWine', flow: 'search' },
+  { id: 'similar', icon: Wine, labelKey: 'actionFindSimilar', flow: 'wine-discovery' },
+  { id: 'refine', icon: SlidersHorizontal, labelKey: 'actionRefineTaste', flow: 'refinement' },
 ];
 
 const PERSONALIZED_ACTIONS: QuickAction[] = [
+  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
   { id: 'tonight', icon: GlassWater, labelKey: 'actionTonight', flow: 'tonight' },
   { id: 'buy', icon: ShoppingBag, labelKey: 'actionGoodBuy', flow: 'buying-intel' },
-  { id: 'pair', icon: UtensilsCrossed, labelKey: 'actionPairDinner', flow: 'food-pairing' },
   { id: 'love', icon: Heart, labelKey: 'actionFindLove', flow: 'wine-discovery' },
   { id: 'evolving', icon: TrendingUp, labelKey: 'actionEvolving', flow: 'taste-evolution' },
 ];
@@ -44,7 +44,10 @@ export function QuickActions() {
   let actions: QuickAction[];
   if (phase === 'discovery') {
     actions = hasDiscoveryData
-      ? DISCOVERY_ACTIONS.filter(a => a.id !== 'map')
+      ? [
+          { id: 'map', icon: Compass, labelKey: 'actionViewProfile', flow: 'discovery' },
+          ...DISCOVERY_ACTIONS.filter(a => a.id !== 'map'),
+        ]
       : DISCOVERY_ACTIONS;
   } else if (phase === 'learning') {
     actions = LEARNING_ACTIONS;

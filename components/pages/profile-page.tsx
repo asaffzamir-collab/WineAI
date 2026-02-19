@@ -387,11 +387,14 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
       if (document.visibilityState === 'visible') refreshProfiles();
     };
     const handleFocus = () => refreshProfiles();
+    const handleProfileUpdate = () => refreshProfiles();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('wine-profile-updated', handleProfileUpdate);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('wine-profile-updated', handleProfileUpdate);
     };
   }, [refreshProfiles, router]);
 

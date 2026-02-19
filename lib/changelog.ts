@@ -36,6 +36,20 @@ export function markUpdatesSeen(): void {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.4.0',
+    date: '2026-02-19',
+    title: 'Sommelier v2 — Smarter & Easier',
+    titleHe: 'סומלייה v2 — חכם וקל יותר',
+    highlights: [
+      { text: 'Full wine cards everywhere — search, surprise-me, and recommendations now show complete details', textHe: 'כרטיסי יין מלאים בכל מקום — חיפוש, הפתעות והמלצות מציגים פרטים מלאים', tag: 'improved' },
+      { text: 'Merged "Wine for Tonight" and "Pair Dinner" into a single smarter flow', textHe: 'איחוד "יין להערב" ו"התאם לארוחה" לזרימה אחת חכמה יותר', tag: 'improved' },
+      { text: 'Journey widget on home screen now tracks your real progress', textHe: 'ווידג\'ט המסע במסך הבית עוקב אחרי ההתקדמות האמיתית שלך', tag: 'fix' },
+      { text: 'Action button hints explain "I like this wine" vs "Add to wishlist"', textHe: 'טקסט הסבר מבהיר את ההבדל בין "אני אוהב את היין" ל"הוסף לרשימת משאלות"', tag: 'new' },
+      { text: 'Wines added to profile now appear instantly without page refresh', textHe: 'יינות שנוספו לפרופיל מופיעים מיד ללא רענון דף', tag: 'fix' },
+      { text: 'Search for wines in any sommelier phase', textHe: 'חיפוש יינות בכל שלב של הסומלייה', tag: 'improved' },
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-02-18',
     title: 'Premium Cellar Experience',
