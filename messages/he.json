@@ -92,7 +92,8 @@
     "typeWhite": "לבן",
     "typeRose": "רוזה",
     "typeSparkling": "מבעבע",
-    "typeDessert": "קינוח"
+    "typeDessert": "קינוח",
+    "settings": "הגדרות"
   },
   "search": {
     "title": "חיפוש יין",
@@ -425,7 +426,7 @@
     "sommelier": "סומלייה",
     "cellar": "מרתף",
     "wishlist": "רשימת משאלות",
-    "profile": "פרופיל",
+    "profile": "פרופיל יין",
     "settings": "הגדרות"
   },
   "sommelier": {

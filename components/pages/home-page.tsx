@@ -17,6 +17,7 @@ import {
   Compass,
   Loader2,
   Wallet,
+  Settings,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -363,6 +364,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             <div className="flex items-center gap-2 mb-1 md:hidden">
               <WineLogo size={28} className="text-copper-400" />
               <span className="text-sm font-medium text-bordeaux-200 tracking-wide">WineJourney</span>
+              <Link href="/settings" className="ms-auto p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label={t('settings')}>
+                <Settings className="h-5 w-5" strokeWidth={1.5} />
+              </Link>
             </div>
             <h1 className="heading-serif text-2xl text-white mt-3 md:mt-0">
               {greeting}

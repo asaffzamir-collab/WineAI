@@ -92,7 +92,8 @@
     "typeWhite": "White",
     "typeRose": "Rosé",
     "typeSparkling": "Sparkling",
-    "typeDessert": "Dessert"
+    "typeDessert": "Dessert",
+    "settings": "Settings"
   },
   "search": {
     "title": "Search Wine",
@@ -425,7 +426,7 @@
     "sommelier": "Sommelier",
     "cellar": "Cellar",
     "wishlist": "Wishlist",
-    "profile": "Profile",
+    "profile": "Wine Profile",
     "settings": "Settings"
   },
   "sommelier": {
