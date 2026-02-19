@@ -20,7 +20,7 @@ export default async function Page() {
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, notes,
-        drink_from, drink_until,
+        drink_from, drink_until, slot_id,
         wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
       `)
       .eq('user_id', userId)

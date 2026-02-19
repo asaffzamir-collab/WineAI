@@ -72,7 +72,9 @@ export function useCellarRack() {
   return ctx;
 }
 
-function loadRacks(userId: string): Rack[] {
+// --------------- localStorage helpers (used as fast cache only) ---------------
+
+function loadLocalRacks(userId: string): Rack[] {
   try {
     const raw = localStorage.getItem(`cellar-racks:${userId}`);
     return raw ? JSON.parse(raw) : [];
@@ -81,15 +83,13 @@ function loadRacks(userId: string): Rack[] {
   }
 }
 
-function saveRacks(userId: string, racks: Rack[]) {
+function cacheRacksLocally(userId: string, racks: Rack[]) {
   try {
     localStorage.setItem(`cellar-racks:${userId}`, JSON.stringify(racks));
-  } catch {
-    // Storage full or unavailable
-  }
+  } catch { /* quota */ }
 }
 
-function loadSlotAssignments(userId: string): Record<string, SlotId> {
+function loadLocalSlotAssignments(userId: string): Record<string, SlotId> {
   try {
     const raw = localStorage.getItem(`cellar-slots:${userId}`);
     return raw ? JSON.parse(raw) : {};
@@ -98,13 +98,65 @@ function loadSlotAssignments(userId: string): Record<string, SlotId> {
   }
 }
 
-function saveSlotAssignments(userId: string, assignments: Record<string, SlotId>) {
+// --------------- Rack API helpers ---------------
+
+async function fetchRacksFromDb(userId: string): Promise<{ dbId: string; rack: Rack }[]> {
   try {
-    localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(assignments));
+    const res = await fetch(`/api/cellar/rack?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data.racks)) return [];
+    return data.racks.map((row: { id: string; config: Rack }) => ({
+      dbId: row.id,
+      rack: row.config,
+    }));
   } catch {
-    // Storage full or unavailable
+    return [];
   }
 }
+
+async function postRackToDb(userId: string, rack: Rack): Promise<string | null> {
+  try {
+    const res = await fetch('/api/cellar/rack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, config: rack }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function patchRackInDb(dbId: string, rack: Rack): Promise<void> {
+  try {
+    await fetch('/api/cellar/rack', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: dbId, config: rack }),
+    });
+  } catch { /* silent */ }
+}
+
+async function deleteRackFromDb(dbId: string): Promise<void> {
+  try {
+    await fetch(`/api/cellar/rack?id=${encodeURIComponent(dbId)}`, { method: 'DELETE' });
+  } catch { /* silent */ }
+}
+
+async function patchCellarItemSlot(cellarItemId: string, slotId: string | null): Promise<void> {
+  try {
+    await fetch('/api/cellar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: cellarItemId, slotId }),
+    });
+  } catch { /* silent */ }
+}
+
+// --------------- Provider ---------------
 
 interface CellarRackProviderProps {
   children: React.ReactNode;
@@ -126,7 +178,6 @@ export function CellarRackProvider({
       return [];
     }
   });
-  const [slotAssignments, setSlotAssignments] = useState<Record<string, SlotId>>({});
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
   const [filters, setFilters] = useState<CellarFilters>(DEFAULT_FILTERS);
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
@@ -139,41 +190,70 @@ export function CellarRackProvider({
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
 
-  // Load persisted state on mount
+  // Maps rack.id (config id used in slot strings) -> DB row id (for API CRUD)
+  const rackDbIds = useRef<Record<string, string>>({});
+
+  // --------------- Load racks from DB on mount (with localStorage migration) ---------------
+
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const savedRacks = loadRacks(userId);
-    if (savedRacks.length > 0) {
-      setRacks(savedRacks);
-      setActiveRackIdState(savedRacks[0].id);
-    } else {
-      const defaultRack = createDefaultRack('My Wine Rack');
-      setRacks([defaultRack]);
-      setActiveRackIdState(defaultRack.id);
-      saveRacks(userId, [defaultRack]);
-    }
-
-    setSlotAssignments(loadSlotAssignments(userId));
-
     const savedView = localStorage.getItem(`cellar-view:${userId}`);
     if (savedView === '3d' || savedView === '2d') setViewMode(savedView);
+
+    (async () => {
+      const dbRows = await fetchRacksFromDb(userId);
+
+      if (dbRows.length > 0) {
+        const loaded = dbRows.map((r) => r.rack);
+        for (const r of dbRows) {
+          rackDbIds.current[r.rack.id] = r.dbId;
+        }
+        setRacks(loaded);
+        setActiveRackIdState(loaded[0].id);
+        cacheRacksLocally(userId, loaded);
+        return;
+      }
+
+      // DB empty — check localStorage for data to migrate
+      const localRacks = loadLocalRacks(userId);
+      if (localRacks.length > 0) {
+        setRacks(localRacks);
+        setActiveRackIdState(localRacks[0].id);
+
+        // Migrate localStorage racks to DB
+        for (const rack of localRacks) {
+          const dbId = await postRackToDb(userId, rack);
+          if (dbId) rackDbIds.current[rack.id] = dbId;
+        }
+
+        // Migrate localStorage slot assignments to DB
+        const localSlots = loadLocalSlotAssignments(userId);
+        const slotEntries = Object.entries(localSlots);
+        if (slotEntries.length > 0) {
+          // Optimistically set slot_id on cellar items in local state
+          setCellarItems((prev) => prev.map((item) => {
+            const slotId = localSlots[item.id];
+            return slotId ? { ...item, slot_id: slotId } : item;
+          }));
+          // Persist each to DB in background
+          for (const [itemId, slotId] of slotEntries) {
+            patchCellarItemSlot(itemId, slotId);
+          }
+        }
+        return;
+      }
+
+      // Nothing anywhere — create a default rack in DB
+      const defaultRack = createDefaultRack('My Wine Rack');
+      const dbId = await postRackToDb(userId, defaultRack);
+      if (dbId) rackDbIds.current[defaultRack.id] = dbId;
+      setRacks([defaultRack]);
+      setActiveRackIdState(defaultRack.id);
+      cacheRacksLocally(userId, [defaultRack]);
+    })();
   }, [userId]);
-
-  // Persist racks on change
-  useEffect(() => {
-    if (initializedRef.current && racks.length > 0) {
-      saveRacks(userId, racks);
-    }
-  }, [racks, userId]);
-
-  // Persist slot assignments on change
-  useEffect(() => {
-    if (initializedRef.current) {
-      saveSlotAssignments(userId, slotAssignments);
-    }
-  }, [slotAssignments, userId]);
 
   // Persist view mode
   useEffect(() => {
@@ -192,23 +272,48 @@ export function CellarRackProvider({
     setSelectedSlotId(null);
   }, []);
 
+  // --------------- Rack CRUD (synced to DB) ---------------
+
   const createRack = useCallback((rack: Rack) => {
-    setRacks((prev) => [...prev, rack]);
+    setRacks((prev) => {
+      const next = [...prev, rack];
+      cacheRacksLocally(userId, next);
+      return next;
+    });
     setActiveRackIdState(rack.id);
-  }, []);
+    postRackToDb(userId, rack).then((dbId) => {
+      if (dbId) rackDbIds.current[rack.id] = dbId;
+    });
+  }, [userId]);
 
   const updateRack = useCallback((rack: Rack) => {
-    setRacks((prev) => prev.map((r) => (r.id === rack.id ? rack : r)));
-  }, []);
+    setRacks((prev) => {
+      const next = prev.map((r) => (r.id === rack.id ? rack : r));
+      cacheRacksLocally(userId, next);
+      return next;
+    });
+    const dbId = rackDbIds.current[rack.id];
+    if (dbId) patchRackInDb(dbId, rack);
+  }, [userId]);
 
   const deleteRack = useCallback((id: string) => {
+    const dbId = rackDbIds.current[id];
+    if (dbId) {
+      deleteRackFromDb(dbId);
+      delete rackDbIds.current[id];
+    }
     setRacks((prev) => {
       const next = prev.filter((r) => r.id !== id);
       if (next.length === 0) {
         const defaultRack = createDefaultRack('My Wine Rack');
         setActiveRackIdState(defaultRack.id);
+        postRackToDb(userId, defaultRack).then((newDbId) => {
+          if (newDbId) rackDbIds.current[defaultRack.id] = newDbId;
+        });
+        cacheRacksLocally(userId, [defaultRack]);
         return [defaultRack];
       }
+      cacheRacksLocally(userId, next);
       return next;
     });
     if (activeRackId === id) {
@@ -217,7 +322,17 @@ export function CellarRackProvider({
         return prev;
       });
     }
-  }, [activeRackId]);
+  }, [activeRackId, userId]);
+
+  // --------------- Derive slot assignments from cellarItems[].slot_id ---------------
+
+  const slotAssignments = useMemo(() => {
+    const map: Record<string, SlotId> = {};
+    for (const item of cellarItems) {
+      if (item.slot_id) map[item.id] = item.slot_id;
+    }
+    return map;
+  }, [cellarItems]);
 
   // Build placement map from cellar items + slot assignments
   const { placementMap, allPlacements, unassignedPlacements } = useMemo(() => {
@@ -254,43 +369,39 @@ export function CellarRackProvider({
     [selectedSlotId, placementMap],
   );
 
+  // --------------- Slot assignment mutations (optimistic + DB persist) ---------------
+
   const assignSlot = useCallback((cellarItemId: string, slotId: SlotId) => {
-    setSlotAssignments((prev) => {
-      const next = { ...prev };
-      for (const [existingItemId, existingSlotId] of Object.entries(next)) {
-        if (existingSlotId === slotId && existingItemId !== cellarItemId) {
-          delete next[existingItemId];
-        }
+    // Clear any existing occupant of the target slot
+    setCellarItems((prev) => prev.map((item) => {
+      if (item.id === cellarItemId) return { ...item, slot_id: slotId };
+      if (item.slot_id === slotId) {
+        patchCellarItemSlot(item.id, null);
+        return { ...item, slot_id: null };
       }
-      next[cellarItemId] = slotId;
-      return next;
-    });
+      return item;
+    }));
+    patchCellarItemSlot(cellarItemId, slotId);
   }, []);
 
   const unassignSlot = useCallback((slotId: SlotId) => {
-    setSlotAssignments((prev) => {
-      const next = { ...prev };
-      for (const [itemId, sid] of Object.entries(next)) {
-        if (sid === slotId) {
-          delete next[itemId];
-          break;
-        }
+    setCellarItems((prev) => prev.map((item) => {
+      if (item.slot_id === slotId) {
+        patchCellarItemSlot(item.id, null);
+        return { ...item, slot_id: null };
       }
-      return next;
-    });
+      return item;
+    }));
   }, []);
 
   const moveBottle = useCallback((fromSlot: SlotId, toSlot: SlotId) => {
-    setSlotAssignments((prev) => {
-      const next = { ...prev };
-      for (const [itemId, sid] of Object.entries(next)) {
-        if (sid === fromSlot) {
-          next[itemId] = toSlot;
-          break;
-        }
+    setCellarItems((prev) => prev.map((item) => {
+      if (item.slot_id === fromSlot) {
+        patchCellarItemSlot(item.id, toSlot);
+        return { ...item, slot_id: toSlot };
       }
-      return next;
-    });
+      return item;
+    }));
   }, []);
 
   const resetFilters = useCallback(() => setFilters(DEFAULT_FILTERS), []);

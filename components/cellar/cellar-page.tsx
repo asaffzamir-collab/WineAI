@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Wine } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CellarRackProvider, useCellarRack } from '@/lib/cellar/cellar-rack-context';
@@ -29,6 +29,46 @@ const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.Wi
 interface NewCellarPageProps {
   userId: string;
   initialItems: CellarItem[];
+}
+
+function MobileRackSelector() {
+  const t = useTranslations('cellar');
+  const { racks, activeRackId, setActiveRackId, setIsRackBuilderOpen, setEditingRack, allPlacements } = useCellarRack();
+  const totalBottles = allPlacements.reduce((sum, p) => sum + p.quantity, 0);
+
+  if (racks.length === 0) return null;
+
+  return (
+    <div className="lg:hidden">
+      <div className="flex items-center gap-2 mb-2">
+        <Wine className="h-4 w-4 text-garnet-600 dark:text-garnet-400 flex-shrink-0" strokeWidth={1.5} />
+        <span className="text-xs text-muted-foreground">{totalBottles} {t('totalBottles')}</span>
+      </div>
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {racks.map((rack) => (
+          <button
+            key={rack.id}
+            type="button"
+            onClick={() => setActiveRackId(rack.id)}
+            className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeRackId === rack.id
+                ? 'bg-garnet-500/15 text-garnet-600 dark:text-garnet-400'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {rack.name} ({rack.columns}×{rack.rows})
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => { setEditingRack(null); setIsRackBuilderOpen(true); }}
+          className="flex-shrink-0 flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+        >
+          <Plus className="h-3 w-3" strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function CellarContent() {
@@ -104,6 +144,11 @@ function CellarContent() {
         {/* Mobile tabs */}
         <div className="mt-4 lg:mt-0 lg:hidden">
           <CellarTabs />
+        </div>
+
+        {/* Mobile rack selector */}
+        <div className="mt-3">
+          <MobileRackSelector />
         </div>
 
         {/* Desktop layout with sidebar */}
