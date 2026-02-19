@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import type { SommelierPhase, ConversationItem, SommelierState } from '@/lib/sommelier-types';
+import { createClient } from '@/lib/supabase/client';
 
 interface SommelierContextValue {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SommelierContextValue {
   precision: number;
   likedWinesCount: number;
   hasDiscoveryData: boolean;
+  userId: string | null;
   conversationItems: ConversationItem[];
   addConversationItem: (item: ConversationItem) => void;
   clearConversation: () => void;
@@ -35,6 +37,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [precision, setPrecision] = useState(0);
   const [likedWinesCount, setLikedWinesCount] = useState(0);
   const [hasDiscoveryData, setHasDiscoveryData] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [conversationItems, setConversationItems] = useState<ConversationItem[]>([]);
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +69,9 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     if (!hasFetched.current) {
       hasFetched.current = true;
       refreshState();
+      createClient().auth.getUser().then(({ data }) => {
+        if (data?.user?.id) setUserId(data.user.id);
+      });
     }
   }, [refreshState]);
 
@@ -91,7 +97,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     <SommelierContext.Provider
       value={{
         isOpen, toggle, open, close,
-        phase, precision, likedWinesCount, hasDiscoveryData,
+        phase, precision, likedWinesCount, hasDiscoveryData, userId,
         conversationItems, addConversationItem, clearConversation,
         activeFlow, setActiveFlow,
         refreshState, isLoading,

@@ -76,6 +76,7 @@ interface Stats {
   hasRedProfile: boolean;
   hasWhiteProfile: boolean;
   hasRoseProfile: boolean;
+  hasSommelierDiscovery: boolean;
 }
 
 const GUIDE_DISMISSED_KEY = 'winejourney_guide_dismissed';
@@ -130,6 +131,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     hasRedProfile: false,
     hasWhiteProfile: false,
     hasRoseProfile: false,
+    hasSommelierDiscovery: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [guideDismissed, setGuideDismissed] = useState(true);
@@ -243,6 +245,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         hasRedProfile: data.hasRedProfile ?? false,
         hasWhiteProfile: data.hasWhiteProfile ?? false,
         hasRoseProfile: data.hasRoseProfile ?? false,
+        hasSommelierDiscovery: data.hasSommelierDiscovery ?? false,
       });
     } finally {
       setIsLoading(false);
@@ -288,11 +291,12 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     setGuideDismissed(true);
   };
 
-  const hasProfile = stats.hasRedProfile || stats.hasWhiteProfile || stats.hasRoseProfile;
+  const hasTasteProfile = stats.hasRedProfile || stats.hasWhiteProfile || stats.hasRoseProfile;
+  const hasCompletedDiscovery = stats.hasSommelierDiscovery || hasTasteProfile;
   const hasSearchedWine = stats.winesTasted > 0;
-  const hasLikedWine = hasProfile;
+  const hasLikedWine = hasTasteProfile;
   const hasCellarOrWishlist = stats.bottlesInCellar > 0 || stats.wishlistCount > 0;
-  const allJourneyComplete = hasProfile && hasSearchedWine && hasCellarOrWishlist;
+  const allJourneyComplete = hasCompletedDiscovery && hasSearchedWine && hasLikedWine && hasCellarOrWishlist;
   const showJourney = !isLoading && !allJourneyComplete && !guideDismissed;
   const showGuide = false;
 
@@ -388,14 +392,14 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
               {/* Progress bar */}
               <div className="flex gap-1.5 mb-5">
-                {[hasProfile, hasSearchedWine, hasLikedWine, hasCellarOrWishlist].map((done, i) => (
+                {[hasCompletedDiscovery, hasSearchedWine, hasLikedWine, hasCellarOrWishlist].map((done, i) => (
                   <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${done ? 'bg-bordeaux-500' : 'bg-muted'}`} />
                 ))}
               </div>
 
               <div className="space-y-3">
                 <JourneyStep
-                  done={hasProfile}
+                  done={hasCompletedDiscovery}
                   icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep1Title')}
                   desc={t('journeyStep1Desc')}

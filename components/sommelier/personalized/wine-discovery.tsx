@@ -1,9 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { Loader2, Wine, Heart, ChevronDown, ChevronUp, MapPin, Grape } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import type { WineData } from '@/lib/openai';
+
+const WineCard = dynamic(
+  () => import('@/components/wine-card').then((m) => m.WineCard),
+  { loading: () => <div className="flex items-center justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-bordeaux-500" /></div> }
+);
 
 interface DiscoveredWine {
   name: string;
@@ -17,13 +24,28 @@ interface DiscoveredWine {
   tasting_note?: string;
 }
 
+function discoveredToWineData(w: DiscoveredWine): WineData {
+  return {
+    name: w.name,
+    winery: w.winery || '',
+    wine_type: (w.wine_type as WineData['wine_type']) || 'red',
+    country: w.country || 'Israel',
+    region: w.region,
+    grapes: w.grape ? [w.grape] : [],
+    winery_description: w.reason,
+    tasting_notes: w.tasting_note ? { nose: [], palate: [], finish: w.tasting_note } : undefined,
+  };
+}
+
 export function WineDiscovery() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow } = useSommelier();
+  const { setActiveFlow, userId } = useSommelier();
   const [wines, setWines] = useState<DiscoveredWine[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [wishlistAdded, setWishlistAdded] = useState<Set<number>>(new Set());
+  const [addingWishlist, setAddingWishlist] = useState<Set<number>>(new Set());
+  const [addedWishlist, setAddedWishlist] = useState<Set<number>>(new Set());
+  const [addingProfile, setAddingProfile] = useState<Set<number>>(new Set());
+  const [addedProfile, setAddedProfile] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const discover = async () => {
@@ -40,12 +62,14 @@ export function WineDiscovery() {
   }, []);
 
   const handleAddToWishlist = async (wine: DiscoveredWine, index: number) => {
-    if (wishlistAdded.has(index)) return;
+    if (!userId || addedWishlist.has(index) || addingWishlist.has(index)) return;
+    setAddingWishlist(prev => new Set(prev).add(index));
     try {
-      await fetch('/api/wishlist', {
+      const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userId,
           wine: {
             name: wine.name,
             winery: wine.winery || '',
@@ -56,8 +80,34 @@ export function WineDiscovery() {
           },
         }),
       });
-      setWishlistAdded(prev => new Set(prev).add(index));
+      if (res.ok) setAddedWishlist(prev => new Set(prev).add(index));
     } catch { /* ignore */ }
+    finally { setAddingWishlist(prev => { const s = new Set(prev); s.delete(index); return s; }); }
+  };
+
+  const handleAddToProfile = async (wine: DiscoveredWine, index: number) => {
+    if (!userId || addedProfile.has(index) || addingProfile.has(index)) return;
+    setAddingProfile(prev => new Set(prev).add(index));
+    try {
+      const res = await fetch('/api/profile/add-wine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          wine: {
+            name: wine.name,
+            winery: wine.winery || '',
+            wine_type: wine.wine_type || 'red',
+            country: wine.country || 'Israel',
+            region: wine.region,
+            grapes: wine.grape ? [wine.grape] : [],
+          },
+          liked: true,
+        }),
+      });
+      if (res.ok) setAddedProfile(prev => new Set(prev).add(index));
+    } catch { /* ignore */ }
+    finally { setAddingProfile(prev => { const s = new Set(prev); s.delete(index); return s; }); }
   };
 
   if (loading) {
@@ -70,81 +120,31 @@ export function WineDiscovery() {
   }
 
   return (
-    <div className="flex flex-col pt-6 px-4">
+    <div className="flex flex-col pt-4 px-4 pb-6">
+      <button
+        onClick={() => setActiveFlow(null)}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t('back')}
+      </button>
+
       <h3 className="text-lg font-serif font-semibold text-foreground text-center mb-2">{t('discoveryTitle')}</h3>
       <p className="text-sm text-muted-foreground text-center mb-6">{t('discoverySubtitle')}</p>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {wines?.map((wine, i) => {
-          const isExpanded = expandedIndex === i;
-          const isAdded = wishlistAdded.has(i);
-
+          const wineData = discoveredToWineData(wine);
           return (
-            <div
-              key={i}
-              className="rounded-xl border border-border/50 bg-card overflow-hidden animate-fade-in transition-all"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <button
-                onClick={() => setExpandedIndex(isExpanded ? null : i)}
-                className="w-full text-start p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                      <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{wine.name}</p>
-                      {wine.winery && (
-                        <p className="text-xs text-muted-foreground truncate">{wine.winery}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        {wine.grape && (
-                          <span className="flex items-center gap-1">
-                            <Grape className="h-3 w-3" />
-                            {wine.grape}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {wine.region}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/30 px-2.5 py-1 text-xs font-bold text-bordeaux-600 dark:text-bordeaux-300">
-                      {wine.match}%
-                    </span>
-                    {isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-              </button>
-
-              {isExpanded && (
-                <div className="px-4 pb-4 border-t border-border/30 pt-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
-                  <p className="text-xs text-muted-foreground leading-relaxed">{wine.reason}</p>
-                  {wine.tasting_note && (
-                    <p className="text-xs text-foreground mt-2 italic">"{wine.tasting_note}"</p>
-                  )}
-                  {wine.country && (
-                    <p className="text-[11px] text-muted-foreground mt-2">{wine.country}</p>
-                  )}
-                  <button
-                    onClick={() => handleAddToWishlist(wine, i)}
-                    disabled={isAdded}
-                    className="mt-3 flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-60"
-                  >
-                    <Heart className={`h-3.5 w-3.5 ${isAdded ? 'fill-ruby-500 text-ruby-500' : ''}`} strokeWidth={1.5} />
-                    {isAdded ? t('addedToWishlist') : t('addToWishlist')}
-                  </button>
-                </div>
-              )}
+            <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
+              <WineCard
+                wine={wineData}
+                matchResult={{ match_percentage: wine.match, explanation: wine.reason, positive_matches: [], mismatches: [] }}
+                onAddToWishlist={() => handleAddToWishlist(wine, i)}
+                onAddToProfile={() => handleAddToProfile(wine, i)}
+                isAddingToWishlist={addingWishlist.has(i) || addedWishlist.has(i)}
+                isAddingToProfile={addingProfile.has(i) || addedProfile.has(i)}
+              />
             </div>
           );
         })}

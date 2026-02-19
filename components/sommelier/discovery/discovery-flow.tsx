@@ -57,10 +57,13 @@ export function DiscoveryFlow() {
     }
   }, [data, stepIndex, profile]);
 
-  const handleFeedback = async (feedback: 'yes' | 'close' | 'not_really') => {
+  const handleFeedback = async (feedback: 'yes' | 'close' | 'not_really' | 'skip') => {
     if (feedback === 'yes') {
       await refreshState();
       setActiveFlow(null);
+    } else if (feedback === 'skip') {
+      await refreshState();
+      setActiveFlow('search');
     } else {
       setLoading(true);
       try {

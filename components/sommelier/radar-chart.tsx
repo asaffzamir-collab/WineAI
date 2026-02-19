@@ -22,7 +22,9 @@ export function RadarChart({
   className,
   animated = true,
 }: RadarChartProps) {
-  const center = size / 2;
+  const pad = size * 0.18;
+  const svgSize = size + pad * 2;
+  const center = svgSize / 2;
   const radius = size * 0.38;
   const axes = ['body', 'tannin', 'sweetness', 'acidity'] as const;
   const angles = axes.map((_, i) => (Math.PI * 2 * i) / axes.length - Math.PI / 2);
@@ -44,7 +46,7 @@ export function RadarChart({
 
   return (
     <div className={cn('relative inline-block', className)}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${svgSize} ${svgSize}`}>
         {/* Grid */}
         {gridLevels.map(level => {
           const points = angles.map(a => getPoint(a, level));

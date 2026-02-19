@@ -1,25 +1,50 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from './sommelier-context';
-import { Search, Camera, Upload, Loader2, Wine, ArrowLeft, Heart, BookmarkPlus } from 'lucide-react';
+import { Search, Camera, Upload, Loader2, Wine, ArrowLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
+import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+
+const WineCard = dynamic(
+  () => import('@/components/wine-card').then((m) => m.WineCard),
+  { loading: () => <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-bordeaux-500" /></div> }
+);
 
 export function SearchFlow() {
   const t = useTranslations('search');
   const tSom = useTranslations('sommelier');
-  const { setActiveFlow } = useSommelier();
+  const { setActiveFlow, userId, refreshState } = useSommelier();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [wineResult, setWineResult] = useState<WineData | null>(null);
   const [matchResult, setMatchResult] = useState<ProfileMatchResult | null>(null);
   const [error, setError] = useState('');
+  const [isAddingToCellar, setIsAddingToCellar] = useState(false);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<WineData[]>([]);
+  const [selectedRecent, setSelectedRecent] = useState<WineData | null>(null);
+  const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (userId) setRecentSearches(getRecentSearches(userId));
+  }, [userId]);
+
+  const saveAndSetResult = (wine: WineData) => {
+    setWineResult(wine);
+    if (userId) {
+      addRecentSearch(userId, wine);
+      setRecentSearches(getRecentSearches(userId));
+    }
+  };
 
   const handleTextSearch = async () => {
     if (!query.trim()) return;
@@ -27,21 +52,23 @@ export function SearchFlow() {
     setError('');
     setWineResult(null);
     setMatchResult(null);
+    setSelectedRecent(null);
+    setUploadedImageUrl(null);
 
     try {
       const response = await fetch('/api/wine-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, userId }),
       });
       const data = await response.json();
       if (data.error) {
         setError(data.error);
       } else if (data.wine) {
-        setWineResult(data.wine);
+        saveAndSetResult(data.wine);
         setMatchResult(data.match ?? null);
       } else if (data.wines?.length > 0) {
-        setWineResult(data.wines[0]);
+        saveAndSetResult(data.wines[0]);
         setMatchResult(data.match ?? null);
       }
     } catch {
@@ -60,6 +87,7 @@ export function SearchFlow() {
     setError('');
     setWineResult(null);
     setMatchResult(null);
+    setSelectedRecent(null);
 
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -69,6 +97,8 @@ export function SearchFlow() {
         reader.readAsDataURL(file);
       });
 
+      setUploadedImageUrl(dataUrl);
+
       const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches) { setError('Invalid image format.'); setIsSearching(false); return; }
       const [, mimeType, base64] = matches;
@@ -76,13 +106,13 @@ export function SearchFlow() {
       const response = await fetch('/api/wine-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, imageMimeType: mimeType }),
+        body: JSON.stringify({ image: base64, imageMimeType: mimeType, userId }),
       });
 
       if (!response.ok) { setError('Search failed.'); setIsSearching(false); return; }
       const data = await response.json();
       if (data.error) { setError(data.error); }
-      else if (data.wine) { setWineResult(data.wine); setMatchResult(data.match ?? null); }
+      else if (data.wine) { saveAndSetResult(data.wine); setMatchResult(data.match ?? null); }
     } catch {
       setError('Image upload failed.');
     } finally {
@@ -90,31 +120,43 @@ export function SearchFlow() {
     }
   };
 
-  const handleAddToWishlist = async () => {
-    if (!wineResult || isAddingToWishlist) return;
+  const handleAddToWishlist = async (wine?: WineData | null) => {
+    const target = wine || wineResult;
+    if (!target || !userId || isAddingToWishlist) return;
     setIsAddingToWishlist(true);
     try {
-      await fetch('/api/wishlist', {
+      const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wine: wineResult }),
+        body: JSON.stringify({ userId, wine: target }),
       });
+      if (!res.ok) throw new Error('Failed');
       setTimeout(() => setIsAddingToWishlist(false), 2000);
     } catch { setIsAddingToWishlist(false); }
   };
 
-  const handleAddToProfile = async () => {
-    if (!wineResult || isAddingToProfile) return;
+  const handleAddToProfile = async (wine?: WineData | null) => {
+    const target = wine || wineResult;
+    if (!target || !userId || isAddingToProfile) return;
     setIsAddingToProfile(true);
     try {
-      await fetch('/api/profile/add-wine', {
+      const res = await fetch('/api/profile/add-wine', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wine: wineResult, liked: true }),
+        body: JSON.stringify({ userId, wine: target, liked: true }),
       });
+      if (res.ok) {
+        await refreshState();
+      }
       setTimeout(() => setIsAddingToProfile(false), 2000);
     } catch { setIsAddingToProfile(false); }
   };
+
+  const handleAddToCellar = (wine?: WineData | null) => {
+    setAddToCellarWine(wine || wineResult);
+  };
+
+  const activeWine = selectedRecent || wineResult;
 
   return (
     <div className="flex flex-col pt-4 px-4 pb-6">
@@ -195,66 +237,66 @@ export function SearchFlow() {
         </div>
       )}
 
-      {/* Wine result */}
-      {wineResult && !isSearching && (
-        <div className="mt-4 rounded-xl border border-border/50 bg-card p-4">
-          <div className="flex items-start gap-3">
-            {wineResult.image_url ? (
-              <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-                <img src={wineResult.image_url} alt="" className="h-full w-full object-contain" />
-              </div>
-            ) : (
-              <div className="flex h-16 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
-                <Wine className="h-6 w-6 text-primary" strokeWidth={1.5} />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">{wineResult.name}</p>
-              <p className="text-xs text-muted-foreground">{wineResult.winery}</p>
-              {wineResult.region && (
-                <p className="text-xs text-muted-foreground mt-0.5">{wineResult.region}{wineResult.country ? ` · ${wineResult.country}` : ''}</p>
-              )}
-              {wineResult.grapes && wineResult.grapes.length > 0 && (
-                <p className="text-xs text-muted-foreground">{wineResult.grapes.join(', ')}</p>
-              )}
-              {matchResult && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <span className="rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/30 px-2 py-0.5 text-xs font-bold text-bordeaux-600">
-                    {matchResult.match_percentage}%
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">{matchResult.explanation}</span>
+      {/* Wine result - full WineCard */}
+      {activeWine && !isSearching && (
+        <div className="mt-4">
+          <WineCard
+            wine={activeWine}
+            matchResult={matchResult || undefined}
+            onAddToCellar={() => handleAddToCellar(activeWine)}
+            onAddToWishlist={() => handleAddToWishlist(activeWine)}
+            onAddToProfile={() => handleAddToProfile(activeWine)}
+            isAddingToCellar={isAddingToCellar}
+            isAddingToWishlist={isAddingToWishlist}
+            isAddingToProfile={isAddingToProfile}
+            uploadedImageUrl={uploadedImageUrl || undefined}
+          />
+        </div>
+      )}
+
+      {/* Recent searches */}
+      {recentSearches.length > 0 && !activeWine && !isSearching && (
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Wine className="h-4 w-4" strokeWidth={1.5} />
+            {t('recentSearches')}
+          </h4>
+          <div className="space-y-2">
+            {recentSearches.slice(0, 5).map((wine, i) => (
+              <button
+                key={i}
+                onClick={() => { setSelectedRecent(wine); setMatchResult(null); }}
+                className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-accent transition-colors"
+              >
+                {wine.image_url ? (
+                  <div className="h-10 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+                    <img src={wine.image_url} alt="" className="h-full w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                    <Wine className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{wine.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{wine.winery}</p>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {wineResult.tasting_notes && (
-            <div className="mt-3 border-t border-border/30 pt-3">
-              {wineResult.tasting_notes.nose && wineResult.tasting_notes.nose.length > 0 && (
-                <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{wineResult.tasting_notes.nose.join(', ')}</span></p>
-              )}
-            </div>
-          )}
-
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleAddToWishlist}
-              disabled={isAddingToWishlist}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-60"
-            >
-              <BookmarkPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-              {isAddingToWishlist ? tSom('addedToWishlist') : tSom('addToWishlist')}
-            </button>
-            <button
-              onClick={handleAddToProfile}
-              disabled={isAddingToProfile}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-60"
-            >
-              <Heart className="h-3.5 w-3.5" strokeWidth={1.5} />
-              {isAddingToProfile ? tSom('addedToProfile') : tSom('likeWine')}
-            </button>
+                <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              </button>
+            ))}
           </div>
         </div>
+      )}
+
+      {/* Add to Cellar Dialog */}
+      {userId && (
+        <AddToCellarDialog
+          wine={addToCellarWine}
+          userId={userId}
+          bottlePhotoUrl={uploadedImageUrl && addToCellarWine === wineResult ? uploadedImageUrl : undefined}
+          onClose={() => { setAddToCellarWine(null); setIsAddingToCellar(false); }}
+          onAdded={() => { setAddToCellarWine(null); setIsAddingToCellar(false); }}
+        />
       )}
     </div>
   );

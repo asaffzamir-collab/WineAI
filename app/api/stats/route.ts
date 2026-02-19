@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     }
     const supabase = await createClient();
 
-    const [profileRes, tastingsRes, cellarRes, wishlistRes, tasteProfilesRes] = await Promise.all([
+    const [profileRes, tastingsRes, cellarRes, wishlistRes, tasteProfilesRes, sommelierProfileRes] = await Promise.all([
       supabase.from('user_profiles').select('display_name').eq('id', userId).single(),
       supabase.from('wine_tastings').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       supabase
@@ -21,6 +21,7 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false }),
       supabase.from('wishlist_items').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('taste_profiles').select('wine_type').eq('user_id', userId),
+      supabase.from('sommelier_profiles').select('discovery_data').eq('user_id', userId).single(),
     ]);
 
     const cellarItems = cellarRes.data ?? [];
@@ -105,6 +106,7 @@ export async function GET(request: Request) {
     const hasRedProfile = profileTypes.includes('red');
     const hasWhiteProfile = profileTypes.includes('white');
     const hasRoseProfile = profileTypes.includes('rose');
+    const hasSommelierDiscovery = !!sommelierProfileRes.data?.discovery_data && Object.keys(sommelierProfileRes.data.discovery_data as object).length > 0;
 
     return NextResponse.json({
       displayName: profileRes.data?.display_name ?? null,
@@ -121,6 +123,7 @@ export async function GET(request: Request) {
       hasRedProfile,
       hasWhiteProfile,
       hasRoseProfile,
+      hasSommelierDiscovery,
     });
   } catch (error) {
     console.error('Stats API error:', error);

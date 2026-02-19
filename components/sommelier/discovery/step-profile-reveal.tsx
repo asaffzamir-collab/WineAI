@@ -1,18 +1,39 @@
 'use client';
 
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import type { PreliminaryProfile } from '@/lib/sommelier-types';
+import type { PreliminaryProfile, WineSuggestion } from '@/lib/sommelier-types';
+import type { WineData } from '@/lib/openai';
 import { RadarChart } from '../radar-chart';
-import { Loader2, MapPin, Sparkles } from 'lucide-react';
+import { Loader2, MapPin, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+
+const WineCard = dynamic(
+  () => import('@/components/wine-card').then((m) => m.WineCard),
+  { loading: () => <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-bordeaux-500" /></div> }
+);
+
+function suggestionToWineData(s: WineSuggestion): WineData {
+  return {
+    name: s.name,
+    winery: s.winery,
+    wine_type: 'red',
+    country: 'Israel',
+    region: s.region,
+    grapes: s.grape ? [s.grape] : [],
+    winery_description: s.why_match,
+  };
+}
 
 interface Props {
   profile: PreliminaryProfile | null;
   loading: boolean;
-  onFeedback: (feedback: 'yes' | 'close' | 'not_really') => void;
+  onFeedback: (feedback: 'yes' | 'close' | 'not_really' | 'skip') => void;
 }
 
 export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
   const t = useTranslations('sommelier');
+  const [expandedAlt, setExpandedAlt] = useState<number | null>(null);
 
   if (loading || !profile) {
     return (
@@ -22,6 +43,8 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
       </div>
     );
   }
+
+  const mainWine = suggestionToWineData(profile.wine_suggestion);
 
   return (
     <div className="flex flex-col items-center pt-4">
@@ -58,31 +81,46 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
         </div>
       )}
 
-      {/* Wine suggestion */}
-      <div className="w-full mt-6 rounded-xl border border-border/60 bg-card p-4">
-        <div className="flex items-center gap-2 mb-2">
+      {/* Wine suggestion - full WineCard */}
+      <div className="w-full mt-6">
+        <div className="flex items-center gap-2 mb-3">
           <Sparkles className="h-4 w-4 text-bordeaux-500" />
           <span className="text-sm font-semibold">{t('suggestedWine')}</span>
         </div>
-        <p className="text-sm font-medium text-foreground">{profile.wine_suggestion.name}</p>
-        <p className="text-xs text-muted-foreground">{profile.wine_suggestion.winery} · {profile.wine_suggestion.region}</p>
-        <p className="text-xs text-muted-foreground mt-1">{profile.wine_suggestion.why_match}</p>
+        <WineCard wine={mainWine} />
       </div>
 
       {/* Alternatives */}
       {profile.alternatives.length > 0 && (
-        <div className="w-full mt-3 space-y-2">
+        <div className="w-full mt-4 space-y-2">
           <p className="text-xs text-muted-foreground font-medium">{t('alternatives')}</p>
-          {profile.alternatives.map((alt, i) => (
-            <div key={i} className="rounded-lg border border-border/40 p-3">
-              <p className="text-xs font-medium">{alt.name}</p>
-              <p className="text-[11px] text-muted-foreground">{alt.winery} · {alt.region}</p>
-            </div>
-          ))}
+          {profile.alternatives.map((alt, i) => {
+            const altWine = suggestionToWineData(alt);
+            const isExpanded = expandedAlt === i;
+            return (
+              <div key={i} className="rounded-xl border border-border/50 overflow-hidden">
+                <button
+                  onClick={() => setExpandedAlt(isExpanded ? null : i)}
+                  className="w-full flex items-center justify-between p-3 text-start"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{alt.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{alt.winery} · {alt.region}</p>
+                  </div>
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                </button>
+                {isExpanded && (
+                  <div className="border-t border-border/30 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                    <WineCard wine={altWine} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Three feedback options directly on the reveal screen */}
+      {/* Three feedback options */}
       <div className="w-full mt-6 space-y-3">
         <button
           onClick={() => onFeedback('yes')}
@@ -91,16 +129,16 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
           {t('revealConfirm')}
         </button>
         <button
-          onClick={() => onFeedback('close')}
+          onClick={() => onFeedback('not_really')}
           className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
         >
-          {t('revealClose')}
+          {t('revealRetry')}
         </button>
         <button
-          onClick={() => onFeedback('not_really')}
-          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+          onClick={() => onFeedback('skip')}
+          className="w-full rounded-xl border-2 border-border/60 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
         >
-          {t('revealRetry')}
+          {t('revealSkip')}
         </button>
       </div>
     </div>
