@@ -28,6 +28,11 @@ export const metadata: Metadata = {
   title: 'WineJourney - Your Personal Wine Companion',
   description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
   themeColor: '#5A1E2A',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+  },
   metadataBase: new URL('https://winejourney.co'),
   openGraph: {
     title: 'WineJourney - Your Personal Wine Companion',

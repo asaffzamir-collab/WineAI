@@ -31,7 +31,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50 shadow-[0_-2px_16px_rgb(0,0,0,0.04)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50 shadow-[0_-2px_16px_rgb(0,0,0,0.04)] md:hidden pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map((item) => {

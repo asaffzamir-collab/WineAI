@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { SommelierPhase, ConversationItem, SommelierState } from '@/lib/sommelier-types';
+import type { SommelierPhase, ConversationItem, SommelierState, ChatMessage, ChatWineCard } from '@/lib/sommelier-types';
 import { createClient } from '@/lib/supabase/client';
+import { safeId } from '@/lib/utils';
 
 interface SommelierContextValue {
   isOpen: boolean;
@@ -23,6 +24,10 @@ interface SommelierContextValue {
   setActiveFlow: (flow: string | null) => void;
   refreshState: () => Promise<void>;
   isLoading: boolean;
+  chatMessages: ChatMessage[];
+  sendChatMessage: (text: string) => Promise<void>;
+  isChatLoading: boolean;
+  clearChat: () => void;
 }
 
 const SommelierContext = createContext<SommelierContextValue | null>(null);
@@ -44,6 +49,8 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [conversationItems, setConversationItems] = useState<ConversationItem[]>([]);
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const hasFetched = useRef(false);
 
   const refreshState = useCallback(async () => {
@@ -112,6 +119,74 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     setConversationItems([]);
   }, []);
 
+  const sendChatMessage = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || isChatLoading) return;
+
+    const userMsg: ChatMessage = {
+      id: safeId(),
+      role: 'user',
+      content: trimmed,
+      created_at: new Date().toISOString(),
+    };
+    setChatMessages(prev => [...prev, userMsg]);
+    setIsChatLoading(true);
+
+    const streamingId = safeId();
+    setChatMessages(prev => [...prev, {
+      id: streamingId,
+      role: 'assistant',
+      content: '',
+      isStreaming: true,
+      created_at: new Date().toISOString(),
+    }]);
+
+    try {
+      const history = chatMessages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      const res = await fetch('/api/sommelier/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trimmed, history }),
+      });
+
+      if (!res.ok) throw new Error('Chat request failed');
+
+      const data = await res.json();
+
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === streamingId
+            ? {
+                ...m,
+                content: data.message || data.content || '',
+                wines: data.wines,
+                actions: data.actions,
+                isStreaming: false,
+              }
+            : m
+        )
+      );
+    } catch {
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === streamingId
+            ? { ...m, content: 'Sorry, something went wrong. Please try again.', isStreaming: false }
+            : m
+        )
+      );
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [chatMessages, isChatLoading]);
+
+  const clearChat = useCallback(() => {
+    setChatMessages([]);
+  }, []);
+
   return (
     <SommelierContext.Provider
       value={{
@@ -120,6 +195,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
         conversationItems, addConversationItem, clearConversation,
         activeFlow, setActiveFlow,
         refreshState, isLoading,
+        chatMessages, sendChatMessage, isChatLoading, clearChat,
       }}
     >
       {children}

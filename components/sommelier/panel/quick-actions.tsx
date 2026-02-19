@@ -79,7 +79,7 @@ export function QuickActions() {
               className="flex flex-col items-center gap-2 rounded-xl border border-border/50 bg-card p-3 transition-all hover:bg-bordeaux-50 hover:border-bordeaux-200 hover:shadow-soft active:scale-[0.97] dark:hover:bg-bordeaux-900/20 dark:hover:border-bordeaux-800"
             >
               <Icon className="h-5 w-5 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
-              <span className="text-[11px] font-medium text-foreground text-center leading-tight">
+              <span className="text-[11px] font-medium text-foreground text-center leading-tight line-clamp-2 break-words">
                 {t(action.labelKey)}
               </span>
             </button>

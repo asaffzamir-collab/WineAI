@@ -42,10 +42,10 @@ export function ResponseCard({ item, onAction, className, openedActionIcon }: Re
                 onClick={() => !isNoop && onAction?.(chip.action, chip.payload)}
                 disabled={isNoop}
                 className={cn(
-                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  'rounded-full border px-4 py-2 text-xs font-medium transition-colors',
                   isNoop
-                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 cursor-default flex items-center'
-                    : 'border-border/60 bg-background text-foreground hover:bg-bordeaux-50 hover:text-bordeaux-700 dark:hover:bg-bordeaux-900/20 dark:hover:text-bordeaux-300',
+                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400 cursor-default flex items-center min-h-[44px]'
+                    : 'border-border/60 bg-background text-foreground hover:bg-bordeaux-50 hover:text-bordeaux-700 dark:hover:bg-bordeaux-900/20 dark:hover:text-bordeaux-300 min-h-[44px]',
                 )}
               >
                 {isNoop && openedActionIcon}

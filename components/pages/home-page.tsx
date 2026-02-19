@@ -18,6 +18,7 @@ import {
   Loader2,
   Wallet,
   Settings,
+  BookOpen,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -26,6 +27,7 @@ import { WineLogo } from '@/components/wine-logo';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { FeatureTour } from '@/components/feature-tour';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
   loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
@@ -359,14 +361,19 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     <AppShell>
       <div className="animate-page">
         {/* Header */}
-        <header className="relative bg-bordeaux-600 px-4 pb-24 pt-8 dark:bg-charcoal-800 md:rounded-b-2xl">
+        <header className="relative bg-bordeaux-600 px-4 pb-24 pt-[max(2rem,env(safe-area-inset-top))] dark:bg-charcoal-800 md:rounded-b-2xl">
           <div className="mx-auto max-w-5xl">
             <div className="flex items-center gap-2 mb-1 md:hidden">
               <WineLogo size={28} className="text-copper-400" />
               <span className="text-sm font-medium text-bordeaux-200 tracking-wide">WineJourney</span>
-              <Link href="/settings" className="ms-auto p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label={t('settings')}>
-                <Settings className="h-5 w-5" strokeWidth={1.5} />
-              </Link>
+              <div className="ms-auto flex items-center gap-1">
+                <Link href="/guide" className="p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label="Guide">
+                  <BookOpen className="h-5 w-5" strokeWidth={1.5} />
+                </Link>
+                <Link href="/settings" className="p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label={t('settings')}>
+                  <Settings className="h-5 w-5" strokeWidth={1.5} />
+                </Link>
+              </div>
             </div>
             <h1 className="heading-serif text-2xl text-white mt-3 md:mt-0">
               {greeting}
@@ -625,6 +632,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           )}
         </DialogContent>
       </Dialog>
+      <FeatureTour />
       </div>
     </AppShell>
   );

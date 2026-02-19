@@ -67,6 +67,42 @@ export interface ConversationItem {
   created_at: string;
 }
 
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatWineCard {
+  name: string;
+  winery: string;
+  region?: string;
+  grape?: string;
+  wine_type?: string;
+  country?: string;
+  match?: number;
+  reason?: string;
+  tasting_note?: string;
+  image_url?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  wines?: ChatWineCard[];
+  actions?: ActionChip[];
+  created_at: string;
+  isStreaming?: boolean;
+}
+
+export interface ChatToolCall {
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface ChatApiResponse {
+  message: string;
+  wines?: ChatWineCard[];
+  actions?: ActionChip[];
+}
+
 export interface EngagementEvent {
   type: 'search' | 'cellar_add' | 'wishlist_add' | 'wine_liked' | 'rating' | 'refinement' | 'tonight_mode';
   timestamp: string;

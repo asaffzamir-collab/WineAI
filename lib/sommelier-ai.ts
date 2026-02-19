@@ -1,5 +1,9 @@
+interface ToolCall {
+  id: string;
+  function: { name: string; arguments: string };
+}
 interface ChatCompletionResponse {
-  choices?: Array<{ message?: { content?: string } }>;
+  choices?: Array<{ message?: { content?: string; tool_calls?: ToolCall[] }; finish_reason?: string }>;
 }
 interface OpenAIClientLike {
   chat: { completions: { create: (opts: unknown) => Promise<ChatCompletionResponse> } };
@@ -224,4 +228,186 @@ Return JSON: { "title": "short title for the answer", "content": "2-4 sentence a
 ${langInstr(language)}`;
 
   return await ask(system, `Question: "${query}"\nProfile: ${JSON.stringify(profile)}`);
+}
+
+const CHAT_TOOLS = [
+  {
+    type: 'function' as const,
+    function: {
+      name: 'search_wine',
+      description: 'Search for a specific wine by name, winery, grape, or region. Use when the user asks to find a wine.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Wine search query (name, winery, grape, or region)' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'recommend_wines',
+      description: 'Recommend wines based on criteria like occasion, food pairing, mood, or style. Use when the user asks for suggestions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          criteria: { type: 'string', description: 'What kind of wine the user is looking for' },
+          occasion: { type: 'string', description: 'The occasion (dinner, party, gift, etc.)' },
+          food: { type: 'string', description: 'Food to pair with, if mentioned' },
+          budget: { type: 'string', description: 'Budget constraint if mentioned' },
+        },
+        required: ['criteria'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'check_cellar',
+      description: 'Look at what wines the user has in their cellar. Use when asked about their collection or to suggest from their cellar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          filter: { type: 'string', description: 'Optional filter: "ready" for ready-to-drink, "red"/"white" for type, etc.' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'pair_food',
+      description: 'Suggest wine pairings for a specific meal or dish.',
+      parameters: {
+        type: 'object',
+        properties: {
+          meal: { type: 'string', description: 'The meal or dish to pair wine with' },
+        },
+        required: ['meal'],
+      },
+    },
+  },
+];
+
+export interface ChatHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function generateChatResponse(
+  message: string,
+  history: ChatHistoryMessage[],
+  context: {
+    profile: Record<string, unknown>;
+    cellarWines?: unknown[];
+    wishlist?: unknown[];
+    language?: string;
+  }
+) {
+  const lang = context.language || 'he';
+  const client = await getClient();
+
+  const systemPrompt = `You are a warm, knowledgeable personal wine sommelier named "Sommelier" in the WineJourney app. You have a conversational, friendly tone — like a trusted wine expert friend.
+
+You have access to the user's taste profile and can search for wines, check their cellar, recommend wines, and suggest food pairings using the provided tools.
+
+Guidelines:
+- Be conversational and natural. Use short, clear sentences.
+- When recommending wines, always explain WHY based on the user's taste profile.
+- Prefer wines available in Israel (Israeli wineries or international wines distributed locally) unless the user asks otherwise.
+- When you use a tool, incorporate the results naturally into your response.
+- You can suggest follow-up actions the user might want to take.
+- Keep responses concise — 2-4 sentences for simple questions, more for detailed recommendations.
+${langInstr(lang)}
+
+User's taste profile: ${JSON.stringify(context.profile)}
+${context.cellarWines?.length ? `User has ${context.cellarWines.length} wines in cellar.` : 'User has no wines in cellar yet.'}
+${context.wishlist?.length ? `User has ${context.wishlist.length} wines on wishlist.` : ''}`;
+
+  const messages: Array<{ role: string; content: string }> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  const recentHistory = history.slice(-10);
+  for (const msg of recentHistory) {
+    messages.push({ role: msg.role, content: msg.content });
+  }
+  messages.push({ role: 'user', content: message });
+
+  const res: ChatCompletionResponse = await client.chat.completions.create({
+    model: 'gpt-4o',
+    messages,
+    tools: CHAT_TOOLS,
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
+
+  const choice = res.choices?.[0];
+  if (!choice?.message) throw new Error('Empty AI response');
+
+  if (choice.message.tool_calls?.length) {
+    return {
+      content: choice.message.content || '',
+      toolCalls: choice.message.tool_calls.map(tc => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: JSON.parse(tc.function.arguments),
+      })),
+    };
+  }
+
+  return {
+    content: choice.message.content || '',
+    toolCalls: null,
+  };
+}
+
+export async function continueChatAfterToolCall(
+  originalMessages: Array<{ role: string; content: string }>,
+  toolCallId: string,
+  toolName: string,
+  toolResult: string,
+  context: {
+    profile: Record<string, unknown>;
+    language?: string;
+  }
+) {
+  const client = await getClient();
+  const lang = context.language || 'he';
+
+  const messages = [
+    ...originalMessages,
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [{
+        id: toolCallId,
+        type: 'function',
+        function: { name: toolName, arguments: '{}' },
+      }],
+    },
+    {
+      role: 'tool',
+      tool_call_id: toolCallId,
+      content: toolResult,
+    },
+  ];
+
+  const res: ChatCompletionResponse = await client.chat.completions.create({
+    model: 'gpt-4o',
+    messages,
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
+
+  const content = res.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty AI response after tool call');
+
+  try {
+    return parseJson(content);
+  } catch {
+    return { message: content, wines: [], actions: [] };
+  }
 }

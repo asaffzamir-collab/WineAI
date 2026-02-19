@@ -63,7 +63,7 @@ export function PanelInput() {
       <button
         type="submit"
         disabled={!value.trim() || loading}
-        className="flex h-9 w-9 items-center justify-center rounded-lg bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40"
+        className="flex h-11 w-11 items-center justify-center rounded-xl bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40 flex-shrink-0"
       >
         <Send className="h-4 w-4" />
       </button>
