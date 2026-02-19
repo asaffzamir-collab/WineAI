@@ -240,6 +240,15 @@ export function SearchFlow() {
       {/* Wine result - full WineCard */}
       {activeWine && !isSearching && (
         <div className="mt-4">
+          {(selectedRecent || wineResult) && (
+            <button
+              onClick={() => { setSelectedRecent(null); setWineResult(null); setMatchResult(null); setUploadedImageUrl(null); setIsAddingToWishlist(false); setIsAddingToProfile(false); }}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              {t('recentSearches')}
+            </button>
+          )}
           <WineCard
             wine={activeWine}
             matchResult={matchResult || undefined}

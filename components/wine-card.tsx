@@ -478,43 +478,51 @@ export function WineCard({
 
         {/* Like this wine */}
         {onAddToProfile && (
-          <Button
-            variant="ghost"
-            onClick={onAddToProfile}
-            disabled={isAddingToProfile}
-            className={cn(
-              "w-full border-2 border-dashed rounded-xl",
-              isAddingToProfile
-                ? "border-bordeaux-200 bg-bordeaux-50 text-bordeaux-500 dark:border-bordeaux-800 dark:bg-bordeaux-900/30 dark:text-bordeaux-300"
-                : "border-ivory-400 hover:border-bordeaux-300 hover:bg-bordeaux-50 dark:border-charcoal-700 dark:hover:border-bordeaux-800"
-            )}
-          >
-            <Heart className={cn("me-2 h-4 w-4", isAddingToProfile && "fill-bordeaux-400")} strokeWidth={1.5} />
-            {isAddingToProfile ? t('addedToProfile') : t('likeThisWine')}
-          </Button>
+          <div>
+            <Button
+              variant="ghost"
+              onClick={onAddToProfile}
+              disabled={isAddingToProfile}
+              className={cn(
+                "w-full border-2 border-dashed rounded-xl",
+                isAddingToProfile
+                  ? "border-bordeaux-200 bg-bordeaux-50 text-bordeaux-500 dark:border-bordeaux-800 dark:bg-bordeaux-900/30 dark:text-bordeaux-300"
+                  : "border-ivory-400 hover:border-bordeaux-300 hover:bg-bordeaux-50 dark:border-charcoal-700 dark:hover:border-bordeaux-800"
+              )}
+            >
+              <Heart className={cn("me-2 h-4 w-4", isAddingToProfile && "fill-bordeaux-400")} strokeWidth={1.5} />
+              {isAddingToProfile ? t('addedToProfile') : t('likeThisWine')}
+            </Button>
+            <p className="text-[10px] text-muted-foreground/70 text-center mt-1 leading-tight">{t('likeHint')}</p>
+          </div>
         )}
 
         {/* Action Buttons */}
         {(onAddToCellar || onAddToWishlist) && (
-          <div className="flex gap-3 pt-2">
-            {onAddToCellar && (
-              <Button
-                onClick={onAddToCellar}
-                disabled={isAddingToCellar}
-                className={cn("flex-1", isAddingToCellar && "bg-green-600 hover:bg-green-600")}
-              >
-                {isAddingToCellar ? t('addedToCellar') : t('addToCellar')}
-              </Button>
-            )}
+          <div>
+            <div className="flex gap-3 pt-2">
+              {onAddToCellar && (
+                <Button
+                  onClick={onAddToCellar}
+                  disabled={isAddingToCellar}
+                  className={cn("flex-1", isAddingToCellar && "bg-green-600 hover:bg-green-600")}
+                >
+                  {isAddingToCellar ? t('addedToCellar') : t('addToCellar')}
+                </Button>
+              )}
+              {onAddToWishlist != null && (
+                <Button
+                  variant="outline"
+                  onClick={onAddToWishlist}
+                  disabled={isAddingToWishlist}
+                  className={cn("flex-1", isAddingToWishlist && "border-bordeaux-300 bg-bordeaux-50 text-bordeaux-500")}
+                >
+                  {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist')}
+                </Button>
+              )}
+            </div>
             {onAddToWishlist != null && (
-              <Button
-                variant="outline"
-                onClick={onAddToWishlist}
-                disabled={isAddingToWishlist}
-                className={cn("flex-1", isAddingToWishlist && "border-bordeaux-300 bg-bordeaux-50 text-bordeaux-500")}
-              >
-                {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist')}
-              </Button>
+              <p className="text-[10px] text-muted-foreground/70 text-center mt-1 leading-tight">{t('wishlistHint')}</p>
             )}
           </div>
         )}

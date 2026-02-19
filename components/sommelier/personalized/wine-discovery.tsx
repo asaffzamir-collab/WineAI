@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Wine, ChevronRight, Grape, MapPin } from 'lucide-react';
 import type { WineData } from '@/lib/openai';
 
 const WineCard = dynamic(
@@ -39,13 +39,12 @@ function discoveredToWineData(w: DiscoveredWine): WineData {
 
 export function WineDiscovery() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow, userId } = useSommelier();
+  const { setActiveFlow, userId, refreshState } = useSommelier();
   const [wines, setWines] = useState<DiscoveredWine[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addingWishlist, setAddingWishlist] = useState<Set<number>>(new Set());
-  const [addedWishlist, setAddedWishlist] = useState<Set<number>>(new Set());
-  const [addingProfile, setAddingProfile] = useState<Set<number>>(new Set());
-  const [addedProfile, setAddedProfile] = useState<Set<number>>(new Set());
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
+  const [isAddingToProfile, setIsAddingToProfile] = useState(false);
 
   useEffect(() => {
     const discover = async () => {
@@ -61,9 +60,10 @@ export function WineDiscovery() {
     discover();
   }, []);
 
-  const handleAddToWishlist = async (wine: DiscoveredWine, index: number) => {
-    if (!userId || addedWishlist.has(index) || addingWishlist.has(index)) return;
-    setAddingWishlist(prev => new Set(prev).add(index));
+  const handleAddToWishlist = async () => {
+    if (selectedIndex === null || !wines || !userId || isAddingToWishlist) return;
+    const wine = wines[selectedIndex];
+    setIsAddingToWishlist(true);
     try {
       const res = await fetch('/api/wishlist', {
         method: 'POST',
@@ -80,14 +80,15 @@ export function WineDiscovery() {
           },
         }),
       });
-      if (res.ok) setAddedWishlist(prev => new Set(prev).add(index));
-    } catch { /* ignore */ }
-    finally { setAddingWishlist(prev => { const s = new Set(prev); s.delete(index); return s; }); }
+      if (res.ok) setTimeout(() => setIsAddingToWishlist(false), 2000);
+      else setIsAddingToWishlist(false);
+    } catch { setIsAddingToWishlist(false); }
   };
 
-  const handleAddToProfile = async (wine: DiscoveredWine, index: number) => {
-    if (!userId || addedProfile.has(index) || addingProfile.has(index)) return;
-    setAddingProfile(prev => new Set(prev).add(index));
+  const handleAddToProfile = async () => {
+    if (selectedIndex === null || !wines || !userId || isAddingToProfile) return;
+    const wine = wines[selectedIndex];
+    setIsAddingToProfile(true);
     try {
       const res = await fetch('/api/profile/add-wine', {
         method: 'POST',
@@ -105,9 +106,11 @@ export function WineDiscovery() {
           liked: true,
         }),
       });
-      if (res.ok) setAddedProfile(prev => new Set(prev).add(index));
-    } catch { /* ignore */ }
-    finally { setAddingProfile(prev => { const s = new Set(prev); s.delete(index); return s; }); }
+      if (res.ok) {
+        await refreshState();
+        setTimeout(() => setIsAddingToProfile(false), 2000);
+      } else setIsAddingToProfile(false);
+    } catch { setIsAddingToProfile(false); }
   };
 
   if (loading) {
@@ -119,6 +122,34 @@ export function WineDiscovery() {
     );
   }
 
+  const selectedWine = selectedIndex !== null && wines ? wines[selectedIndex] : null;
+
+  // Detail view for a selected wine
+  if (selectedWine) {
+    const wineData = discoveredToWineData(selectedWine);
+    return (
+      <div className="flex flex-col pt-4 px-4 pb-6">
+        <button
+          onClick={() => { setSelectedIndex(null); setIsAddingToWishlist(false); setIsAddingToProfile(false); }}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {t('back')}
+        </button>
+
+        <WineCard
+          wine={wineData}
+          matchResult={{ match_percentage: selectedWine.match, explanation: selectedWine.reason, positive_matches: [], mismatches: [] }}
+          onAddToWishlist={handleAddToWishlist}
+          onAddToProfile={handleAddToProfile}
+          isAddingToWishlist={isAddingToWishlist}
+          isAddingToProfile={isAddingToProfile}
+        />
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="flex flex-col pt-4 px-4 pb-6">
       <button
@@ -132,22 +163,41 @@ export function WineDiscovery() {
       <h3 className="text-lg font-serif font-semibold text-foreground text-center mb-2">{t('discoveryTitle')}</h3>
       <p className="text-sm text-muted-foreground text-center mb-6">{t('discoverySubtitle')}</p>
 
-      <div className="space-y-4">
-        {wines?.map((wine, i) => {
-          const wineData = discoveredToWineData(wine);
-          return (
-            <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-              <WineCard
-                wine={wineData}
-                matchResult={{ match_percentage: wine.match, explanation: wine.reason, positive_matches: [], mismatches: [] }}
-                onAddToWishlist={() => handleAddToWishlist(wine, i)}
-                onAddToProfile={() => handleAddToProfile(wine, i)}
-                isAddingToWishlist={addingWishlist.has(i) || addedWishlist.has(i)}
-                isAddingToProfile={addingProfile.has(i) || addedProfile.has(i)}
-              />
+      <div className="space-y-2">
+        {wines?.map((wine, i) => (
+          <button
+            key={i}
+            onClick={() => setSelectedIndex(i)}
+            className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-accent transition-colors animate-fade-in"
+            style={{ animationDelay: `${i * 80}ms` }}
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+              <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
             </div>
-          );
-        })}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground truncate">{wine.name}</p>
+              {wine.winery && <p className="text-xs text-muted-foreground truncate">{wine.winery}</p>}
+              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                {wine.grape && (
+                  <span className="flex items-center gap-0.5">
+                    <Grape className="h-3 w-3" />
+                    {wine.grape}
+                  </span>
+                )}
+                <span className="flex items-center gap-0.5">
+                  <MapPin className="h-3 w-3" />
+                  {wine.region}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/30 px-2 py-0.5 text-xs font-bold text-bordeaux-600 dark:text-bordeaux-300">
+                {wine.match}%
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </button>
+        ))}
       </div>
 
       <button onClick={() => setActiveFlow(null)} className="mt-6 w-full rounded-xl bg-bordeaux-600 px-4 py-3 text-sm font-semibold text-white hover:bg-bordeaux-700 transition-colors">
