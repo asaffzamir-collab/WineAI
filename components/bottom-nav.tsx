@@ -4,12 +4,13 @@ import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Search, Wine, Heart, User } from 'lucide-react';
+import { Home, Wine, Heart, User, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSommelier } from '@/components/sommelier/sommelier-context';
 
 const navItems = [
   { href: '/', icon: Home, labelKey: 'home' },
-  { href: '/search', icon: Search, labelKey: 'search' },
+  { href: '__sommelier__', icon: Sparkles, labelKey: 'sommelier' },
   { href: '/cellar', icon: Wine, labelKey: 'cellar' },
   { href: '/wishlist', icon: Heart, labelKey: 'wishlist' },
   { href: '/profile', icon: User, labelKey: 'profile' },
@@ -18,6 +19,7 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const { open: openSommelier, isOpen: isSommelierOpen } = useSommelier();
   const prefetchedRef = useRef(false);
 
   const prefetchCellar3D = useCallback(() => {
@@ -33,9 +35,38 @@ export function BottomNav() {
     >
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isSommelierTab = item.href === '__sommelier__';
+          const isActive = isSommelierTab ? isSommelierOpen : pathname === item.href;
           const Icon = item.icon;
           const isCellar = item.href === '/cellar';
+
+          if (isSommelierTab) {
+            return (
+              <button
+                key={item.href}
+                onClick={() => openSommelier()}
+                aria-label={t(item.labelKey)}
+                className={cn(
+                  'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Icon
+                  className={cn(
+                    'h-5 w-5 transition-all duration-150',
+                    isActive && 'scale-110'
+                  )}
+                  strokeWidth={isActive ? 2 : 1.5}
+                />
+                <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+                {isActive && (
+                  <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-primary transition-all duration-150" />
+                )}
+              </button>
+            );
+          }
 
           return (
             <Link

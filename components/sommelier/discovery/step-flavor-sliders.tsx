@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Info } from 'lucide-react';
 import type { DiscoveryData } from '@/lib/sommelier-types';
 
 interface Props {
@@ -38,18 +39,21 @@ export function StepFlavorSliders({ data, onNext }: Props) {
         <SliderRow
           leftLabel={t('sliderFruity')}
           rightLabel={t('sliderSavory')}
+          hint={t('sliderFruityHint')}
           value={fruitySavory}
           onChange={setFruitySavory}
         />
         <SliderRow
           leftLabel={t('sliderSmooth')}
           rightLabel={t('sliderStructured')}
+          hint={t('sliderSmoothHint')}
           value={smoothStructured}
           onChange={setSmoothStructured}
         />
         <SliderRow
           leftLabel={t('sliderLight')}
           rightLabel={t('sliderFullBodied')}
+          hint={t('sliderBodyHint')}
           value={lightFull}
           onChange={setLightFull}
         />
@@ -65,13 +69,28 @@ export function StepFlavorSliders({ data, onNext }: Props) {
   );
 }
 
-function SliderRow({ leftLabel, rightLabel, value, onChange }: { leftLabel: string; rightLabel: string; value: number; onChange: (v: number) => void }) {
+function SliderRow({ leftLabel, rightLabel, hint, value, onChange }: { leftLabel: string; rightLabel: string; hint: string; value: number; onChange: (v: number) => void }) {
+  const [showHint, setShowHint] = useState(false);
+
   return (
     <div>
-      <div className="flex justify-between text-xs font-medium text-muted-foreground mb-2">
+      <div className="flex justify-between items-center text-xs font-medium text-muted-foreground mb-2">
         <span>{leftLabel}</span>
+        <button
+          type="button"
+          onClick={() => setShowHint(!showHint)}
+          className="p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          aria-label="More info"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
         <span>{rightLabel}</span>
       </div>
+      {showHint && (
+        <p className="text-[11px] text-muted-foreground mb-2 px-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+          {hint}
+        </p>
+      )}
       <input
         type="range"
         min={0}

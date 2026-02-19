@@ -9,26 +9,24 @@ import { StepFlavorSliders } from './step-flavor-sliders';
 import { StepOccasions } from './step-occasions';
 import { StepRecognition } from './step-recognition';
 import { StepProfileReveal } from './step-profile-reveal';
-import { FeedbackLoop } from './feedback-loop';
 import { ArrowLeft } from 'lucide-react';
 
-type Step = 'energy' | 'sliders' | 'occasions' | 'recognition' | 'reveal' | 'feedback';
+type Step = 'energy' | 'sliders' | 'occasions' | 'recognition' | 'reveal';
 const STEPS: Step[] = ['energy', 'sliders', 'occasions', 'recognition', 'reveal'];
-const STEP_NUMBER: Record<Step, number> = { energy: 1, sliders: 2, occasions: 3, recognition: 4, reveal: 5, feedback: 5 };
+const STEP_NUMBER: Record<Step, number> = { energy: 1, sliders: 2, occasions: 3, recognition: 4, reveal: 5 };
 
 export function DiscoveryFlow() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow, refreshState, addConversationItem } = useSommelier();
+  const { setActiveFlow, refreshState, conversationItems } = useSommelier();
   const [step, setStep] = useState<Step>('energy');
   const [data, setData] = useState<DiscoveryData>({});
   const [profile, setProfile] = useState<PreliminaryProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
   const stepIndex = STEPS.indexOf(step);
-  const canGoBack = stepIndex > 0 && step !== 'feedback';
+  const canGoBack = stepIndex > 0;
 
   const goBack = () => {
-    if (step === 'feedback') { setStep('reveal'); return; }
     if (stepIndex > 0) setStep(STEPS[stepIndex - 1]);
   };
 
@@ -41,7 +39,6 @@ export function DiscoveryFlow() {
       setStep(STEPS[nextIndex]);
     }
 
-    // When moving to reveal, call API
     if (STEPS[nextIndex] === 'reveal' && !profile) {
       setLoading(true);
       try {
@@ -60,17 +57,8 @@ export function DiscoveryFlow() {
     }
   }, [data, stepIndex, profile]);
 
-  const handleRevealComplete = () => setStep('feedback');
-
-  const handleFeedbackComplete = async (feedback: 'yes' | 'close' | 'not_really') => {
+  const handleFeedback = async (feedback: 'yes' | 'close' | 'not_really') => {
     if (feedback === 'yes') {
-      addConversationItem({
-        id: crypto.randomUUID(),
-        type: 'insight',
-        title: t('discoveryComplete'),
-        content: t('discoveryCompleteDesc'),
-        created_at: new Date().toISOString(),
-      });
       await refreshState();
       setActiveFlow(null);
     } else {
@@ -87,7 +75,6 @@ export function DiscoveryFlow() {
         }
       } catch { /* keep current profile */ }
       finally { setLoading(false); }
-      setStep('reveal');
     }
   };
 
@@ -102,7 +89,7 @@ export function DiscoveryFlow() {
         )}
         <div className="flex-1 flex gap-1.5">
           {STEPS.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i <= (step === 'feedback' ? 4 : stepIndex) ? 'bg-bordeaux-500' : 'bg-muted'}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i <= stepIndex ? 'bg-bordeaux-500' : 'bg-muted'}`} />
           ))}
         </div>
         <span className="text-xs text-muted-foreground font-medium">
@@ -116,8 +103,7 @@ export function DiscoveryFlow() {
         {step === 'sliders' && <StepFlavorSliders data={data} onNext={goNext} />}
         {step === 'occasions' && <StepOccasions data={data} onNext={goNext} />}
         {step === 'recognition' && <StepRecognition data={data} onNext={goNext} />}
-        {step === 'reveal' && <StepProfileReveal profile={profile} loading={loading} onComplete={handleRevealComplete} />}
-        {step === 'feedback' && <FeedbackLoop profile={profile} loading={loading} onComplete={handleFeedbackComplete} />}
+        {step === 'reveal' && <StepProfileReveal profile={profile} loading={loading} onFeedback={handleFeedback} />}
       </div>
     </div>
   );

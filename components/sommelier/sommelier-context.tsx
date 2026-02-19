@@ -11,6 +11,7 @@ interface SommelierContextValue {
   phase: SommelierPhase;
   precision: number;
   likedWinesCount: number;
+  hasDiscoveryData: boolean;
   conversationItems: ConversationItem[];
   addConversationItem: (item: ConversationItem) => void;
   clearConversation: () => void;
@@ -33,6 +34,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<SommelierPhase>('discovery');
   const [precision, setPrecision] = useState(0);
   const [likedWinesCount, setLikedWinesCount] = useState(0);
+  const [hasDiscoveryData, setHasDiscoveryData] = useState(false);
   const [conversationItems, setConversationItems] = useState<ConversationItem[]>([]);
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +51,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
       setPhase(state.phase);
       setPrecision(state.precision);
       setLikedWinesCount(state.likedWinesCount);
+      setHasDiscoveryData(state.hasDiscoveryData ?? false);
       if (state.conversationHistory?.length) {
         setConversationItems(state.conversationHistory);
       }
@@ -88,7 +91,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     <SommelierContext.Provider
       value={{
         isOpen, toggle, open, close,
-        phase, precision, likedWinesCount,
+        phase, precision, likedWinesCount, hasDiscoveryData,
         conversationItems, addConversationItem, clearConversation,
         activeFlow, setActiveFlow,
         refreshState, isLoading,

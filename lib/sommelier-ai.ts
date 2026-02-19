@@ -61,6 +61,7 @@ Return ONLY valid JSON:
   "alternatives": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "description": "...", "why_match": "..." }, { "name": "...", "winery": "...", "region": "...", "grape": "...", "description": "...", "why_match": "..." }]
 }
 Use Vivino-style spectrum calibration for radar values.
+IMPORTANT: All wine_suggestion and alternatives MUST be wines produced in Israel by Israeli wineries (e.g. Golan Heights Winery, Yarden, Recanati, Barkan, Galil Mountain, Carmel, Psagot, Jezreel Valley, Tabor, Vitkin, etc.). The user needs to be able to find and buy these wines locally.
 ${langInstr(language)}`;
 
   return await ask(system, `User calibration data: ${JSON.stringify(discoveryData)}`, { temperature: 0.7, maxTokens: 2000 });
@@ -75,6 +76,7 @@ export async function adjustDiscoveryProfile(
   const system = `You are a wine sommelier. The user said their preliminary profile is "${feedback}" (close but not quite / not really). Adjust ONE trait and regenerate a wine suggestion.
 Return the same JSON structure as before:
 { "traits": [...], "regions": [...], "styles": [...], "radar": {...}, "wine_suggestion": {...}, "alternatives": [{...}, {...}] }
+IMPORTANT: All wine_suggestion and alternatives MUST be wines produced in Israel by Israeli wineries.
 ${langInstr(language)}`;
 
   return await ask(system, `Current profile: ${JSON.stringify(currentProfile)}\nOriginal calibration: ${JSON.stringify(discoveryData)}\nFeedback: ${feedback}`);
@@ -161,7 +163,8 @@ export async function generateWineDiscovery(
   language = 'he'
 ) {
   const system = `You are a wine sommelier. Recommend 4 wines the user would love based on their profile. Avoid wines they've already tried. Mix familiar styles with one adventurous pick.
-Return JSON: { "wines": [{ "name": "...", "region": "...", "grape": "...", "match": 0-100, "reason": "brief reason" }, ...] }
+IMPORTANT: All recommended wines MUST be wines produced in Israel by Israeli wineries, so the user can find and buy them locally.
+Return JSON: { "wines": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "wine_type": "red"|"white"|"rose"|"sparkling", "country": "Israel", "match": 0-100, "reason": "brief reason", "tasting_note": "1-2 sentence tasting description" }, ...] }
 ${langInstr(language)}`;
 
   return await ask(system, `Profile: ${JSON.stringify(profile)}\nRecent/liked wines: ${JSON.stringify(recentWines)}`);

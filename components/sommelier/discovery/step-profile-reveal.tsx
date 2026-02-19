@@ -8,10 +8,10 @@ import { Loader2, MapPin, Sparkles } from 'lucide-react';
 interface Props {
   profile: PreliminaryProfile | null;
   loading: boolean;
-  onComplete: () => void;
+  onFeedback: (feedback: 'yes' | 'close' | 'not_really') => void;
 }
 
-export function StepProfileReveal({ profile, loading, onComplete }: Props) {
+export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
   const t = useTranslations('sommelier');
 
   if (loading || !profile) {
@@ -30,7 +30,16 @@ export function StepProfileReveal({ profile, loading, onComplete }: Props) {
       </h3>
       <p className="text-xs text-muted-foreground mb-4">{t('revealSubtitle')}</p>
 
-      <RadarChart values={profile.radar} size={180} />
+      <RadarChart
+        values={profile.radar}
+        size={180}
+        labels={{
+          body: t('radarBody'),
+          tannin: t('radarTannin'),
+          sweetness: t('radarSweetness'),
+          acidity: t('radarAcidity'),
+        }}
+      />
 
       {/* Traits */}
       <div className="flex flex-wrap justify-center gap-2 mt-4">
@@ -73,12 +82,27 @@ export function StepProfileReveal({ profile, loading, onComplete }: Props) {
         </div>
       )}
 
-      <button
-        onClick={onComplete}
-        className="mt-6 w-full rounded-xl bg-bordeaux-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-bordeaux-700"
-      >
-        {t('revealCTA')}
-      </button>
+      {/* Three feedback options directly on the reveal screen */}
+      <div className="w-full mt-6 space-y-3">
+        <button
+          onClick={() => onFeedback('yes')}
+          className="w-full rounded-xl bg-bordeaux-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-bordeaux-700"
+        >
+          {t('revealConfirm')}
+        </button>
+        <button
+          onClick={() => onFeedback('close')}
+          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+        >
+          {t('revealClose')}
+        </button>
+        <button
+          onClick={() => onFeedback('not_really')}
+          className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent"
+        >
+          {t('revealRetry')}
+        </button>
+      </div>
     </div>
   );
 }

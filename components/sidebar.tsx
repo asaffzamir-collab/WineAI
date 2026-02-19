@@ -4,15 +4,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Search, Wine, Heart, User, Settings } from 'lucide-react';
+import { Home, Wine, Heart, User, Settings, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WineLogo } from '@/components/wine-logo';
 import { Separator } from '@/components/ui/separator';
 import { hasUnseenUpdates, markUpdatesSeen } from '@/lib/changelog';
+import { useSommelier } from '@/components/sommelier/sommelier-context';
 
 const mainNavItems = [
   { href: '/', icon: Home, labelKey: 'home' },
-  { href: '/search', icon: Search, labelKey: 'search' },
+  { href: '__sommelier__', icon: Sparkles, labelKey: 'sommelier' },
   { href: '/cellar', icon: Wine, labelKey: 'cellar' },
   { href: '/wishlist', icon: Heart, labelKey: 'wishlist' },
   { href: '/profile', icon: User, labelKey: 'profile' },
@@ -25,6 +26,7 @@ const bottomNavItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const { open: openSommelier, isOpen: isSommelierOpen } = useSommelier();
   const [showBadge, setShowBadge] = useState(false);
   const prefetchedRef = useRef(false);
 
@@ -59,9 +61,36 @@ export function Sidebar() {
       <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-2 py-4 lg:px-3">
         <ul className="space-y-1">
           {mainNavItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isSommelierTab = item.href === '__sommelier__';
+            const isActive = isSommelierTab ? isSommelierOpen : pathname === item.href;
             const Icon = item.icon;
             const isCellar = item.href === '/cellar';
+
+            if (isSommelierTab) {
+              return (
+                <li key={item.href}>
+                  <button
+                    onClick={() => openSommelier()}
+                    className={cn(
+                      'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                      'min-h-[44px]',
+                      isActive
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-5 w-5 flex-shrink-0 transition-colors',
+                        isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/50 group-hover:text-sidebar-foreground/70'
+                      )}
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    <span className="hidden lg:block">{t(item.labelKey)}</span>
+                  </button>
+                </li>
+              );
+            }
 
             return (
               <li key={item.href}>

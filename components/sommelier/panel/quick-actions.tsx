@@ -16,7 +16,7 @@ interface QuickAction {
 
 const DISCOVERY_ACTIONS: QuickAction[] = [
   { id: 'map', icon: Compass, labelKey: 'actionMapTaste', flow: 'discovery' },
-  { id: 'search', icon: Search, labelKey: 'actionSearchWine', route: '/search' },
+  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
   { id: 'how', icon: HelpCircle, labelKey: 'actionHowItWorks', flow: 'how-it-works' },
   { id: 'surprise', icon: Sparkles, labelKey: 'actionSurpriseMe', flow: 'wine-discovery' },
 ];
@@ -25,7 +25,7 @@ const LEARNING_ACTIONS: QuickAction[] = [
   { id: 'refine', icon: SlidersHorizontal, labelKey: 'actionRefineTaste', flow: 'refinement' },
   { id: 'similar', icon: Wine, labelKey: 'actionFindSimilar', flow: 'wine-discovery' },
   { id: 'accuracy', icon: Target, labelKey: 'actionImproveAccuracy', flow: 'palate-game' },
-  { id: 'add', icon: PlusCircle, labelKey: 'actionAddWine', route: '/search' },
+  { id: 'add', icon: PlusCircle, labelKey: 'actionAddWine', flow: 'search' },
 ];
 
 const PERSONALIZED_ACTIONS: QuickAction[] = [
@@ -37,15 +37,20 @@ const PERSONALIZED_ACTIONS: QuickAction[] = [
 ];
 
 export function QuickActions() {
-  const { phase, setActiveFlow, close } = useSommelier();
+  const { phase, hasDiscoveryData, setActiveFlow, close } = useSommelier();
   const t = useTranslations('sommelier');
   const router = useRouter();
 
-  const actions = phase === 'discovery'
-    ? DISCOVERY_ACTIONS
-    : phase === 'learning'
-      ? LEARNING_ACTIONS
-      : PERSONALIZED_ACTIONS;
+  let actions: QuickAction[];
+  if (phase === 'discovery') {
+    actions = hasDiscoveryData
+      ? DISCOVERY_ACTIONS.filter(a => a.id !== 'map')
+      : DISCOVERY_ACTIONS;
+  } else if (phase === 'learning') {
+    actions = LEARNING_ACTIONS;
+  } else {
+    actions = PERSONALIZED_ACTIONS;
+  }
 
   const handleAction = (action: QuickAction) => {
     if (action.route) {

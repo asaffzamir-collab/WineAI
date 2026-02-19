@@ -17,6 +17,8 @@ import { FoodPairing } from './personalized/food-pairing';
 import { WineDiscovery } from './personalized/wine-discovery';
 import { TasteEvolution } from './personalized/taste-evolution';
 import { CellarActions, FillRackFlow } from './personalized/cellar-actions';
+import { HowItWorks } from './how-it-works';
+import { SearchFlow } from './search-flow';
 
 export function SommelierPanel() {
   const { isOpen, close, activeFlow } = useSommelier();
@@ -52,6 +54,8 @@ export function SommelierPanel() {
       case 'taste-evolution': return <TasteEvolution />;
       case 'cellar-context': return <CellarActions />;
       case 'fill-rack': return <FillRackFlow />;
+      case 'how-it-works': return <HowItWorks />;
+      case 'search': return <SearchFlow />;
       default: return null;
     }
   };

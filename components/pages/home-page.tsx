@@ -288,7 +288,13 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     setGuideDismissed(true);
   };
 
-  const showGuide = !guideDismissed && !isLoading && stats.bottlesInCellar === 0 && stats.winesTasted === 0;
+  const hasProfile = stats.hasRedProfile || stats.hasWhiteProfile || stats.hasRoseProfile;
+  const hasSearchedWine = stats.winesTasted > 0;
+  const hasLikedWine = hasProfile;
+  const hasCellarOrWishlist = stats.bottlesInCellar > 0 || stats.wishlistCount > 0;
+  const allJourneyComplete = hasProfile && hasSearchedWine && hasCellarOrWishlist;
+  const showJourney = !isLoading && !allJourneyComplete && !guideDismissed;
+  const showGuide = false;
 
   const typeTotal = Object.values(stats.wineTypeDistribution).reduce((a, b) => a + b, 0);
   const typeEntries = Object.entries(stats.wineTypeDistribution).sort((a, b) => b[1] - a[1]);
@@ -366,8 +372,8 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         </header>
 
         <div className="mx-auto mt-2 max-w-5xl px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Getting-Started Guide */}
-        {showGuide && (
+        {/* Interactive Journey Tracker */}
+        {showJourney && (
           <Card className="relative overflow-hidden border border-copper-200/40 bg-gradient-to-br from-white to-copper-50/30 dark:from-charcoal-800 dark:to-charcoal-700/30">
             <button
               onClick={dismissGuide}
@@ -377,30 +383,43 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
               <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
             <CardContent className="px-5 py-5">
-              <p className="text-sm font-semibold text-foreground mb-4">{t('guideTitle')}</p>
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/30">
-                    <Camera className="h-5 w-5 text-primary" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-xs font-semibold text-foreground">{t('guideStep1Title')}</p>
-                  <p className="text-xs leading-tight text-muted-foreground">{t('guideStep1Desc')}</p>
-                </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-copper-50 dark:bg-copper-700/20">
-                    <BookmarkPlus className="h-5 w-5 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-xs font-semibold text-foreground">{t('guideStep2Title')}</p>
-                  <p className="text-xs leading-tight text-muted-foreground">{t('guideStep2Desc')}</p>
-                </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-muted">
-                    <Compass className="h-5 w-5 text-success" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-xs font-semibold text-foreground">{t('guideStep3Title')}</p>
-                  <p className="text-xs leading-tight text-muted-foreground">{t('guideStep3Desc')}</p>
-                </div>
+              <p className="text-sm font-semibold text-foreground mb-1">{t('journeyTitle')}</p>
+              <p className="text-xs text-muted-foreground mb-4">{t('journeySubtitle')}</p>
+
+              {/* Progress bar */}
+              <div className="flex gap-1.5 mb-5">
+                {[hasProfile, hasSearchedWine, hasLikedWine, hasCellarOrWishlist].map((done, i) => (
+                  <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${done ? 'bg-bordeaux-500' : 'bg-muted'}`} />
+                ))}
               </div>
+
+              <div className="space-y-3">
+                <JourneyStep
+                  done={hasProfile}
+                  icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
+                  title={t('journeyStep1Title')}
+                  desc={t('journeyStep1Desc')}
+                />
+                <JourneyStep
+                  done={hasSearchedWine}
+                  icon={<Camera className="h-4 w-4" strokeWidth={1.5} />}
+                  title={t('journeyStep2Title')}
+                  desc={t('journeyStep2Desc')}
+                />
+                <JourneyStep
+                  done={hasLikedWine}
+                  icon={<Heart className="h-4 w-4" strokeWidth={1.5} />}
+                  title={t('journeyStep3Title')}
+                  desc={t('journeyStep3Desc')}
+                />
+                <JourneyStep
+                  done={hasCellarOrWishlist}
+                  icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
+                  title={t('journeyStep4Title')}
+                  desc={t('journeyStep4Desc')}
+                />
+              </div>
+
               <button
                 onClick={dismissGuide}
                 className="mt-4 block w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -600,5 +619,19 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       </Dialog>
       </div>
     </AppShell>
+  );
+}
+
+function JourneyStep({ done, icon, title, desc }: { done: boolean; icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${done ? 'bg-success-muted text-success' : 'bg-muted text-muted-foreground'}`}>
+        {icon}
+      </div>
+      <div className="min-w-0 pt-0.5">
+        <p className={`text-xs font-semibold ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{title}</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
+      </div>
+    </div>
   );
 }
