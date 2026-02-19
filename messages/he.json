@@ -520,6 +520,8 @@
     "generatingChoices": "יוצר אפשרויות...",
     "errorLoadingChoices": "לא הצלחנו לטעון. נסה שוב מאוחר יותר.",
     "goBack": "חזרה",
+    "tryAgain": "נסה שוב",
+    "discoveryError": "לא הצלחנו לטעון המלצות כרגע. אנא נסה שוב.",
     "updatingProfile": "מעדכן את הפרופיל שלך...",
 
     "palateGameTitle": "בדוק את החיך שלך",

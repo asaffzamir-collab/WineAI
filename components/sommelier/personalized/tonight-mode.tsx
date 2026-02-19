@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { cn } from '@/lib/utils';
-import { Loader2, Wine, Utensils, Sparkles, ArrowLeft, MapPin, Grape } from 'lucide-react';
+import { Loader2, Wine, Utensils, Sparkles, ArrowLeft, MapPin, Grape, AlertCircle } from 'lucide-react';
+import { safeId } from '@/lib/utils';
 
 type TonightStep = 'occasion' | 'food' | 'mood' | 'result';
 
@@ -22,6 +23,7 @@ export function TonightMode() {
     why: string; match: number; reasons?: string[];
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleOccasion = (occ: string) => {
     setOccasion(occ);
@@ -30,6 +32,7 @@ export function TonightMode() {
 
   const handleFoodSubmit = async (mood: string) => {
     setLoading(true);
+    setError(false);
     setStep('result');
     try {
       const res = await fetch('/api/sommelier/tonight', {
@@ -41,7 +44,7 @@ export function TonightMode() {
         const data = await res.json();
         setResult(data);
         addConversationItem({
-          id: crypto.randomUUID(),
+          id: safeId(),
           type: 'response',
           title: t('tonightResult'),
           content: data.why,
@@ -53,8 +56,8 @@ export function TonightMode() {
           ],
           created_at: new Date().toISOString(),
         });
-      }
-    } catch { /* ignore */ }
+      } else { setError(true); }
+    } catch { setError(true); }
     finally { setLoading(false); }
   };
 
@@ -67,6 +70,18 @@ export function TonightMode() {
         </div>
       );
     }
+    if (error && !result) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <AlertCircle className="h-8 w-8 text-muted-foreground mb-4" />
+          <p className="text-sm text-muted-foreground text-center mb-4">{t('discoveryError')}</p>
+          <button onClick={() => { setStep('occasion'); setResult(null); setError(false); setOccasion(''); setFood(''); }} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-accent transition-colors">
+            {t('tryAgain')}
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col pt-4 px-4 pb-6">
         <button

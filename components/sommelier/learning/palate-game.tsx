@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { cn } from '@/lib/utils';
+import { cn, safeId } from '@/lib/utils';
 import { Loader2, Wine } from 'lucide-react';
 
 interface GameWine {
@@ -43,7 +43,7 @@ export function PalateGame() {
         const data = await res.json();
         setExplanation(data.explanation);
         addConversationItem({
-          id: crypto.randomUUID(),
+          id: safeId(),
           type: 'insight',
           title: t('palateGameResult'),
           content: data.explanation,

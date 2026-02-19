@@ -6,6 +6,7 @@ import { useSommelier } from '../sommelier-context';
 import { cn } from '@/lib/utils';
 import { Loader2, Search, ShoppingBag, AlertTriangle } from 'lucide-react';
 import { ConfidenceBadge } from '../confidence-badge';
+import { safeId } from '@/lib/utils';
 
 export function BuyingIntelligence() {
   const t = useTranslations('sommelier');
@@ -89,7 +90,7 @@ export function BuyingIntelligence() {
           <button
             onClick={() => {
               addConversationItem({
-                id: crypto.randomUUID(),
+                id: safeId(),
                 type: 'response',
                 title: `${query} — ${result.match}%`,
                 content: result.explanation,

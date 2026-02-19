@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { cn } from '@/lib/utils';
+import { cn, safeId } from '@/lib/utils';
 
 export function PanelInput() {
   const [value, setValue] = useState('');
@@ -30,7 +30,7 @@ export function PanelInput() {
       if (res.ok) {
         const data = await res.json();
         addConversationItem({
-          id: crypto.randomUUID(),
+          id: safeId(),
           type: 'response',
           title: data.title || query,
           content: data.content || '',

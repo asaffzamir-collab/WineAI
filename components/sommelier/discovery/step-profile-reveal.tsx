@@ -43,7 +43,7 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
 
       {/* Traits */}
       <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {profile.traits.map(trait => (
+        {profile.traits?.map(trait => (
           <span key={trait} className="rounded-full bg-bordeaux-100 dark:bg-bordeaux-900/30 px-3 py-1 text-xs font-medium text-bordeaux-700 dark:text-bordeaux-300">
             {trait}
           </span>
@@ -51,41 +51,43 @@ export function StepProfileReveal({ profile, loading, onFeedback }: Props) {
       </div>
 
       {/* Regions */}
-      {profile.regions.length > 0 && (
+      {(profile.regions?.length ?? 0) > 0 && (
         <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
           <MapPin className="h-3.5 w-3.5" />
-          <span>{profile.regions.join(' · ')}</span>
+          <span>{profile.regions?.join(' · ')}</span>
         </div>
       )}
 
       {/* Wine suggestion - compact card */}
-      <div className="w-full mt-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-4 w-4 text-bordeaux-500" />
-          <span className="text-sm font-semibold">{t('suggestedWine')}</span>
-        </div>
-        <div className="rounded-xl border border-border/50 bg-card p-3.5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
-              <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">{profile.wine_suggestion.name}</p>
-              <p className="text-xs text-muted-foreground">{profile.wine_suggestion.winery} · {profile.wine_suggestion.region}</p>
-              {profile.wine_suggestion.grape && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">{profile.wine_suggestion.grape}</p>
-              )}
-            </div>
+      {profile.wine_suggestion && (
+        <div className="w-full mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-bordeaux-500" />
+            <span className="text-sm font-semibold">{t('suggestedWine')}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{profile.wine_suggestion.why_match}</p>
+          <div className="rounded-xl border border-border/50 bg-card p-3.5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                <Wine className="h-5 w-5 text-bordeaux-500" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">{profile.wine_suggestion.name}</p>
+                <p className="text-xs text-muted-foreground">{profile.wine_suggestion.winery} · {profile.wine_suggestion.region}</p>
+                {profile.wine_suggestion.grape && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{profile.wine_suggestion.grape}</p>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{profile.wine_suggestion.why_match}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Alternatives - compact list */}
-      {profile.alternatives.length > 0 && (
+      {(profile.alternatives?.length ?? 0) > 0 && (
         <div className="w-full mt-3 space-y-1.5">
           <p className="text-xs text-muted-foreground font-medium">{t('alternatives')}</p>
-          {profile.alternatives.map((alt, i) => (
+          {profile.alternatives?.map((alt, i) => (
             <div key={i} className="flex items-center gap-3 rounded-xl border border-border/40 bg-card p-3">
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
                 <Wine className="h-4 w-4 text-bordeaux-400" strokeWidth={1.5} />

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { Loader2, UtensilsCrossed, Wine } from 'lucide-react';
+import { safeId } from '@/lib/utils';
 
 export function FoodPairing() {
   const t = useTranslations('sommelier');
@@ -56,7 +57,7 @@ export function FoodPairing() {
               </div>
             </div>
           ))}
-          <button onClick={() => { addConversationItem({ id: crypto.randomUUID(), type: 'response', title: t('pairingResultTitle', { meal }), content: result.suggestions.map(s => s.wine).join(', '), created_at: new Date().toISOString() }); setActiveFlow(null); }} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-accent transition-colors">
+          <button onClick={() => { addConversationItem({ id: safeId(), type: 'response', title: t('pairingResultTitle', { meal }), content: result.suggestions.map(s => s.wine).join(', '), created_at: new Date().toISOString() }); setActiveFlow(null); }} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-accent transition-colors">
             {t('done')}
           </button>
         </div>

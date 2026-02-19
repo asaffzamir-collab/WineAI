@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { Loader2, ArrowLeft, Wine, ChevronRight, Grape, MapPin } from 'lucide-react';
+import { Loader2, ArrowLeft, Wine, ChevronRight, Grape, MapPin, AlertCircle } from 'lucide-react';
 import type { WineData } from '@/lib/openai';
 
 const WineCard = dynamic(
@@ -42,6 +42,7 @@ export function WineDiscovery() {
   const { setActiveFlow, userId, refreshState } = useSommelier();
   const [wines, setWines] = useState<DiscoveredWine[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
@@ -52,9 +53,15 @@ export function WineDiscovery() {
         const res = await fetch('/api/sommelier/discover-wines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
         if (res.ok) {
           const data = await res.json();
-          setWines(data.wines);
+          if (Array.isArray(data.wines) && data.wines.length > 0) {
+            setWines(data.wines);
+          } else {
+            setError(true);
+          }
+        } else {
+          setError(true);
         }
-      } catch { /* ignore */ }
+      } catch { setError(true); }
       finally { setLoading(false); }
     };
     discover();
@@ -123,7 +130,27 @@ export function WineDiscovery() {
     );
   }
 
-  const selectedWine = selectedIndex !== null && wines ? wines[selectedIndex] : null;
+  if (error || !wines || wines.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <AlertCircle className="h-8 w-8 text-muted-foreground mb-4" />
+        <p className="text-sm text-muted-foreground text-center mb-2">{t('discoveryError')}</p>
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => { setError(false); setLoading(true); setWines(null); fetch('/api/sommelier/discover-wines', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.ok ? r.json() : Promise.reject()).then(d => { if (Array.isArray(d.wines) && d.wines.length > 0) setWines(d.wines); else setError(true); }).catch(() => setError(true)).finally(() => setLoading(false)); }}
+            className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-accent transition-colors"
+          >
+            {t('tryAgain')}
+          </button>
+          <button onClick={() => setActiveFlow(null)} className="rounded-xl bg-bordeaux-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-bordeaux-700 transition-colors">
+            {t('goBack')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const selectedWine = selectedIndex !== null ? wines[selectedIndex] ?? null : null;
 
   // Detail view for a selected wine
   if (selectedWine) {

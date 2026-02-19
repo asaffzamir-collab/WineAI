@@ -520,6 +520,8 @@
     "generatingChoices": "Creating options...",
     "errorLoadingChoices": "Couldn't load choices. Try again later.",
     "goBack": "Go back",
+    "tryAgain": "Try again",
+    "discoveryError": "Couldn't load wine suggestions right now. Please try again.",
     "updatingProfile": "Updating your profile...",
 
     "palateGameTitle": "Test Your Palate",

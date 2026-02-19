@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { cn } from '@/lib/utils';
+import { cn, safeId } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 interface Choice {
@@ -40,7 +40,7 @@ export function SmartRefinement() {
       if (res.ok) {
         const data = await res.json();
         addConversationItem({
-          id: crypto.randomUUID(),
+          id: safeId(),
           type: 'insight',
           title: t('refinementResult'),
           content: data.insight || t('refinementUpdated'),
