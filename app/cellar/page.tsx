@@ -16,7 +16,7 @@ export default async function Page() {
   const userId = session.user.id;
   let cellarItems: CellarItem[] = [];
   try {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, notes,
@@ -25,6 +25,20 @@ export default async function Page() {
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    if (error && error.message?.includes('slot_id')) {
+      const fallback = await supabase
+        .from('cellar_items')
+        .select(`
+          id, quantity, purchase_price, purchase_date, notes,
+          drink_from, drink_until,
+          wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      data = fallback.data as typeof data;
+      error = fallback.error;
+    }
     cellarItems = (data as CellarItem[]) || [];
   } catch (e) {
     console.error('Cellar page error:', e);

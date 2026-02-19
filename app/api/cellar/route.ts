@@ -8,6 +8,23 @@ function tryAdminClient() {
 
 export const dynamic = 'force-dynamic';
 
+const CELLAR_SELECT_FULL = `
+  id, quantity, purchase_price, purchase_date, notes,
+  drink_from, drink_until, slot_id,
+  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+`;
+
+const CELLAR_SELECT_NO_SLOT = `
+  id, quantity, purchase_price, purchase_date, notes,
+  drink_from, drink_until,
+  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+`;
+
+function isColumnMissing(err: unknown): boolean {
+  const msg = String(err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : err);
+  return msg.includes('slot_id') && (msg.includes('does not exist') || msg.includes('not found'));
+}
+
 export async function GET(request: Request) {
   try {
     const userId = new URL(request.url).searchParams.get('userId');
@@ -17,13 +34,19 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     let { data, error } = await supabase
       .from('cellar_items')
-      .select(`
-        id, quantity, purchase_price, purchase_date, notes,
-        drink_from, drink_until, slot_id,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
-      `)
+      .select(CELLAR_SELECT_FULL)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
+
+    if (error && isColumnMissing(error)) {
+      const fallback = await supabase
+        .from('cellar_items')
+        .select(CELLAR_SELECT_NO_SLOT)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      data = fallback.data as typeof data;
+      error = fallback.error;
+    }
     if (error) throw error;
     const resp = NextResponse.json({ items: data || [] });
     resp.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -148,9 +171,17 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    const { error } = await supabase.from('cellar_items').update(updates).eq('id', id);
-    // Silently ignore if a column doesn't exist (e.g. bottle_photo_url)
-    if (error && !error.message?.includes('bottle_photo_url')) throw error;
+    let { error } = await supabase.from('cellar_items').update(updates).eq('id', id);
+    if (error && (error.message?.includes('bottle_photo_url') || error.message?.includes('slot_id'))) {
+      delete updates.bottle_photo_url;
+      delete updates.slot_id;
+      if (Object.keys(updates).length > 0) {
+        ({ error } = await supabase.from('cellar_items').update(updates).eq('id', id));
+      } else {
+        error = null;
+      }
+    }
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Cellar PATCH error:', error);

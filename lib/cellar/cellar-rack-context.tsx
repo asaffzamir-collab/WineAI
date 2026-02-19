@@ -100,18 +100,39 @@ function loadLocalSlotAssignments(userId: string): Record<string, SlotId> {
 
 // --------------- Rack API helpers ---------------
 
-async function fetchRacksFromDb(userId: string): Promise<{ dbId: string; rack: Rack }[]> {
+interface FetchRacksResult {
+  rows: { dbId: string; rack: Rack }[];
+  tableMissing: boolean;
+}
+
+async function fetchRacksFromDb(userId: string): Promise<FetchRacksResult> {
   try {
     const res = await fetch(`/api/cellar/rack?userId=${encodeURIComponent(userId)}`);
-    if (!res.ok) return [];
+    if (!res.ok) return { rows: [], tableMissing: false };
     const data = await res.json();
-    if (!Array.isArray(data.racks)) return [];
-    return data.racks.map((row: { id: string; config: Rack }) => ({
-      dbId: row.id,
-      rack: row.config,
-    }));
+    if (data.tableMissing) return { rows: [], tableMissing: true };
+    if (!Array.isArray(data.racks)) return { rows: [], tableMissing: false };
+    return {
+      rows: data.racks.map((row: { id: string; config: Rack }) => ({
+        dbId: row.id,
+        rack: row.config,
+      })),
+      tableMissing: false,
+    };
   } catch {
-    return [];
+    return { rows: [], tableMissing: false };
+  }
+}
+
+async function tryEnsureSchema(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/ensure-schema', { method: 'POST' });
+    if (res.ok) return true;
+    const data = await res.json();
+    console.warn('[cellar] Schema migration needed. Run this SQL in Supabase SQL Editor:', data.sql);
+    return false;
+  } catch {
+    return false;
   }
 }
 
@@ -203,11 +224,20 @@ export function CellarRackProvider({
     if (savedView === '3d' || savedView === '2d') setViewMode(savedView);
 
     (async () => {
-      const dbRows = await fetchRacksFromDb(userId);
+      let result = await fetchRacksFromDb(userId);
 
-      if (dbRows.length > 0) {
-        const loaded = dbRows.map((r) => r.rack);
-        for (const r of dbRows) {
+      // If table doesn't exist, try auto-creating it then retry
+      if (result.tableMissing) {
+        const fixed = await tryEnsureSchema();
+        if (fixed) {
+          result = await fetchRacksFromDb(userId);
+        }
+      }
+
+      // If we have DB data, use it
+      if (result.rows.length > 0) {
+        const loaded = result.rows.map((r) => r.rack);
+        for (const r of result.rows) {
           rackDbIds.current[r.rack.id] = r.dbId;
         }
         setRacks(loaded);
@@ -216,39 +246,41 @@ export function CellarRackProvider({
         return;
       }
 
-      // DB empty — check localStorage for data to migrate
+      // DB empty (or still missing) — check localStorage for data to migrate
       const localRacks = loadLocalRacks(userId);
       if (localRacks.length > 0) {
         setRacks(localRacks);
         setActiveRackIdState(localRacks[0].id);
 
-        // Migrate localStorage racks to DB
-        for (const rack of localRacks) {
-          const dbId = await postRackToDb(userId, rack);
-          if (dbId) rackDbIds.current[rack.id] = dbId;
-        }
+        if (!result.tableMissing) {
+          // Migrate localStorage racks to DB
+          for (const rack of localRacks) {
+            const dbId = await postRackToDb(userId, rack);
+            if (dbId) rackDbIds.current[rack.id] = dbId;
+          }
 
-        // Migrate localStorage slot assignments to DB
-        const localSlots = loadLocalSlotAssignments(userId);
-        const slotEntries = Object.entries(localSlots);
-        if (slotEntries.length > 0) {
-          // Optimistically set slot_id on cellar items in local state
-          setCellarItems((prev) => prev.map((item) => {
-            const slotId = localSlots[item.id];
-            return slotId ? { ...item, slot_id: slotId } : item;
-          }));
-          // Persist each to DB in background
-          for (const [itemId, slotId] of slotEntries) {
-            patchCellarItemSlot(itemId, slotId);
+          // Migrate localStorage slot assignments to DB
+          const localSlots = loadLocalSlotAssignments(userId);
+          const slotEntries = Object.entries(localSlots);
+          if (slotEntries.length > 0) {
+            setCellarItems((prev) => prev.map((item) => {
+              const slotId = localSlots[item.id];
+              return slotId ? { ...item, slot_id: slotId } : item;
+            }));
+            for (const [itemId, slotId] of slotEntries) {
+              patchCellarItemSlot(itemId, slotId);
+            }
           }
         }
         return;
       }
 
-      // Nothing anywhere — create a default rack in DB
+      // Nothing anywhere — create a default rack
       const defaultRack = createDefaultRack('My Wine Rack');
-      const dbId = await postRackToDb(userId, defaultRack);
-      if (dbId) rackDbIds.current[defaultRack.id] = dbId;
+      if (!result.tableMissing) {
+        const dbId = await postRackToDb(userId, defaultRack);
+        if (dbId) rackDbIds.current[defaultRack.id] = dbId;
+      }
       setRacks([defaultRack]);
       setActiveRackIdState(defaultRack.id);
       cacheRacksLocally(userId, [defaultRack]);

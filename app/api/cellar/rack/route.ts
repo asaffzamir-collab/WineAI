@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+function isTableMissing(error: unknown): boolean {
+  const msg = String(error && typeof error === 'object' && 'message' in error ? (error as { message: string }).message : error);
+  return (msg.includes('cellar_racks') || msg.includes('relation')) &&
+    (msg.includes('does not exist') || msg.includes('not found') || msg.includes('schema cache'));
+}
+
 export async function GET(request: Request) {
   try {
     const userId = new URL(request.url).searchParams.get('userId');
@@ -16,7 +22,13 @@ export async function GET(request: Request) {
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      if (isTableMissing(error)) {
+        console.warn('[cellar_racks] Table does not exist. Run migrations via POST /api/ensure-schema');
+        return NextResponse.json({ racks: [], tableMissing: true });
+      }
+      throw error;
+    }
     return NextResponse.json({ racks: data || [] });
   } catch (error) {
     console.error('Rack GET error:', error);
@@ -37,7 +49,12 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (isTableMissing(error)) {
+        return NextResponse.json({ error: 'table_missing' }, { status: 503 });
+      }
+      throw error;
+    }
     return NextResponse.json({ success: true, id: data.id });
   } catch (error) {
     console.error('Rack POST error:', error);
@@ -57,7 +74,12 @@ export async function PATCH(request: Request) {
       .update({ config, updated_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      if (isTableMissing(error)) {
+        return NextResponse.json({ error: 'table_missing' }, { status: 503 });
+      }
+      throw error;
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Rack PATCH error:', error);
@@ -71,7 +93,12 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
     const supabase = await createClient();
     const { error } = await supabase.from('cellar_racks').delete().eq('id', id);
-    if (error) throw error;
+    if (error) {
+      if (isTableMissing(error)) {
+        return NextResponse.json({ error: 'table_missing' }, { status: 503 });
+      }
+      throw error;
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Rack DELETE error:', error);
