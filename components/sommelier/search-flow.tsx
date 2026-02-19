@@ -35,14 +35,23 @@ export function SearchFlow() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (userId) setRecentSearches(getRecentSearches(userId));
+    if (!userId) return;
+    setRecentSearches(getRecentSearches(userId));
+    try {
+      const cached = sessionStorage.getItem(`sommelier-last-search:${userId}`);
+      if (cached) {
+        const { wine, match, q } = JSON.parse(cached);
+        if (wine) { setWineResult(wine); setMatchResult(match ?? null); setQuery(q ?? ''); }
+      }
+    } catch {}
   }, [userId]);
 
-  const saveAndSetResult = (wine: WineData) => {
+  const saveAndSetResult = (wine: WineData, match?: ProfileMatchResult | null) => {
     setWineResult(wine);
     if (userId) {
       addRecentSearch(userId, wine);
       setRecentSearches(getRecentSearches(userId));
+      try { sessionStorage.setItem(`sommelier-last-search:${userId}`, JSON.stringify({ wine, match, q: query })); } catch {}
     }
   };
 
@@ -65,10 +74,10 @@ export function SearchFlow() {
       if (data.error) {
         setError(data.error);
       } else if (data.wine) {
-        saveAndSetResult(data.wine);
+        saveAndSetResult(data.wine, data.match);
         setMatchResult(data.match ?? null);
       } else if (data.wines?.length > 0) {
-        saveAndSetResult(data.wines[0]);
+        saveAndSetResult(data.wines[0], data.match);
         setMatchResult(data.match ?? null);
       }
     } catch {
@@ -112,7 +121,7 @@ export function SearchFlow() {
       if (!response.ok) { setError('Search failed.'); setIsSearching(false); return; }
       const data = await response.json();
       if (data.error) { setError(data.error); }
-      else if (data.wine) { saveAndSetResult(data.wine); setMatchResult(data.match ?? null); }
+      else if (data.wine) { saveAndSetResult(data.wine, data.match); setMatchResult(data.match ?? null); }
     } catch {
       setError('Image upload failed.');
     } finally {

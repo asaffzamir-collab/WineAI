@@ -35,6 +35,15 @@ export async function GET() {
 
     let phase: SommelierPhase = 'discovery';
     let precision = 0;
+    const hasDiscoveryData = !!sommelierProfile?.discovery_data && Object.keys(sommelierProfile.discovery_data as object).length > 0;
+
+    // Compute max unlocked phase based on actual profile progress
+    let maxUnlockedPhase: SommelierPhase = 'discovery';
+    if (likedWinesCount >= 2) {
+      maxUnlockedPhase = 'personalization';
+    } else if (likedWinesCount >= 1 || hasDiscoveryData) {
+      maxUnlockedPhase = 'learning';
+    }
 
     if (sommelierProfile) {
       phase = sommelierProfile.phase as SommelierPhase;
@@ -49,8 +58,9 @@ export async function GET() {
 
     const state: SommelierState = {
       phase,
+      maxUnlockedPhase,
       precision,
-      hasDiscoveryData: !!sommelierProfile?.discovery_data && Object.keys(sommelierProfile.discovery_data as object).length > 0,
+      hasDiscoveryData,
       likedWinesCount,
       conversationHistory: (sommelierProfile?.conversation_history as unknown[]) as SommelierState['conversationHistory'] || [],
     };

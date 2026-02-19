@@ -18,7 +18,13 @@ export async function POST(request: Request) {
     const combinedProfile = profiles?.reduce((acc, p) => ({ ...acc, ...(p.profile_data as object) }), {}) || {};
 
     const { data: cellarItems } = await supabase.from('cellar_items').select('*, wines(*)').eq('user_id', user.id);
-    const cellarWines = cellarItems?.map(item => ({ ...item.wines, quantity: item.quantity, drink_from: item.drink_from, drink_until: item.drink_until })) || [];
+    const cellarWines = cellarItems?.map(item => ({
+      ...item.wines,
+      quantity: item.quantity,
+      drink_from: item.drink_from,
+      drink_until: item.drink_until,
+      cellar_item_id: item.id,
+    })) || [];
 
     const result = await generateTonightRecommendation({ occasion, food, mood }, cellarWines, combinedProfile, lang);
     return NextResponse.json(result);

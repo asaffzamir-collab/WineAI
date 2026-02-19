@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
+import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye, WineOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,26 @@ import { trackCellar } from '@/lib/cellar/analytics';
 import { LocationPickerModal } from './location-picker/location-picker-modal';
 
 type PanelMode = 'view' | 'note' | 'move' | 'place';
+
+// Days an opened wine stays drinkable by type
+const OPEN_WINE_DAYS: Record<string, number> = {
+  red: 5,
+  white: 3,
+  rose: 3,
+  sparkling: 1,
+  dessert: 14,
+};
+
+function getOpenedData(userId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(`cellar-opened:${userId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function setOpenedData(userId: string, data: Record<string, string>) {
+  try { localStorage.setItem(`cellar-opened:${userId}`, JSON.stringify(data)); } catch {}
+}
 
 export function SlotDetailPanel() {
   const t = useTranslations('cellar');
@@ -31,6 +51,33 @@ export function SlotDetailPanel() {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showMovePicker, setShowMovePicker] = useState(false);
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+
+  const loadOpenedState = useCallback(() => {
+    if (!userId || !selectedSlotId) return;
+    const data = getOpenedData(userId);
+    const cellarId = selectedPlacement?.cellarItemId;
+    setOpenedAt(cellarId ? data[cellarId] ?? null : null);
+  }, [userId, selectedSlotId, selectedPlacement?.cellarItemId]);
+
+  useEffect(() => { loadOpenedState(); }, [loadOpenedState]);
+
+  const handleMarkOpened = () => {
+    if (!userId || !selectedPlacement) return;
+    const data = getOpenedData(userId);
+    const now = new Date().toISOString();
+    data[selectedPlacement.cellarItemId] = now;
+    setOpenedData(userId, data);
+    setOpenedAt(now);
+  };
+
+  const handleUnmarkOpened = () => {
+    if (!userId || !selectedPlacement) return;
+    const data = getOpenedData(userId);
+    delete data[selectedPlacement.cellarItemId];
+    setOpenedData(userId, data);
+    setOpenedAt(null);
+  };
 
   if (!selectedSlotId) return null;
 
@@ -237,6 +284,30 @@ export function SlotDetailPanel() {
               </div>
             )}
 
+            {/* Opened indicator */}
+            {openedAt && (() => {
+              const maxDays = OPEN_WINE_DAYS[placement.wineType] ?? 5;
+              const elapsed = Math.floor((Date.now() - new Date(openedAt).getTime()) / 86400000);
+              const remaining = maxDays - elapsed;
+              const isExpired = remaining <= 0;
+              return (
+                <div className={cn(
+                  'rounded-lg px-3 py-2 flex items-center justify-between',
+                  isExpired ? 'bg-red-50 dark:bg-red-950/30' : 'bg-amber-50 dark:bg-amber-950/30'
+                )}>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{t('openedLabel')}</p>
+                    <p className={cn('text-xs font-medium', isExpired ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400')}>
+                      {isExpired ? t('openedExpired') : t('openedTimeLeft', { days: remaining })}
+                    </p>
+                  </div>
+                  <button type="button" onClick={handleUnmarkOpened} className="text-xs text-muted-foreground hover:text-foreground underline">
+                    ✕
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Details */}
             <Card className="border-border/50">
               <CardContent className="p-3 space-y-2 text-sm">
@@ -285,6 +356,17 @@ export function SlotDetailPanel() {
                 {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GlassWater className="h-3.5 w-3.5" strokeWidth={1.5} />}
                 {t('actionDrink')}
               </Button>
+              {!openedAt && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                  onClick={handleMarkOpened}
+                >
+                  <WineOff className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  {t('actionMarkOpened')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"

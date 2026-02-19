@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
@@ -25,7 +25,7 @@ interface DiscoveredWine {
   tasting_note?: string;
 }
 
-function discoveredToWineData(w: DiscoveredWine): WineData {
+function discoveredToWineData(w: DiscoveredWine, imageUrl?: string): WineData {
   return {
     name: w.name,
     winery: w.winery || '',
@@ -35,10 +35,11 @@ function discoveredToWineData(w: DiscoveredWine): WineData {
     grapes: w.grape ? [w.grape] : [],
     winery_description: w.reason,
     tasting_notes: w.tasting_note ? { nose: [], palate: [], finish: w.tasting_note } : undefined,
+    ...(imageUrl ? { image_url: imageUrl } : {}),
   };
 }
 
-function WineImageThumb({ name, winery }: { name: string; winery?: string }) {
+function WineImageThumb({ name, winery, onImageLoaded }: { name: string; winery?: string; onImageLoaded?: (url: string) => void }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
@@ -47,9 +48,9 @@ function WineImageThumb({ name, winery }: { name: string; winery?: string }) {
     fetchedRef.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(name)}&winery=${encodeURIComponent(winery || '')}`)
       .then(r => r.json())
-      .then(d => { if (d.imageUrl) setImageUrl(d.imageUrl); })
+      .then(d => { if (d.imageUrl) { setImageUrl(d.imageUrl); onImageLoaded?.(d.imageUrl); } })
       .catch(() => {});
-  }, [name, winery]);
+  }, [name, winery, onImageLoaded]);
 
   if (imageUrl) {
     return (
@@ -83,6 +84,11 @@ export function WineDiscovery() {
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
   const [isAddingToCellar, setIsAddingToCellar] = useState(false);
+  const [imageCache, setImageCache] = useState<Record<number, string>>({});
+
+  const handleImageLoaded = useCallback((index: number, url: string) => {
+    setImageCache(prev => ({ ...prev, [index]: url }));
+  }, []);
 
   useEffect(() => {
     const discover = async () => {
@@ -121,6 +127,7 @@ export function WineDiscovery() {
             country: wine.country || 'Israel',
             region: wine.region,
             grapes: wine.grape ? [wine.grape] : [],
+            image_url: imageCache[selectedIndex] || undefined,
           },
         }),
       });
@@ -146,6 +153,7 @@ export function WineDiscovery() {
             country: wine.country || 'Israel',
             region: wine.region,
             grapes: wine.grape ? [wine.grape] : [],
+            image_url: imageCache[selectedIndex] || undefined,
           },
           liked: true,
         }),
@@ -192,12 +200,12 @@ export function WineDiscovery() {
   const handleAddToCellar = () => {
     if (selectedIndex === null || !wines) return;
     const wine = wines[selectedIndex];
-    setAddToCellarWine(discoveredToWineData(wine));
+    setAddToCellarWine(discoveredToWineData(wine, imageCache[selectedIndex]));
   };
 
   // Detail view for a selected wine
   if (selectedWine) {
-    const wineData = discoveredToWineData(selectedWine);
+    const wineData = discoveredToWineData(selectedWine, selectedIndex !== null ? imageCache[selectedIndex] : undefined);
     return (
       <div className="flex flex-col pt-4 px-4 pb-6">
         <button
@@ -253,7 +261,7 @@ export function WineDiscovery() {
             className="w-full flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 text-start hover:bg-bordeaux-50 dark:hover:bg-bordeaux-900/20 transition-colors animate-fade-in"
             style={{ animationDelay: `${i * 80}ms` }}
           >
-            <WineImageThumb name={wine.name} winery={wine.winery} />
+            <WineImageThumb name={wine.name} winery={wine.winery} onImageLoaded={(url) => handleImageLoaded(i, url)} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{wine.name}</p>
               {wine.winery && <p className="text-xs text-muted-foreground truncate">{wine.winery}</p>}

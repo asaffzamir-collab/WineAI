@@ -10,6 +10,7 @@ interface SommelierContextValue {
   open: (flow?: string) => void;
   close: () => void;
   phase: SommelierPhase;
+  maxUnlockedPhase: SommelierPhase;
   setPhase: (phase: SommelierPhase) => void;
   precision: number;
   likedWinesCount: number;
@@ -35,6 +36,7 @@ export function useSommelier() {
 export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [phase, setPhase] = useState<SommelierPhase>('discovery');
+  const [maxUnlockedPhase, setMaxUnlockedPhase] = useState<SommelierPhase>('discovery');
   const [precision, setPrecision] = useState(0);
   const [likedWinesCount, setLikedWinesCount] = useState(0);
   const [hasDiscoveryData, setHasDiscoveryData] = useState(false);
@@ -53,6 +55,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
       }
       const state: SommelierState = await res.json();
       setPhase(state.phase);
+      setMaxUnlockedPhase(state.maxUnlockedPhase ?? state.phase);
       setPrecision(state.precision);
       setLikedWinesCount(state.likedWinesCount);
       setHasDiscoveryData(state.hasDiscoveryData ?? false);
@@ -113,7 +116,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
     <SommelierContext.Provider
       value={{
         isOpen, toggle, open, close,
-        phase, setPhase: updatePhase, precision, likedWinesCount, hasDiscoveryData, userId,
+        phase, maxUnlockedPhase, setPhase: updatePhase, precision, likedWinesCount, hasDiscoveryData, userId,
         conversationItems, addConversationItem, clearConversation,
         activeFlow, setActiveFlow,
         refreshState, isLoading,

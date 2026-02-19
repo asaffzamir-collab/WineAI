@@ -83,6 +83,7 @@ export interface TonightSession {
 
 export interface SommelierState {
   phase: SommelierPhase;
+  maxUnlockedPhase: SommelierPhase;
   precision: number;
   hasDiscoveryData: boolean;
   likedWinesCount: number;

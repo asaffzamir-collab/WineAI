@@ -137,13 +137,15 @@ export async function generateTonightRecommendation(
   language = 'he'
 ) {
   const hasCellar = cellarWines.length > 0;
-  const system = `You are a wine sommelier helping choose a wine for tonight.
-${hasCellar ? 'Prioritize wines from the user\'s cellar.' : 'Suggest a general wine recommendation.'}
-IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel.
-Return JSON: { "wine": "wine name", "winery": "winery name", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "why": "2-3 sentence explanation", "match": 0-100, "reasons": ["reason1", "reason2", "reason3"] }
+  const system = `You are a wine sommelier helping the user choose a wine from their own cellar for tonight.
+${hasCellar
+    ? `You MUST choose ONLY from the wines listed in their cellar below. Do NOT suggest wines that are not in the cellar.
+Consider each wine's readiness (drink_from/drink_until dates) — prefer wines that are ready to drink now.`
+    : 'The user has no wines in the cellar. Suggest they add wines to their cellar first and return a helpful message.'}
+Return JSON: { "wine": "exact wine name from cellar", "winery": "exact winery from cellar", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "why": "2-3 sentence explanation of why this cellar wine is the best choice for tonight", "match": 0-100, "reasons": ["reason1", "reason2", "reason3"], "image_url": "image_url from the cellar wine if available, or null" }
 ${langInstr(language)}`;
 
-  return await ask(system, `Occasion: ${params.occasion}\nFood: ${params.food || 'not specified'}\nMood: ${params.mood}\nCellar: ${JSON.stringify(cellarWines.slice(0, 20))}\nProfile: ${JSON.stringify(profile)}`);
+  return await ask(system, `Occasion: ${params.occasion}\nFood: ${params.food || 'not specified'}\nMood: ${params.mood}\nCellar wines: ${JSON.stringify(cellarWines.slice(0, 30))}\nTaste profile: ${JSON.stringify(profile)}`, { maxTokens: 1500 });
 }
 
 export async function generateBuyingIntelligence(

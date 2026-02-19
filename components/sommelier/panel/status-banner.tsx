@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { PrecisionMeter } from '../precision-meter';
-import { ClipboardList, Heart, Zap } from 'lucide-react';
+import { ClipboardList, Heart, Zap, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SommelierPhase } from '@/lib/sommelier-types';
 
@@ -13,46 +13,70 @@ const PHASES: { key: SommelierPhase; labelKey: string; icon: React.ElementType }
   { key: 'personalization', labelKey: 'journeyDeep', icon: Zap },
 ];
 
-function PhaseSelector({ phase, onSelect }: { phase: SommelierPhase; onSelect: (p: SommelierPhase) => void }) {
+const PHASE_ORDER: Record<SommelierPhase, number> = {
+  discovery: 0,
+  learning: 1,
+  personalization: 2,
+};
+
+function PhaseSelector({
+  phase,
+  maxUnlockedPhase,
+  onSelect,
+}: {
+  phase: SommelierPhase;
+  maxUnlockedPhase: SommelierPhase;
+  onSelect: (p: SommelierPhase) => void;
+}) {
   const t = useTranslations('sommelier');
-  const activeIdx = PHASES.findIndex((p) => p.key === phase);
+  const activeIdx = PHASE_ORDER[phase];
+  const maxIdx = PHASE_ORDER[maxUnlockedPhase];
 
   return (
-    <div className="flex items-center gap-1 mt-3">
+    <div className="flex items-center mt-3">
       {PHASES.map((step, i) => {
-        const Icon = step.icon;
         const isActive = step.key === phase;
+        const isUnlocked = i <= maxIdx;
         const isReached = i <= activeIdx;
+        const Icon = isUnlocked ? step.icon : Lock;
 
         return (
-          <div key={step.key} className="flex items-center flex-1">
+          <div key={step.key} className="flex items-center flex-1 min-w-0">
             <button
               type="button"
-              onClick={() => onSelect(step.key)}
-              className="flex flex-col items-center flex-1 group cursor-pointer"
+              onClick={() => isUnlocked && onSelect(step.key)}
+              disabled={!isUnlocked}
+              className={cn(
+                'flex flex-col items-center flex-1 min-w-0 group',
+                isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-40',
+              )}
             >
               <div className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all',
+                'flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all flex-shrink-0',
                 isActive
                   ? 'bg-bordeaux-500 border-bordeaux-500 text-white scale-110 shadow-sm'
                   : isReached
                     ? 'bg-bordeaux-500 border-bordeaux-500 text-white'
-                    : 'bg-background border-border text-muted-foreground group-hover:border-bordeaux-300 group-hover:text-bordeaux-400',
+                    : isUnlocked
+                      ? 'bg-background border-border text-muted-foreground group-hover:border-bordeaux-300 group-hover:text-bordeaux-400'
+                      : 'bg-muted border-border text-muted-foreground',
               )}>
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
               </div>
               <span className={cn(
-                'text-[10px] mt-1 text-center leading-tight transition-colors',
+                'text-[10px] mt-1 text-center leading-tight transition-colors truncate w-full px-0.5',
                 isActive
                   ? 'font-semibold text-bordeaux-600 dark:text-bordeaux-300'
-                  : 'text-muted-foreground group-hover:text-foreground',
+                  : isUnlocked
+                    ? 'text-muted-foreground group-hover:text-foreground'
+                    : 'text-muted-foreground/60',
               )}>
                 {t(step.labelKey)}
               </span>
             </button>
             {i < PHASES.length - 1 && (
               <div className={cn(
-                'h-0.5 w-full -mt-4 mx-0.5 rounded-full transition-colors',
+                'h-0.5 w-full -mt-4 mx-1 rounded-full transition-colors flex-shrink-0',
                 isReached && i < activeIdx ? 'bg-bordeaux-400' : 'bg-border',
               )} />
             )}
@@ -64,7 +88,7 @@ function PhaseSelector({ phase, onSelect }: { phase: SommelierPhase; onSelect: (
 }
 
 export function StatusBanner() {
-  const { phase, setPhase, precision } = useSommelier();
+  const { phase, maxUnlockedPhase, setPhase, precision } = useSommelier();
   const t = useTranslations('sommelier');
 
   return (
@@ -77,11 +101,16 @@ export function StatusBanner() {
             {phase === 'personalization' && t('bannerPersonalized')}
           </p>
           {precision > 0 && (
-            <PrecisionMeter value={precision} className="mt-2" />
+            <div className="flex items-center gap-2 mt-2">
+              <PrecisionMeter value={precision} className="flex-1" />
+              <span className="text-xs font-medium text-bordeaux-600 dark:text-bordeaux-300 flex-shrink-0">
+                {precision}%
+              </span>
+            </div>
           )}
         </div>
       </div>
-      <PhaseSelector phase={phase} onSelect={setPhase} />
+      <PhaseSelector phase={phase} maxUnlockedPhase={maxUnlockedPhase} onSelect={setPhase} />
     </div>
   );
 }
