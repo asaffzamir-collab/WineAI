@@ -7,9 +7,6 @@ import { PanelHeader } from './panel/panel-header';
 import { StatusBanner } from './panel/status-banner';
 import { QuickActions } from './panel/quick-actions';
 import { ConversationFeed } from './panel/conversation-feed';
-import { PanelInput } from './panel/panel-input';
-import { ChatFeed } from './panel/chat-feed';
-import { ChatInput } from './panel/chat-input';
 import { DiscoveryFlow } from './discovery/discovery-flow';
 import { SmartRefinement } from './learning/smart-refinement';
 import { PalateGame } from './learning/palate-game';
@@ -21,6 +18,11 @@ import { TasteEvolution } from './personalized/taste-evolution';
 import { CellarActions, FillRackFlow } from './personalized/cellar-actions';
 import { HowItWorks } from './how-it-works';
 import { SearchFlow } from './search-flow';
+import { ConversationList } from './chat/conversation-list';
+import { FullScreenChat } from './chat/full-screen-chat';
+import { useTranslations } from 'next-intl';
+import { MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 function useVisualViewportHeight() {
   const [height, setHeight] = useState<number | null>(null);
@@ -65,15 +67,25 @@ function useLockBodyScroll(locked: boolean) {
   }, [locked]);
 }
 
+type ChatView = 'closed' | 'list' | { conversationId: string | null };
+
 export function SommelierPanel() {
   const { isOpen, close, activeFlow } = useSommelier();
   const vpHeight = useVisualViewportHeight();
+  const t = useTranslations('sommelier');
+  const [chatView, setChatView] = useState<ChatView>('closed');
 
   useLockBodyScroll(isOpen);
 
   const handleEsc = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') close();
-  }, [close]);
+    if (e.key === 'Escape') {
+      if (chatView !== 'closed') {
+        setChatView('closed');
+      } else {
+        close();
+      }
+    }
+  }, [close, chatView]);
 
   useEffect(() => {
     if (isOpen) {
@@ -84,7 +96,21 @@ export function SommelierPanel() {
     };
   }, [isOpen, handleEsc]);
 
+  useEffect(() => {
+    if (!isOpen) setChatView('closed');
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  // Full-screen chat is its own overlay, rendered above the panel
+  if (typeof chatView === 'object') {
+    return (
+      <FullScreenChat
+        conversationId={chatView.conversationId}
+        onBack={() => setChatView('list')}
+      />
+    );
+  }
 
   const mobileMaxH = vpHeight ? `${Math.min(vpHeight * 0.9, vpHeight)}px` : '90dvh';
 
@@ -106,6 +132,41 @@ export function SommelierPanel() {
     }
   };
 
+  const renderConversationsSection = () => {
+    if (chatView === 'list') {
+      return (
+        <ConversationList
+          onSelect={(id) => setChatView({ conversationId: id })}
+          onNew={() => setChatView({ conversationId: null })}
+        />
+      );
+    }
+
+    return (
+      <div className="px-4 py-3">
+        <Button
+          variant="outline"
+          className="w-full gap-2 justify-center"
+          onClick={() => setChatView('list')}
+        >
+          <MessageCircle className="h-4 w-4" />
+          {t('conversations')}
+        </Button>
+      </div>
+    );
+  };
+
+  const panelContent = activeFlow ? (
+    renderActiveFlow()
+  ) : (
+    <>
+      <StatusBanner />
+      <QuickActions />
+      {renderConversationsSection()}
+      {chatView !== 'list' && <ConversationFeed />}
+    </>
+  );
+
   return (
     <>
       {/* Overlay */}
@@ -125,18 +186,8 @@ export function SommelierPanel() {
       >
         <PanelHeader />
         <div className="flex-1 overflow-y-auto min-h-0">
-          {activeFlow ? (
-            renderActiveFlow()
-          ) : (
-            <>
-              <StatusBanner />
-              <QuickActions />
-              <ChatFeed />
-              <ConversationFeed />
-            </>
-          )}
+          {panelContent}
         </div>
-        {!activeFlow && <ChatInput />}
       </div>
 
       {/* Mobile: Bottom sheet */}
@@ -154,18 +205,8 @@ export function SommelierPanel() {
         </div>
         <PanelHeader />
         <div className="flex-1 overflow-y-auto min-h-0">
-          {activeFlow ? (
-            renderActiveFlow()
-          ) : (
-            <>
-              <StatusBanner />
-              <QuickActions />
-              <ChatFeed />
-              <ConversationFeed />
-            </>
-          )}
+          {panelContent}
         </div>
-        {!activeFlow && <ChatInput />}
         <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </>

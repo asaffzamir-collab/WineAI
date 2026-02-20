@@ -4,14 +4,15 @@ import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Wine, Heart, User, Sparkles } from 'lucide-react';
+import { Home, Wine, Heart, User, ScanLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSommelier } from '@/components/sommelier/sommelier-context';
 
-const navItems = [
+const leftItems = [
   { href: '/', icon: Home, labelKey: 'home' },
-  { href: '__sommelier__', icon: Sparkles, labelKey: 'sommelier' },
   { href: '/cellar', icon: Wine, labelKey: 'cellar' },
+];
+
+const rightItems = [
   { href: '/wishlist', icon: Heart, labelKey: 'wishlist' },
   { href: '/profile', icon: User, labelKey: 'profile' },
 ];
@@ -19,7 +20,6 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations('nav');
-  const { open: openSommelier, isOpen: isSommelierOpen } = useSommelier();
   const prefetchedRef = useRef(false);
 
   const prefetchCellar3D = useCallback(() => {
@@ -28,75 +28,77 @@ export function BottomNav() {
     import('@/components/cellar/rack/rack-3d-canvas').catch(() => {});
   }, []);
 
+  const isSearchActive = pathname === '/search';
+
+  const renderNavItem = (item: (typeof leftItems)[number]) => {
+    const isActive = pathname === item.href;
+    const Icon = item.icon;
+    const isCellar = item.href === '/cellar';
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-label={t(item.labelKey)}
+        aria-current={isActive ? 'page' : undefined}
+        onMouseEnter={isCellar ? prefetchCellar3D : undefined}
+        onTouchStart={isCellar ? prefetchCellar3D : undefined}
+        className={cn(
+          'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
+          isActive
+            ? 'text-primary'
+            : 'text-muted-foreground hover:text-foreground'
+        )}
+      >
+        <Icon
+          className={cn(
+            'h-5 w-5 transition-all duration-150',
+            isActive && 'scale-110'
+          )}
+          strokeWidth={isActive ? 2 : 1.5}
+        />
+        <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+        {isActive && (
+          <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-primary transition-all duration-150" />
+        )}
+      </Link>
+    );
+  };
+
   return (
     <nav
       aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50 shadow-[0_-2px_16px_rgb(0,0,0,0.04)] md:hidden pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
-        {navItems.map((item) => {
-          const isSommelierTab = item.href === '__sommelier__';
-          const isActive = isSommelierTab ? isSommelierOpen : pathname === item.href;
-          const Icon = item.icon;
-          const isCellar = item.href === '/cellar';
+        {leftItems.map(renderNavItem)}
 
-          if (isSommelierTab) {
-            return (
-              <button
-                key={item.href}
-                onClick={() => openSommelier()}
-                aria-label={t(item.labelKey)}
-                className={cn(
-                  'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Icon
-                  className={cn(
-                    'h-5 w-5 transition-all duration-150',
-                    isActive && 'scale-110'
-                  )}
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
-                {isActive && (
-                  <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-primary transition-all duration-150" />
-                )}
-              </button>
-            );
-          }
+        {/* Raised center camera/scan button */}
+        <Link
+          href="/search"
+          aria-label={t('scan')}
+          aria-current={isSearchActive ? 'page' : undefined}
+          className="relative -mt-6 flex flex-col items-center"
+        >
+          <div
+            className={cn(
+              'flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200',
+              isSearchActive
+                ? 'bg-primary text-primary-foreground scale-105'
+                : 'bg-primary/90 text-primary-foreground hover:bg-primary hover:scale-105'
+            )}
+          >
+            <ScanLine className="h-6 w-6" strokeWidth={1.8} />
+          </div>
+          <span className={cn(
+            'mt-0.5 text-[10px] font-medium',
+            isSearchActive ? 'text-primary' : 'text-muted-foreground'
+          )}>
+            {t('scan')}
+          </span>
+        </Link>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-label={t(item.labelKey)}
-              aria-current={isActive ? 'page' : undefined}
-              onMouseEnter={isCellar ? prefetchCellar3D : undefined}
-              onTouchStart={isCellar ? prefetchCellar3D : undefined}
-              className={cn(
-                'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon
-                className={cn(
-                  'h-5 w-5 transition-all duration-150',
-                  isActive && 'scale-110'
-                )}
-                strokeWidth={isActive ? 2 : 1.5}
-              />
-              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
-              {isActive && (
-                <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-primary transition-all duration-150" />
-              )}
-            </Link>
-          );
-        })}
+        {rightItems.map(renderNavItem)}
       </div>
     </nav>
   );

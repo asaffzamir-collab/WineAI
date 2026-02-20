@@ -53,6 +53,7 @@ export async function GET() {
       createdAt: u.created_at,
       lastSignIn: u.last_sign_in_at,
       isAdmin: profile?.is_admin || false,
+      isPremium: profile?.subscription_tier === 'premium',
       onboardingCompleted: profile?.onboarding_completed || false,
       cellarCount: countByUser(cellarCounts as { user_id: string }[] | null, u.id),
       wishlistCount: countByUser(wishlistCounts as { user_id: string }[] | null, u.id),

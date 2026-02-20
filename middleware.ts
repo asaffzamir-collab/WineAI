@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
       ?? request.headers.get('x-real-ip')
       ?? 'unknown';
     const key = `${ip}:${path}`;
-    const { limited, retryAfterMs } = rateLimit(key, config);
+    const { limited, retryAfterMs } = await rateLimit(key, config);
 
     if (limited) {
       return NextResponse.json(

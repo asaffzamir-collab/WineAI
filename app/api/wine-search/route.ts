@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
+import { findCachedWines } from '@/lib/wine-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -61,7 +62,12 @@ export async function POST(request: Request) {
     }
 
     if (query) {
-      const wines = await searchWinesByText(query as string);
+      // Check DB cache first — skip OpenAI if we already have matching wines
+      const cached = await findCachedWines(query as string);
+      const wines = cached.length > 0
+        ? cached
+        : await searchWinesByText(query as string);
+
       if (wines.length === 0) {
         return NextResponse.json(
           { error: 'Could not find any matching wines. Try a different spelling or add the winery name.' },

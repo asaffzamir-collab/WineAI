@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Wine, Heart, User, Settings, Sparkles } from 'lucide-react';
+import { Home, Search, Wine, Heart, User, Settings, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WineLogo } from '@/components/wine-logo';
 import { Separator } from '@/components/ui/separator';
@@ -13,6 +13,7 @@ import { useSommelier } from '@/components/sommelier/sommelier-context';
 
 const mainNavItems = [
   { href: '/', icon: Home, labelKey: 'home' },
+  { href: '/search', icon: Search, labelKey: 'search' },
   { href: '__sommelier__', icon: Sparkles, labelKey: 'sommelier' },
   { href: '/cellar', icon: Wine, labelKey: 'cellar' },
   { href: '/wishlist', icon: Heart, labelKey: 'wishlist' },

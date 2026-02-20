@@ -21,6 +21,9 @@ import {
   Heart,
   Sparkles,
   RefreshCw,
+  Crown,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +35,7 @@ interface UserRow {
   createdAt: string;
   lastSignIn: string | null;
   isAdmin: boolean;
+  isPremium: boolean;
   onboardingCompleted: boolean;
   cellarCount: number;
   wishlistCount: number;
@@ -80,6 +84,62 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
   }, [toastMessage]);
 
   const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null);
+  const [togglingPremium, setTogglingPremium] = useState<string | null>(null);
+  const [premiumEnabled, setPremiumEnabled] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.settings) setPremiumEnabled(data.settings.premium_enabled);
+      })
+      .catch(() => {})
+      .finally(() => setPremiumLoading(false));
+  }, []);
+
+  const handleTogglePremiumGlobal = async () => {
+    const newValue = !premiumEnabled;
+    setPremiumEnabled(newValue);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ premium_enabled: newValue }),
+      });
+      if (!res.ok) {
+        setPremiumEnabled(!newValue);
+        setToastMessage(t('actionFailed'));
+      } else {
+        setToastMessage(newValue ? t('premiumActivated') : t('premiumDeactivated'));
+      }
+    } catch {
+      setPremiumEnabled(!newValue);
+      setToastMessage(t('actionFailed'));
+    }
+  };
+
+  const handleToggleUserPremium = async (userId: string, currentIsPremium: boolean) => {
+    setTogglingPremium(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/toggle-premium`, { method: 'POST' });
+      if (!res.ok) {
+        setToastMessage(t('actionFailed'));
+        return;
+      }
+      const data = await res.json();
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, isPremium: data.subscription_tier === 'premium' } : u
+        )
+      );
+      setToastMessage(data.subscription_tier === 'premium' ? t('premiumGranted') : t('premiumRevoked'));
+    } catch {
+      setToastMessage(t('actionFailed'));
+    } finally {
+      setTogglingPremium(null);
+    }
+  };
 
   const filteredUsers = users.filter(
     (u) =>
@@ -239,6 +299,39 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
           </Card>
         </div>
 
+        {/* Premium Paywall Toggle */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/20">
+                  <Crown className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t('premiumPaywall')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {premiumEnabled ? t('premiumPaywallOnDesc') : t('premiumPaywallOffDesc')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleTogglePremiumGlobal}
+                disabled={premiumLoading}
+                className="transition-colors"
+                aria-label="Toggle premium paywall"
+              >
+                {premiumLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                ) : premiumEnabled ? (
+                  <ToggleRight className="h-8 w-8 text-amber-500" />
+                ) : (
+                  <ToggleLeft className="h-8 w-8 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Search + Refresh */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -292,6 +385,11 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
                             {t('adminBadge')}
                           </span>
                         )}
+                        {user.isPremium && (
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                            {t('premiumBadge')}
+                          </span>
+                        )}
                       </div>
                       <p className="truncate text-xs text-stone-500 dark:text-stone-400">
                         {user.email}
@@ -334,6 +432,22 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
                         <ShieldCheck className="h-3.5 w-3.5" />
                       )}
                       {user.isAdmin ? t('removeAdmin') : t('makeAdmin')}
+                    </button>
+                    <button
+                      onClick={() => handleToggleUserPremium(user.id, user.isPremium)}
+                      disabled={togglingPremium === user.id}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                        user.isPremium
+                          ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30'
+                          : 'bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30'
+                      }`}
+                    >
+                      {togglingPremium === user.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Crown className="h-3.5 w-3.5" />
+                      )}
+                      {user.isPremium ? t('removePremium') : t('grantPremium')}
                     </button>
                     <button
                       onClick={() =>

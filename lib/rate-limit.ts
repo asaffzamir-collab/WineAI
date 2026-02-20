@@ -1,54 +1,103 @@
 /**
- * Simple in-memory rate limiter for Vercel Edge Runtime.
+ * Distributed rate limiter using Upstash Redis.
  *
- * Edge functions are long-lived within a region, so a Map effectively
- * rate-limits requests hitting the same edge instance. This won't
- * synchronise across regions, but it catches the most common abuse
- * pattern (rapid sequential requests from one client).
+ * Uses a sliding-window algorithm that works across all Vercel edge/serverless
+ * instances. Falls back to a simple in-memory limiter when Upstash env vars
+ * are not configured (local development).
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const hasUpstash =
+  typeof process.env.UPSTASH_REDIS_REST_URL === 'string' &&
+  process.env.UPSTASH_REDIS_REST_URL.length > 0 &&
+  typeof process.env.UPSTASH_REDIS_REST_TOKEN === 'string' &&
+  process.env.UPSTASH_REDIS_REST_TOKEN.length > 0;
+
+let redis: Redis | null = null;
+const limiters = new Map<string, Ratelimit>();
+
+function getRedis(): Redis {
+  if (!redis) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+  }
+  return redis;
 }
 
-const store = new Map<string, RateLimitEntry>();
+function getLimiter(limit: number, windowMs: number): Ratelimit {
+  const key = `${limit}:${windowMs}`;
+  let limiter = limiters.get(key);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
+      analytics: true,
+      prefix: 'wj-rl',
+    });
+    limiters.set(key, limiter);
+  }
+  return limiter;
+}
 
-const CLEANUP_INTERVAL = 60_000; // purge expired entries every 60 s
+// --------------- In-memory fallback for local dev ---------------
+
+interface MemEntry { count: number; resetAt: number }
+const memStore = new Map<string, MemEntry>();
 let lastCleanup = Date.now();
 
-function cleanup() {
+function memCleanup() {
   const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  if (now - lastCleanup < 60_000) return;
   lastCleanup = now;
-  store.forEach((entry, key) => {
-    if (now > entry.resetAt) store.delete(key);
-  });
+  memStore.forEach((entry, k) => { if (now > entry.resetAt) memStore.delete(k); });
 }
+
+function memRateLimit(
+  key: string,
+  { limit, windowMs }: { limit: number; windowMs: number },
+): { limited: boolean; retryAfterMs: number } {
+  memCleanup();
+  const now = Date.now();
+  const entry = memStore.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    memStore.set(key, { count: 1, resetAt: now + windowMs });
+    return { limited: false, retryAfterMs: 0 };
+  }
+  entry.count++;
+  if (entry.count > limit) {
+    return { limited: true, retryAfterMs: entry.resetAt - now };
+  }
+  return { limited: false, retryAfterMs: 0 };
+}
+
+// --------------- Public API (same signature as before) ---------------
 
 /**
  * Check whether the given key has exceeded the limit within the window.
  * Returns { limited: false } if OK, or { limited: true, retryAfterMs } if blocked.
  */
-export function rateLimit(
+export async function rateLimit(
   key: string,
-  { limit, windowMs }: { limit: number; windowMs: number }
-): { limited: boolean; retryAfterMs: number } {
-  cleanup();
+  { limit, windowMs }: { limit: number; windowMs: number },
+): Promise<{ limited: boolean; retryAfterMs: number }> {
+  if (!hasUpstash) {
+    return memRateLimit(key, { limit, windowMs });
+  }
 
-  const now = Date.now();
-  const entry = store.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
+  try {
+    const limiter = getLimiter(limit, windowMs);
+    const { success, reset } = await limiter.limit(key);
+    if (success) {
+      return { limited: false, retryAfterMs: 0 };
+    }
+    return { limited: true, retryAfterMs: Math.max(0, reset - Date.now()) };
+  } catch (err) {
+    console.warn('Upstash rate-limit check failed, allowing request:', err);
     return { limited: false, retryAfterMs: 0 };
   }
-
-  entry.count++;
-
-  if (entry.count > limit) {
-    return { limited: true, retryAfterMs: entry.resetAt - now };
-  }
-
-  return { limited: false, retryAfterMs: 0 };
 }
