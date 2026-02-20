@@ -3,10 +3,49 @@
  *
  * Provides DB-first lookups and upserts so repeated searches for the same wine
  * skip the AI entirely and return cached data.
+ *
+ * Also provides a negative-cache for image lookups: when all external sources
+ * fail, we remember that for 24 h so we don't keep hammering them.
  */
 
 import type { WineData } from '@/lib/openai';
 import { createClient } from '@/lib/supabase/server';
+
+// ───────────── Negative image cache (in-memory, 24 h TTL) ─────────────
+
+const NEGATIVE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const negativeImageCache = new Map<string, number>();
+
+function negativeKey(name: string, winery: string): string {
+  return `${name}|||${winery}`.toLowerCase();
+}
+
+/** Returns true if this wine recently failed image lookup. */
+export function isNegativelyCached(name: string, winery: string): boolean {
+  const key = negativeKey(name, winery);
+  const ts = negativeImageCache.get(key);
+  if (!ts) return false;
+  if (Date.now() - ts > NEGATIVE_TTL_MS) {
+    negativeImageCache.delete(key);
+    return false;
+  }
+  return true;
+}
+
+/** Mark a wine as having no image available (temporarily). */
+export function cacheNegativeResult(name: string, winery: string): void {
+  const key = negativeKey(name, winery);
+  negativeImageCache.set(key, Date.now());
+
+  // Evict stale entries periodically to prevent unbounded growth
+  if (negativeImageCache.size > 2000) {
+    const now = Date.now();
+    negativeImageCache.forEach((v, k) => {
+      if (now - v > NEGATIVE_TTL_MS) negativeImageCache.delete(k);
+    });
+  }
+}
 
 interface WineRow {
   id: string;

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateChatResponse, generateFoodPairing, generateWineDiscovery, type ChatHistoryMessage } from '@/lib/sommelier-ai';
 import { requirePremium } from '@/lib/require-premium';
+import { fetchWineImagesForMany } from '@/lib/wine-image';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -226,6 +227,20 @@ export async function POST(request: Request) {
       );
 
       const allWines = toolResults.flatMap(tr => tr.wines);
+
+      // Batch-fetch images for wines that don't already have one
+      const winesMissingImages = allWines
+        .map((w, i) => ({ w, i }))
+        .filter(({ w }) => !w.image_url);
+      if (winesMissingImages.length > 0) {
+        const imgResults = await fetchWineImagesForMany(
+          winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
+        );
+        winesMissingImages.forEach(({ i }, mapIdx) => {
+          const url = imgResults.get(`${mapIdx}`);
+          if (url) allWines[i].image_url = url;
+        });
+      }
 
       const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
       const systemPrompt = `You are "Pier", a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar. Always speak as Pier — with warmth, charm, and genuine passion for wine.

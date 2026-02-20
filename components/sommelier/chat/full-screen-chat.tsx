@@ -10,6 +10,35 @@ import { PierHeadAvatar } from '../sommelier-trigger';
 import type { ChatMessage } from '@/lib/sommelier-types';
 import type { ConversationSummary } from './conversation-list';
 
+/** Tracks window.visualViewport for pixel-accurate height on iOS Safari. */
+function useVisualViewport() {
+  const [height, setHeight] = useState<number | null>(null);
+  const [offsetTop, setOffsetTop] = useState(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      setHeight(vv.height);
+      setOffsetTop(vv.offsetTop);
+      // Keyboard is likely open when the visual viewport is significantly
+      // shorter than the layout viewport (address bar alone is ~50-70 px).
+      setKeyboardOpen(window.innerHeight - vv.height > 100);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  return { height, offsetTop, keyboardOpen };
+}
+
 interface FullScreenChatProps {
   conversationId: string | null;
   onBack: () => void;
@@ -29,6 +58,7 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleGenerated = useRef(false);
+  const { height: vpHeight, offsetTop: vpOffsetTop, keyboardOpen } = useVisualViewport();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -272,16 +302,15 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
 
   const showWelcome = messages.length === 0 && !isLoading;
 
+  const containerStyle: React.CSSProperties = vpHeight
+    ? { height: `${vpHeight}px`, top: `${vpOffsetTop}px` }
+    : { height: '100dvh', top: 0 };
+
   return (
     <>
-      {/*
-        The outer container uses height:100dvh which on iOS automatically
-        shrinks when the virtual keyboard opens. The flex layout keeps the
-        input bar naturally at the bottom — no JS viewport hacks needed.
-      */}
       <div
-        className="fixed inset-x-0 top-0 z-[70] flex flex-col bg-background"
-        style={{ height: '100dvh' }}
+        className="fixed inset-x-0 z-[70] flex flex-col bg-background"
+        style={containerStyle}
       >
         {/* History sidebar overlay */}
         {sidebarOpen && (
@@ -444,8 +473,8 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
                 enterKeyHint="send"
                 className={cn(
                   'flex-1 resize-none rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm',
-                  'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
-                  'max-h-[120px] min-h-[40px]',
+                  'placeholder:text-muted-foreground/60 focus:outline-none focus:border-bordeaux-300 dark:focus:border-bordeaux-700',
+                  'max-h-[120px] min-h-[44px]',
                 )}
                 disabled={isSending}
               />
@@ -458,7 +487,7 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
               </button>
             </form>
           </div>
-          <div className="pb-[env(safe-area-inset-bottom)]" />
+          {!keyboardOpen && <div className="pb-[env(safe-area-inset-bottom)]" />}
         </div>
       </div>
     </>
