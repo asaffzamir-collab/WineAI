@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateChatResponse, generateFoodPairing, generateWineDiscovery, type ChatHistoryMessage } from '@/lib/sommelier-ai';
 import { requirePremium } from '@/lib/require-premium';
 import { fetchWineImagesForMany } from '@/lib/wine-image';
+import { findCachedWines } from '@/lib/wine-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -98,8 +99,10 @@ export async function POST(request: Request) {
           switch (tc.name) {
             case 'search_wine': {
               try {
+                const query = tc.arguments.query as string;
+                const cached = await findCachedWines(query);
                 const { searchWinesByText } = await import('@/lib/openai');
-                const wines = await searchWinesByText(tc.arguments.query as string);
+                const wines = cached.length > 0 ? cached : await searchWinesByText(query);
                 return {
                   id: tc.id,
                   name: tc.name,

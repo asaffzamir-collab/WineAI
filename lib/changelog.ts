@@ -5,6 +5,7 @@ export interface ChangelogHighlight {
 }
 
 export interface ChangelogEntry {
+  id?: string;
   version: string;
   date: string;
   title: string;
@@ -18,11 +19,18 @@ export function getLatestVersion(): string {
   return changelog[0]?.version ?? '0.0.0';
 }
 
+/** Client-side: updated after fetchChangelog() resolves. */
+let _latestVersionFromDb: string | null = null;
+
+export function getLatestVersionDynamic(): string {
+  return _latestVersionFromDb || getLatestVersion();
+}
+
 export function hasUnseenUpdates(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const seen = localStorage.getItem(LAST_SEEN_VERSION_KEY);
-    return seen !== getLatestVersion();
+    return seen !== getLatestVersionDynamic();
   } catch {
     return false;
   }
@@ -30,10 +38,50 @@ export function hasUnseenUpdates(): boolean {
 
 export function markUpdatesSeen(): void {
   try {
-    localStorage.setItem(LAST_SEEN_VERSION_KEY, getLatestVersion());
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, getLatestVersionDynamic());
   } catch { /* silent */ }
 }
 
+interface DbRow {
+  id: string;
+  version: string;
+  date: string;
+  title: string;
+  title_he: string;
+  highlights: ChangelogHighlight[];
+}
+
+function dbRowToEntry(row: DbRow): ChangelogEntry {
+  return {
+    id: row.id,
+    version: row.version,
+    date: row.date,
+    title: row.title,
+    titleHe: row.title_he,
+    highlights: Array.isArray(row.highlights) ? row.highlights : [],
+  };
+}
+
+/**
+ * Fetch changelog entries from the database via the API.
+ * Falls back to the hardcoded static array on failure.
+ */
+export async function fetchChangelog(): Promise<ChangelogEntry[]> {
+  try {
+    const res = await fetch('/api/admin/changelog');
+    if (!res.ok) return changelog;
+    const data = await res.json();
+    const entries: DbRow[] = data.entries || [];
+    if (entries.length === 0) return changelog;
+    const mapped = entries.map(dbRowToEntry);
+    _latestVersionFromDb = mapped[0]?.version ?? null;
+    return mapped;
+  } catch {
+    return changelog;
+  }
+}
+
+/** Static fallback changelog — used when DB is unavailable. */
 export const changelog: ChangelogEntry[] = [
   {
     version: '1.4.0',

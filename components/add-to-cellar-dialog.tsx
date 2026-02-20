@@ -25,12 +25,25 @@ function normalizeWineType(t: string | undefined): WineCategory {
   return map[t || ''] || 'other';
 }
 
+interface CellarApiItem {
+  id: string;
+  slot_id?: string | null;
+  quantity: number;
+  wines?: { wine_type?: string; name?: string; winery?: string } | Array<{ wine_type?: string; name?: string; winery?: string }>;
+}
+
+function getWineFromApiItem(item: CellarApiItem) {
+  const w = item.wines;
+  if (!w) return null;
+  return Array.isArray(w) ? w[0] ?? null : w;
+}
+
 /**
  * Build a placement map from cellar items and racks fetched from the API.
  * This mirrors the logic in CellarRackProvider but is self-contained.
  */
 function buildPlacementMapFromItems(
-  items: Array<{ id: string; slot_id?: string | null; quantity: number; wine_type?: string; wine_name?: string; wine_winery?: string; wine?: { wine_type?: string; name?: string; winery?: string } }>,
+  items: CellarApiItem[],
   racks: Rack[],
 ): Map<SlotId, Placement> {
   const validSlots = new Set<SlotId>();
@@ -45,14 +58,14 @@ function buildPlacementMapFromItems(
     const slot = item.slot_id as SlotId | undefined;
     if (!slot || !validSlots.has(slot)) continue;
 
-    const wine = item.wine as { wine_type?: string; name?: string; winery?: string } | undefined;
-    const wineType = normalizeWineType(wine?.wine_type || item.wine_type);
+    const wine = getWineFromApiItem(item);
+    const wineType = normalizeWineType(wine?.wine_type);
     map.set(slot, {
       slotId: slot,
       cellarItemId: item.id,
       wineType,
-      wineName: wine?.name || item.wine_name || '',
-      winery: wine?.winery || item.wine_winery || '',
+      wineName: wine?.name || '',
+      winery: wine?.winery || '',
       quantity: item.quantity || 1,
     } as Placement);
   }
@@ -106,7 +119,7 @@ export function AddToCellarDialog({
       }
 
       setRacks(fetchedRacks);
-      setPlacementMap(buildPlacementMapFromItems(cellarItems as never[], fetchedRacks));
+      setPlacementMap(buildPlacementMapFromItems(cellarItems as CellarApiItem[], fetchedRacks));
     } catch (err) {
       console.error('Failed to load rack data:', err);
       setRacks([]);

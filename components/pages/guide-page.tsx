@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
-import { changelog, markUpdatesSeen } from '@/lib/changelog';
+import { changelog, fetchChangelog, markUpdatesSeen } from '@/lib/changelog';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
 import type { ChangelogEntry, ChangelogHighlight } from '@/lib/changelog';
 
@@ -216,12 +216,17 @@ function GuideContent() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('quickstart');
   const [locale, setLocale] = useState('en');
+  const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>(changelog);
 
   useEffect(() => {
     const cookie = document.cookie.split(';').find(c => c.trim().startsWith('locale='));
     if (cookie) {
       setLocale(cookie.split('=')[1]?.trim() || 'en');
     }
+  }, []);
+
+  useEffect(() => {
+    fetchChangelog().then(setChangelogEntries);
   }, []);
 
   useEffect(() => {
@@ -330,7 +335,7 @@ function GuideContent() {
 
           {activeTab === 'whats-new' && (
             <div className="space-y-4 max-w-2xl">
-              {changelog.map((entry) => (
+              {changelogEntries.map((entry) => (
                 <ChangelogCard key={entry.version} entry={entry} locale={locale} t={t} />
               ))}
             </div>
