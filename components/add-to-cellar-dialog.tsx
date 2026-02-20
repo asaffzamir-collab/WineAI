@@ -148,6 +148,7 @@ export function AddToCellarDialog({
       const qty = Math.max(1, Math.floor(Number(quantity)) || 1);
       const priceStr = priceNis.trim().replace(/,/g, '.');
       const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
+      const finalSlot = slotId ?? selectedSlotId;
       const body: Record<string, unknown> = { userId, wine, quantity: qty };
 
       if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
@@ -155,6 +156,9 @@ export function AddToCellarDialog({
       }
       if (bottlePhotoUrl) {
         body.bottlePhotoUrl = bottlePhotoUrl;
+      }
+      if (finalSlot) {
+        body.slotId = finalSlot;
       }
 
       const response = await fetch('/api/cellar', {
@@ -170,14 +174,7 @@ export function AddToCellarDialog({
         return;
       }
 
-      const finalSlot = slotId ?? selectedSlotId;
-      const newItemId: string | undefined = data?.cellarItemId;
-      if (finalSlot && newItemId) {
-        await fetch('/api/cellar', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: newItemId, slotId: finalSlot }),
-        });
+      if (finalSlot) {
         trackCellar('bottle_added_to_slot');
       }
 

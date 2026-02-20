@@ -99,6 +99,12 @@ export function SommelierPanel() {
     if (!isOpen) setChatView('closed');
   }, [isOpen]);
 
+  useEffect(() => {
+    if (activeFlow && chatView !== 'closed') {
+      setChatView('closed');
+    }
+  }, [activeFlow, chatView]);
+
   if (!isOpen) return null;
 
   if (typeof chatView === 'object') {
@@ -147,9 +153,9 @@ export function SommelierPanel() {
         </button>
         <button
           onClick={() => setChatView({ conversationId: null, showHistory: true })}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-2.5 w-full flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card hover:bg-accent/50 py-2.5 px-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-all"
         >
-          <History className="h-3.5 w-3.5" />
+          <History className="h-4 w-4" />
           {t('chatHistory')}
         </button>
       </div>

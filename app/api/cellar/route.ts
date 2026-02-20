@@ -89,7 +89,7 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
 
 export async function POST(request: Request) {
   try {
-    const { userId, wine, quantity, purchasePrice, purchaseDate, storageLocation, notes, bottlePhotoUrl } = await request.json();
+    const { userId, wine, quantity, purchasePrice, purchaseDate, storageLocation, notes, bottlePhotoUrl, slotId } = await request.json();
     if (!userId || !wine?.name || !wine?.winery) {
       return NextResponse.json({ error: 'Missing userId or wine name and winery' }, { status: 400 });
     }
@@ -130,14 +130,19 @@ export async function POST(request: Request) {
       storage_location: storageLocation,
       notes,
     };
-    // Try with bottle_photo_url first; if the column doesn't exist, retry without it
-    if (bottlePhotoUrl) {
-      cellarRow.bottle_photo_url = bottlePhotoUrl;
-    }
+    if (bottlePhotoUrl) cellarRow.bottle_photo_url = bottlePhotoUrl;
+    if (slotId) cellarRow.slot_id = slotId;
+
     let cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
-    if (cellarResult.error && cellarResult.error.message?.includes('bottle_photo_url')) {
-      delete cellarRow.bottle_photo_url;
-      cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
+    if (cellarResult.error) {
+      const msg = cellarResult.error.message ?? '';
+      const badCols: string[] = [];
+      if (msg.includes('bottle_photo_url')) badCols.push('bottle_photo_url');
+      if (msg.includes('slot_id')) badCols.push('slot_id');
+      if (badCols.length > 0) {
+        for (const col of badCols) delete cellarRow[col];
+        cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
+      }
     }
     if (cellarResult.error) throw cellarResult.error;
     return NextResponse.json({ success: true, cellarItemId: cellarResult.data?.id });
@@ -172,13 +177,19 @@ export async function PATCH(request: Request) {
     }
 
     let { error } = await supabase.from('cellar_items').update(updates).eq('id', id);
-    if (error && (error.message?.includes('bottle_photo_url') || error.message?.includes('slot_id'))) {
-      delete updates.bottle_photo_url;
-      delete updates.slot_id;
-      if (Object.keys(updates).length > 0) {
-        ({ error } = await supabase.from('cellar_items').update(updates).eq('id', id));
-      } else {
-        error = null;
+    if (error) {
+      const msg = error.message ?? '';
+      const badCols: string[] = [];
+      if (msg.includes('bottle_photo_url') && 'bottle_photo_url' in updates) badCols.push('bottle_photo_url');
+      if (msg.includes('slot_id') && 'slot_id' in updates) badCols.push('slot_id');
+      if (badCols.length > 0) {
+        for (const col of badCols) delete updates[col];
+        if (Object.keys(updates).length > 0) {
+          ({ error } = await supabase.from('cellar_items').update(updates).eq('id', id));
+        } else {
+          error = null;
+          console.warn('PATCH: columns not available in DB:', badCols.join(', '));
+        }
       }
     }
     if (error) throw error;
