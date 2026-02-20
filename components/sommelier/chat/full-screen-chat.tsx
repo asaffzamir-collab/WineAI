@@ -2,12 +2,31 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, Send, Wine, Loader2, Menu, X, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Send, Wine, Loader2, History, X, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeId } from '@/lib/utils';
 import { ChatBubble } from '../panel/chat-message';
 import type { ChatMessage } from '@/lib/sommelier-types';
 import type { ConversationSummary } from './conversation-list';
+
+function useVisualViewportHeight() {
+  const [height, setHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setHeight(vv.height);
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  return height;
+}
 
 interface FullScreenChatProps {
   conversationId: string | null;
@@ -28,6 +47,7 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleGenerated = useRef(false);
+  const vpHeight = useVisualViewportHeight();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -271,185 +291,184 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
 
   const showWelcome = messages.length === 0 && !isLoading;
 
+  const containerHeight = vpHeight ? `${vpHeight}px` : '100dvh';
+
   return (
-    <div className="fixed inset-0 z-[70] flex bg-background">
-      {/* Sidebar overlay */}
+    <div
+      className="fixed inset-x-0 top-0 z-[70] flex flex-col bg-background"
+      style={{ height: containerHeight }}
+    >
+      {/* History sidebar overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-[71] bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={cn(
-        'fixed inset-y-0 start-0 z-[72] w-[280px] flex flex-col bg-card border-e border-border/50 transition-transform duration-200',
-        'md:relative md:translate-x-0',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-full md:w-0 md:border-0',
-      )}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-          <h3 className="text-sm font-semibold text-foreground">{t('chatHistory')}</h3>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleNewConversation}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
-              aria-label={t('newConversation')}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors md:hidden"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {!conversationsLoaded ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : conversations.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-muted-foreground text-center">
-              {t('noConversations')}
-            </p>
-          ) : (
-            <ul className="py-2 space-y-0.5 px-2">
-              {conversations.map((conv) => (
-                <li key={conv.id}>
-                  <button
-                    onClick={() => handleSelectConversation(conv)}
-                    className={cn(
-                      'w-full text-start rounded-lg px-3 py-2.5 text-sm transition-colors group',
-                      conv.id === convId
-                        ? 'bg-accent text-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                    )}
-                  >
-                    <p className="truncate font-medium text-[13px]">
-                      {conv.title || t('untitledConversation')}
-                    </p>
-                    <div className="flex items-center justify-between mt-0.5">
-                      {conv.lastMessage && (
-                        <p className="text-[11px] text-muted-foreground/70 truncate flex-1 pe-2">
-                          {conv.lastMessage}
-                        </p>
-                      )}
-                      <button
-                        onClick={(e) => handleDeleteConversation(e, conv.id)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground/50 hover:text-destructive transition-all flex-shrink-0"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="flex items-center gap-2 border-b border-border/50 px-3 py-2.5 flex-shrink-0">
-          <button
-            onClick={onBack}
-            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors"
-            aria-label={t('back')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => { if (!conversationsLoaded) loadConversations(); setSidebarOpen(!sidebarOpen); }}
-            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex-1 min-w-0 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0">
-              <span className="text-xs font-bold">P</span>
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-foreground truncate">
-                {title || t('pierGreeting')}
-              </h2>
-            </div>
-          </div>
-        </header>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : showWelcome ? (
-            <div className="flex flex-col items-center justify-center h-full px-6 pb-4">
-              <div className="flex flex-col items-center text-center max-w-sm">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20 mb-5">
-                  <Wine className="h-8 w-8 text-bordeaux-500 dark:text-bordeaux-400" strokeWidth={1.5} />
-                </div>
-                <h2 className="text-lg font-semibold text-foreground mb-1">{t('chatWelcomeTitle')}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-                  {t('chatWelcomeDesc')}
-                </p>
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSend(s)}
-                      disabled={isSending}
-                      className="rounded-xl border border-border/60 bg-card px-3 py-3 text-start text-xs text-foreground transition-colors hover:bg-accent/50 hover:border-bordeaux-200 dark:hover:border-bordeaux-800 leading-snug"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
+        <>
+          <div
+            className="fixed inset-0 z-[71] bg-black/40"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <div className="fixed inset-y-0 end-0 z-[72] w-[280px] flex flex-col bg-card border-s border-border/50 shadow-lift animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-foreground">{t('chatHistory')}</h3>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleNewConversation}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+                  aria-label={t('newConversation')}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
-          ) : (
-            <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-              {messages.map((msg) => (
-                <ChatBubble key={msg.id} message={msg} />
-              ))}
-              <div ref={bottomRef} />
+            <div className="flex-1 overflow-y-auto">
+              {!conversationsLoaded ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : conversations.length === 0 ? (
+                <p className="px-4 py-6 text-xs text-muted-foreground text-center">
+                  {t('noConversations')}
+                </p>
+              ) : (
+                <ul className="py-2 space-y-0.5 px-2">
+                  {conversations.map((conv) => (
+                    <li key={conv.id}>
+                      <button
+                        onClick={() => handleSelectConversation(conv)}
+                        className={cn(
+                          'w-full text-start rounded-lg px-3 py-2.5 text-sm transition-colors group',
+                          conv.id === convId
+                            ? 'bg-accent text-foreground'
+                            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                        )}
+                      >
+                        <p className="truncate font-medium text-[13px]">
+                          {conv.title || t('untitledConversation')}
+                        </p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          {conv.lastMessage && (
+                            <p className="text-[11px] text-muted-foreground/70 truncate flex-1 pe-2">
+                              {conv.lastMessage}
+                            </p>
+                          )}
+                          <button
+                            onClick={(e) => handleDeleteConversation(e, conv.id)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground/50 hover:text-destructive transition-all flex-shrink-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          )}
+          </div>
+        </>
+      )}
+
+      {/* Header */}
+      <header className="flex items-center border-b border-border/50 px-3 h-12 flex-shrink-0">
+        <button
+          onClick={onBack}
+          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors flex-shrink-0"
+          aria-label={t('back')}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0">
+            <span className="text-xs font-bold">P</span>
+          </div>
+          <h2 className="text-sm font-semibold text-foreground truncate">
+            {title || t('pierGreeting')}
+          </h2>
         </div>
 
-        {/* Input */}
-        <div className="border-t border-border/50 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
-          <div className="max-w-2xl mx-auto px-4 py-3">
-            <form
-              onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-              className="flex items-end gap-2"
-            >
-              <textarea
-                ref={textareaRef}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={t('chatPlaceholder')}
-                rows={1}
-                className={cn(
-                  'flex-1 resize-none rounded-xl border border-border/60 bg-background px-4 py-3 text-sm',
-                  'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
-                  'max-h-[120px] min-h-[44px]',
-                )}
-                disabled={isSending}
-              />
-              <button
-                type="submit"
-                disabled={!value.trim() || isSending}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40 flex-shrink-0"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
+        <button
+          onClick={() => { if (!conversationsLoaded) loadConversations(); setSidebarOpen(!sidebarOpen); }}
+          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors flex-shrink-0"
+          aria-label={t('chatHistory')}
+        >
+          <History className="h-5 w-5" />
+        </button>
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
+        ) : showWelcome ? (
+          <div className="flex flex-col items-center justify-center h-full px-6 pb-4">
+            <div className="flex flex-col items-center text-center max-w-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20 mb-5">
+                <Wine className="h-8 w-8 text-bordeaux-500 dark:text-bordeaux-400" strokeWidth={1.5} />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground mb-1">{t('chatWelcomeTitle')}</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+                {t('chatWelcomeDesc')}
+              </p>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(s)}
+                    disabled={isSending}
+                    className="rounded-xl border border-border/60 bg-card px-3 py-3 text-start text-xs text-foreground transition-colors hover:bg-accent/50 hover:border-bordeaux-200 dark:hover:border-bordeaux-800 leading-snug"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+            {messages.map((msg) => (
+              <ChatBubble key={msg.id} message={msg} />
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-border/50 flex-shrink-0 bg-background">
+        <div className="max-w-2xl mx-auto px-3 py-2">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+            className="flex items-end gap-2"
+          >
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t('chatPlaceholder')}
+              rows={1}
+              className={cn(
+                'flex-1 resize-none rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm',
+                'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
+                'max-h-[120px] min-h-[40px]',
+              )}
+              disabled={isSending}
+            />
+            <button
+              type="submit"
+              disabled={!value.trim() || isSending}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40 flex-shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Wine, Heart, User, ScanLine } from 'lucide-react';
+import { Home, Wine, Heart, User, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const leftItems = [
@@ -73,28 +73,29 @@ export function BottomNav() {
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {leftItems.map(renderNavItem)}
 
-        {/* Raised center camera/scan button */}
+        {/* Raised center search/camera button */}
         <Link
           href="/search"
-          aria-label={t('scan')}
+          aria-label={t('search')}
           aria-current={isSearchActive ? 'page' : undefined}
           className="relative -mt-6 flex flex-col items-center"
         >
           <div
             className={cn(
               'flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200',
+              'bg-white dark:bg-charcoal-800 ring-[3px]',
               isSearchActive
-                ? 'bg-primary text-primary-foreground scale-105'
-                : 'bg-primary/90 text-primary-foreground hover:bg-primary hover:scale-105'
+                ? 'ring-primary scale-105'
+                : 'ring-primary/80 hover:ring-primary hover:scale-105'
             )}
           >
-            <ScanLine className="h-6 w-6" strokeWidth={1.8} />
+            <Camera className="h-6 w-6 text-primary" strokeWidth={1.8} />
           </div>
           <span className={cn(
             'mt-0.5 text-[10px] font-medium',
             isSearchActive ? 'text-primary' : 'text-muted-foreground'
           )}>
-            {t('scan')}
+            {t('search')}
           </span>
         </Link>
 

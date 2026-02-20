@@ -1,10 +1,53 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Wine, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { useSommelier } from './sommelier-context';
+
+function PierCharacter({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Head */}
+      <circle cx="24" cy="16" r="10" fill="#7A2D4A" />
+      {/* Hair */}
+      <path d="M14 14c0-6 4.5-10.5 10-10.5S34 8 34 14c0 1-0.3 2-0.8 2.8C32 13 28 11 24 11s-8 2-9.2 5.8C14.3 16 14 15 14 14z" fill="#4A1A2E" />
+      {/* Face highlight */}
+      <circle cx="24" cy="17" r="7.5" fill="#9A4D6A" />
+      {/* Eyes */}
+      <circle cx="21" cy="15.5" r="1" fill="white" />
+      <circle cx="27" cy="15.5" r="1" fill="white" />
+      {/* Smile */}
+      <path d="M21 19.5c0 0 1.5 2 3 2s3-2 3-2" stroke="white" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+      {/* Mustache */}
+      <path d="M19.5 17.8c0 0 2 1.5 4.5 0.2M28.5 17.8c0 0-2 1.5-4.5 0.2" stroke="#4A1A2E" strokeWidth="0.7" strokeLinecap="round" fill="none" />
+      {/* Body / Vest */}
+      <path d="M14 30c0-4 4.5-7 10-7s10 3 10 7v8H14v-8z" fill="#5A1E38" />
+      {/* Shirt */}
+      <path d="M20 23v10h8V23c-1.3-0.7-2.6-1-4-1s-2.7 0.3-4 1z" fill="white" />
+      {/* Bow tie */}
+      <path d="M21 25l3 2 3-2-3-2-3 2z" fill="#7A2D4A" />
+      <circle cx="24" cy="25" r="0.8" fill="#9A4D6A" />
+      {/* Vest lapels */}
+      <path d="M20 23L14 30v8h4V26l2-3z" fill="#4A1A2E" opacity="0.3" />
+      <path d="M28 23l6 7v8h-4V26l-2-3z" fill="#4A1A2E" opacity="0.3" />
+      {/* Wine glass in hand */}
+      <g transform="translate(34, 30)">
+        <line x1="0" y1="0" x2="0" y2="10" stroke="#9A4D6A" strokeWidth="1.2" />
+        <ellipse cx="0" cy="0" rx="3.5" ry="5" fill="#9A4D6A" opacity="0.25" />
+        <path d="M-3.5 0c0-3 1.5-5 3.5-5s3.5 2 3.5 5" stroke="#9A4D6A" strokeWidth="0.8" fill="none" />
+        <ellipse cx="0" cy="-2" rx="2.5" ry="2" fill="#7A2D4A" opacity="0.4" />
+        <line x1="-2.5" y1="10" x2="2.5" y2="10" stroke="#9A4D6A" strokeWidth="1.2" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
 
 const COACH_MARK_KEY = 'winejourney_sommelier_coach_seen';
 const PULSE_COUNT_KEY = 'winejourney_sommelier_pulse_count';
@@ -47,7 +90,7 @@ export function SommelierTrigger() {
 
   return (
     <div className={cn(
-      'fixed z-40 flex flex-col items-end gap-2',
+      'fixed z-40 flex flex-col items-end',
       'right-4 bottom-[76px]',
       'md:right-6 md:bottom-6',
       isOpen && 'scale-0 opacity-0 pointer-events-none'
@@ -72,28 +115,31 @@ export function SommelierTrigger() {
         </div>
       )}
 
-      {/* FAB button */}
-      <button
-        onClick={handleClick}
-        aria-label={t('fabLabel')}
-        className={cn(
-          'relative flex items-center justify-center shadow-lift transition-all duration-200 ease-premium',
-          'bg-garnet-500 text-white hover:scale-105 active:scale-95',
-          isPreOnboarding
-            ? 'gap-2 rounded-full px-5 h-14 md:h-[60px]'
-            : 'rounded-full h-14 w-14 md:h-[60px] md:w-[60px]',
-        )}
-      >
-        {/* Pulse ring */}
-        {showPulse && (
-          <span className="absolute inset-0 rounded-full animate-ping bg-garnet-400/40 pointer-events-none" />
-        )}
+      {/* Pier character hovering above the FAB */}
+      <div className="relative flex flex-col items-center">
+        <PierCharacter className="w-10 h-[52px] mb-[-6px] drop-shadow-md pointer-events-none" />
 
-        <Wine className="h-6 w-6 relative z-10" strokeWidth={1.8} />
-        {isPreOnboarding && (
-          <span className="text-sm font-semibold whitespace-nowrap relative z-10">{t('fabLabel')}</span>
-        )}
-      </button>
+        <button
+          onClick={handleClick}
+          aria-label={t('fabLabel')}
+          className={cn(
+            'relative flex items-center justify-center shadow-lift transition-all duration-200 ease-premium',
+            'bg-garnet-500 text-white hover:scale-105 active:scale-95',
+            isPreOnboarding
+              ? 'gap-2 rounded-full px-5 h-14 md:h-[60px]'
+              : 'rounded-full h-14 w-14 md:h-[60px] md:w-[60px]',
+          )}
+        >
+          {showPulse && (
+            <span className="absolute inset-0 rounded-full animate-ping bg-garnet-400/40 pointer-events-none" />
+          )}
+
+          <span className="text-lg font-bold relative z-10">P</span>
+          {isPreOnboarding && (
+            <span className="text-sm font-semibold whitespace-nowrap relative z-10">{t('fabLabel')}</span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

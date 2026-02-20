@@ -33,70 +33,64 @@ function PhaseSelector({
   const maxIdx = PHASE_ORDER[maxUnlockedPhase];
 
   return (
-    <div className="mt-3">
-      {/* Connecting lines layer */}
-      <div className="relative flex items-center px-6">
-        {PHASES.map((_, i) => {
-          if (i === PHASES.length - 1) return null;
-          const filled = i < activeIdx;
-          return (
-            <div key={i} className="flex-1 flex items-center">
-              <div className="w-7 flex-shrink-0" />
-              <div className={cn(
-                'h-0.5 flex-1 rounded-full transition-colors',
-                filled ? 'bg-bordeaux-400' : 'bg-border',
-              )} />
-              {i < PHASES.length - 2 && <div className="w-7 flex-shrink-0" />}
-            </div>
-          );
-        })}
+    <div className="relative mt-4 flex justify-between items-start px-4">
+      {/* Single connecting line behind the circles */}
+      <div
+        className="absolute top-[14px] z-0"
+        style={{ left: 'calc(16.67%)', right: 'calc(16.67%)' }}
+      >
+        <div className="relative h-0.5 w-full rounded-full bg-border">
+          {activeIdx > 0 && (
+            <div
+              className="absolute inset-y-0 start-0 rounded-full bg-bordeaux-400 transition-all duration-500"
+              style={{ width: `${(activeIdx / (PHASES.length - 1)) * 100}%` }}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Phase buttons on top */}
-      <div className="flex items-start -mt-[14px]">
-        {PHASES.map((step, i) => {
-          const isActive = step.key === phase;
-          const isUnlocked = i <= maxIdx;
-          const isReached = i <= activeIdx;
-          const Icon = isUnlocked ? step.icon : Lock;
+      {PHASES.map((step, i) => {
+        const isActive = step.key === phase;
+        const isUnlocked = i <= maxIdx;
+        const isReached = i <= activeIdx;
+        const Icon = isUnlocked ? step.icon : Lock;
 
-          return (
-            <button
-              key={step.key}
-              type="button"
-              onClick={() => isUnlocked && onSelect(step.key)}
-              disabled={!isUnlocked}
-              className={cn(
-                'flex flex-col items-center flex-1 min-w-0 group',
-                isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-40',
-              )}
-            >
-              <div className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all flex-shrink-0',
-                isActive
-                  ? 'bg-bordeaux-500 border-bordeaux-500 text-white scale-110 shadow-sm'
-                  : isReached
-                    ? 'bg-bordeaux-500 border-bordeaux-500 text-white'
-                    : isUnlocked
-                      ? 'bg-background border-border text-muted-foreground group-hover:border-bordeaux-300 group-hover:text-bordeaux-400'
-                      : 'bg-muted border-border text-muted-foreground',
-              )}>
-                <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-              </div>
-              <span className={cn(
-                'text-[10px] mt-1 text-center leading-tight transition-colors w-full px-0.5',
-                isActive
-                  ? 'font-semibold text-bordeaux-600 dark:text-bordeaux-300'
+        return (
+          <button
+            key={step.key}
+            type="button"
+            onClick={() => isUnlocked && onSelect(step.key)}
+            disabled={!isUnlocked}
+            className={cn(
+              'relative z-10 flex flex-col items-center w-[72px] group',
+              isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-40',
+            )}
+          >
+            <div className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all',
+              isActive
+                ? 'bg-bordeaux-500 border-bordeaux-500 text-white scale-110 shadow-sm'
+                : isReached
+                  ? 'bg-bordeaux-500 border-bordeaux-500 text-white'
                   : isUnlocked
-                    ? 'text-muted-foreground group-hover:text-foreground'
-                    : 'text-muted-foreground/60',
-              )}>
-                {t(step.labelKey)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                    ? 'bg-background border-border text-muted-foreground group-hover:border-bordeaux-300 group-hover:text-bordeaux-400'
+                    : 'bg-muted border-border text-muted-foreground',
+            )}>
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+            </div>
+            <span className={cn(
+              'text-[10px] mt-1.5 text-center leading-tight transition-colors',
+              isActive
+                ? 'font-semibold text-bordeaux-600 dark:text-bordeaux-300'
+                : isUnlocked
+                  ? 'text-muted-foreground group-hover:text-foreground'
+                  : 'text-muted-foreground/60',
+            )}>
+              {t(step.labelKey)}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
