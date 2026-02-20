@@ -8,11 +8,19 @@
 
 import { findCachedImageUrl, cacheImageUrl } from '@/lib/wine-cache';
 
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 15_000;
 
-/**
- * Extract the first wine bottle image from Vivino's preloaded state JSON.
- */
+const USER_AGENTS = [
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+];
+
+function randomUA(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
 function extractImageFromPreloadedState(html: string): string | null {
   const stateMatch = html.match(/data-preloaded-state="([^"]+)"/);
   if (!stateMatch) return null;
@@ -43,15 +51,12 @@ function extractImageFromPreloadedState(html: string): string | null {
       }
     }
   } catch (err) {
-    console.warn('Failed to parse Vivino preloaded state:', err);
+    console.warn('[wine-image] Failed to parse Vivino preloaded state:', err);
   }
 
   return null;
 }
 
-/**
- * Fallback: extract wine image URLs directly from HTML using regex.
- */
 function extractImageFromHtml(html: string): string | null {
   const imgRegex = /(?:https?:)?\/\/images\.vivino\.com\/thumbs\/[^"'\s)&]+/g;
   let match: RegExpExecArray | null;
@@ -65,29 +70,20 @@ function extractImageFromHtml(html: string): string | null {
   return null;
 }
 
-/**
- * Scrape Vivino for a wine bottle image. This is the slow/fragile path
- * used only when no cached image exists.
- */
-async function scrapeVivinoImage(
-  wineName: string,
-  winery: string,
+async function scrapeVivinoImageOnce(
+  query: string,
 ): Promise<string | null> {
-  const query = `${winery} ${wineName}`.trim();
-  if (!query) return null;
-
   const searchUrl = `https://www.vivino.com/search/wines?q=${encodeURIComponent(query)}`;
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+  try {
     const response = await fetch(searchUrl, {
       signal: controller.signal,
       redirect: 'follow',
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': randomUA(),
         Accept:
           'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -98,23 +94,51 @@ async function scrapeVivinoImage(
     clearTimeout(timeout);
 
     if (!response.ok) {
-      console.warn(`Vivino search returned ${response.status} for query: ${query}`);
+      console.error(`[wine-image] Vivino returned ${response.status} for query: "${query}"`);
       return null;
     }
 
     const html = await response.text();
-    return extractImageFromPreloadedState(html) || extractImageFromHtml(html);
+
+    if (!html || html.length < 500) {
+      console.error(`[wine-image] Vivino returned unexpectedly short HTML (${html.length} chars) for: "${query}"`);
+      return null;
+    }
+
+    const imageUrl = extractImageFromPreloadedState(html) || extractImageFromHtml(html);
+    if (!imageUrl) {
+      console.warn(`[wine-image] No image found in Vivino HTML for: "${query}" (HTML length: ${html.length})`);
+    }
+    return imageUrl;
   } catch (err: unknown) {
+    clearTimeout(timeout);
     const isAbort =
       (err instanceof DOMException && err.name === 'AbortError') ||
       (err instanceof Error && err.name === 'AbortError');
     if (isAbort) {
-      console.warn(`Vivino image fetch timed out for: ${query}`);
+      console.error(`[wine-image] Vivino fetch timed out (${FETCH_TIMEOUT_MS}ms) for: "${query}"`);
     } else {
-      console.warn(`Vivino image fetch failed for: ${query}`, err);
+      console.error(`[wine-image] Vivino fetch error for: "${query}"`, err);
     }
     return null;
   }
+}
+
+/**
+ * Scrape Vivino with one automatic retry after 1s on failure.
+ */
+async function scrapeVivinoImage(
+  wineName: string,
+  winery: string,
+): Promise<string | null> {
+  const query = `${winery} ${wineName}`.trim();
+  if (!query) return null;
+
+  const first = await scrapeVivinoImageOnce(query);
+  if (first) return first;
+
+  await new Promise((r) => setTimeout(r, 1000));
+  return scrapeVivinoImageOnce(query);
 }
 
 /**
@@ -125,14 +149,11 @@ export async function fetchWineImageUrl(
   wineName: string,
   winery: string,
 ): Promise<string | null> {
-  // 1. Check DB cache
   const cached = await findCachedImageUrl(wineName, winery);
   if (cached) return cached;
 
-  // 2. Scrape Vivino
   const imageUrl = await scrapeVivinoImage(wineName, winery);
 
-  // 3. Persist to DB for next time
   if (imageUrl) {
     await cacheImageUrl(wineName, winery, imageUrl);
   }

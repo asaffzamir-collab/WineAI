@@ -109,7 +109,7 @@ export function SommelierPanel() {
     );
   }
 
-  const mobileMaxH = vpHeight ? `${Math.min(vpHeight * 0.9, vpHeight)}px` : '90dvh';
+  const mobileMaxH = vpHeight ? `${Math.min(vpHeight * 0.85, vpHeight)}px` : '85dvh';
 
   const renderActiveFlow = () => {
     switch (activeFlow) {
@@ -197,7 +197,7 @@ export function SommelierPanel() {
           <div className="h-1.5 w-12 rounded-full bg-muted" />
         </div>
         <PanelHeader />
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 pb-20">
           {panelContent}
         </div>
         <div className="pb-[env(safe-area-inset-bottom)]" />

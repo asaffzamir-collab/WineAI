@@ -9,13 +9,17 @@ import { ChatBubble } from '../panel/chat-message';
 import type { ChatMessage } from '@/lib/sommelier-types';
 import type { ConversationSummary } from './conversation-list';
 
-function useVisualViewportHeight() {
-  const [height, setHeight] = useState<number | null>(null);
+function useKeyboardOffset() {
+  const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setHeight(vv.height);
+
+    const update = () => {
+      const bottom = window.innerHeight - (vv.height + vv.offsetTop);
+      setOffset(Math.max(0, bottom));
+    };
     update();
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
@@ -25,7 +29,7 @@ function useVisualViewportHeight() {
     };
   }, []);
 
-  return height;
+  return offset;
 }
 
 interface FullScreenChatProps {
@@ -47,7 +51,9 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleGenerated = useRef(false);
-  const vpHeight = useVisualViewportHeight();
+  const inputBarRef = useRef<HTMLDivElement>(null);
+  const keyboardOffset = useKeyboardOffset();
+  const INPUT_BAR_HEIGHT = 56;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -291,13 +297,8 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
 
   const showWelcome = messages.length === 0 && !isLoading;
 
-  const containerHeight = vpHeight ? `${vpHeight}px` : '100dvh';
-
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-[70] flex flex-col bg-background"
-      style={{ height: containerHeight }}
-    >
+    <div className="fixed inset-0 z-[70] flex flex-col bg-background">
       {/* History sidebar overlay */}
       {sidebarOpen && (
         <>
@@ -400,8 +401,11 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
         </button>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      {/* Messages area — pad bottom to avoid input bar overlap */}
+      <div
+        className="flex-1 overflow-y-auto min-h-0"
+        style={{ paddingBottom: `${INPUT_BAR_HEIGHT + 8}px` }}
+      >
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -440,8 +444,12 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
         )}
       </div>
 
-      {/* Input */}
-      <div className="border-t border-border/50 flex-shrink-0 bg-background">
+      {/* Fixed input bar — dynamically positioned above the virtual keyboard */}
+      <div
+        ref={inputBarRef}
+        className="fixed inset-x-0 z-[70] border-t border-border/50 bg-background"
+        style={{ bottom: `${keyboardOffset}px` }}
+      >
         <div className="max-w-2xl mx-auto px-3 py-2">
           <form
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
@@ -452,8 +460,13 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => {
+                setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 300);
+              }}
               placeholder={t('chatPlaceholder')}
               rows={1}
+              inputMode="text"
+              enterKeyHint="send"
               className={cn(
                 'flex-1 resize-none rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm',
                 'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
@@ -470,6 +483,7 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
             </button>
           </form>
         </div>
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   );

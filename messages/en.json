@@ -453,6 +453,7 @@
     "phase_personalization": "Personalized",
     "fabLabel": "Ask Pier",
     "coachMark": "Meet your personal sommelier — tap to discover your wine taste and get tailored recommendations.",
+    "pierHoverTooltip": "I'm Pier, your personal smart sommelier. Ask me anything!",
     "bannerDiscovery": "Let's discover your palate.",
     "bannerDiscoveryPre": "Let's start with a quick taste quiz to build your baseline profile.",
     "bannerDiscoveryPost": "Great start! Your initial profile is ready.",

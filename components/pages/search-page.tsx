@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Search, Camera, Upload, Loader2, Wine, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,8 +40,11 @@ function buildWineMetadata(
 export function SearchPage({ userId }: SearchPageProps) {
   const t = useTranslations('search');
   const tProfile = useTranslations('profile');
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get('q') || '';
+  const [query, setQuery] = useState(initialQ);
   const [isSearching, setIsSearching] = useState(false);
+  const autoSearchTriggered = useRef(false);
   const [wineResult, setWineResult] = useState<WineData | null>(null);
   const [matchResult, setMatchResult] = useState<ProfileMatchResult | null>(null);
   const [error, setError] = useState('');
@@ -91,8 +95,8 @@ export function SearchPage({ userId }: SearchPageProps) {
     return () => { cancelled = true; };
   }, [selectedRecentWine, userId]);
 
-  const handleTextSearch = async () => {
-    if (!query.trim()) return;
+  const doTextSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     setError('');
@@ -109,7 +113,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query,
+          query: searchQuery,
           userId,
         }),
       });
@@ -131,7 +135,16 @@ export function SearchPage({ userId }: SearchPageProps) {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (initialQ && !autoSearchTriggered.current) {
+      autoSearchTriggered.current = true;
+      doTextSearch(initialQ);
+    }
+  }, [initialQ, doTextSearch]);
+
+  const handleTextSearch = () => doTextSearch(query);
 
   const handleSelectCandidate = async (wine: WineData) => {
     setWineResult(null);

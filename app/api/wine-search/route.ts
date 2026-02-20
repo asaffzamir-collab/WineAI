@@ -62,7 +62,6 @@ export async function POST(request: Request) {
     }
 
     if (query) {
-      // Check DB cache first — skip OpenAI if we already have matching wines
       const cached = await findCachedWines(query as string);
       const wines = cached.length > 0
         ? cached
@@ -74,20 +73,25 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      if (wines.length === 1) {
-        // Fetch Vivino image and profile match in parallel
-        const [imageUrl, match] = await Promise.all([
-          fetchWineImageUrl(wines[0].name, wines[0].winery),
-          getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale),
-        ]);
-        if (imageUrl) wines[0].image_url = imageUrl;
-        return NextResponse.json({ wine: wines[0], match });
+
+      // Fill in missing images for any wines (including cached ones with null image_url)
+      const winesMissingImages = wines
+        .map((w, i) => ({ w, i }))
+        .filter(({ w }) => !w.image_url);
+
+      if (winesMissingImages.length > 0) {
+        const imgResults = await fetchWineImagesForMany(
+          winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
+        );
+        winesMissingImages.forEach(({ i }, mapIdx) => {
+          const url = imgResults.get(`${mapIdx}`);
+          if (url) wines[i].image_url = url;
+        });
       }
-      // Multiple candidates — fetch images for all in parallel
-      const imageResults = await fetchWineImagesForMany(wines);
-      for (let i = 0; i < wines.length; i++) {
-        const imgUrl = imageResults.get(`${i}`);
-        if (imgUrl) wines[i].image_url = imgUrl;
+
+      if (wines.length === 1) {
+        const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
+        return NextResponse.json({ wine: wines[0], match });
       }
       return NextResponse.json({ wines });
     }

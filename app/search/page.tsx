@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SearchPage } from '@/components/pages/search-page';
@@ -12,5 +13,9 @@ export default async function Page() {
     redirect('/');
   }
 
-  return <SearchPage userId={user.id} />;
+  return (
+    <Suspense>
+      <SearchPage userId={user.id} />
+    </Suspense>
+  );
 }

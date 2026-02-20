@@ -1,15 +1,43 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Wine, Loader2 } from 'lucide-react';
+import { Wine, Loader2, ChevronRight } from 'lucide-react';
 import type { ChatMessage, ChatWineCard } from '@/lib/sommelier-types';
+import { useSommelier } from '../sommelier-context';
 
 function WineMiniCard({ wine }: { wine: ChatWineCard }) {
+  const router = useRouter();
+  const { close } = useSommelier();
+  const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const fetched = useRef(false);
+
+  useEffect(() => {
+    if (wine.image_url || lazyUrl || fetched.current || !wine.name) return;
+    fetched.current = true;
+    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.imageUrl) setLazyUrl(d.imageUrl); })
+      .catch(() => {});
+  }, [wine.name, wine.winery, wine.image_url, lazyUrl]);
+
+  const imgSrc = wine.image_url || lazyUrl;
+
+  const handleClick = () => {
+    const q = `${wine.name} ${wine.winery}`.trim();
+    close();
+    router.push(`/search?q=${encodeURIComponent(q)}`);
+  };
+
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-background p-3">
-      {wine.image_url ? (
+    <button
+      onClick={handleClick}
+      className="flex w-full items-center gap-3 rounded-xl border border-border/50 bg-background p-3 text-start transition-colors hover:bg-accent/50 hover:border-bordeaux-200 dark:hover:border-bordeaux-800 cursor-pointer"
+    >
+      {imgSrc ? (
         <div className="h-10 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-          <img src={wine.image_url} alt="" className="h-full w-full object-contain" loading="lazy" />
+          <img src={imgSrc} alt="" className="h-full w-full object-contain" loading="lazy" />
         </div>
       ) : (
         <div className="flex h-10 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
@@ -28,7 +56,8 @@ function WineMiniCard({ wine }: { wine: ChatWineCard }) {
           {wine.match}%
         </span>
       )}
-    </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+    </button>
   );
 }
 
