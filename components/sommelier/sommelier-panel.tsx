@@ -20,7 +20,7 @@ import { HowItWorks } from './how-it-works';
 import { SearchFlow } from './search-flow';
 import { FullScreenChat } from './chat/full-screen-chat';
 import { useTranslations } from 'next-intl';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, History } from 'lucide-react';
 import { PierHeadAvatar } from './sommelier-trigger';
 
 function useVisualViewportHeight() {
@@ -66,7 +66,7 @@ function useLockBodyScroll(locked: boolean) {
   }, [locked]);
 }
 
-type ChatView = 'closed' | { conversationId: string | null };
+type ChatView = 'closed' | { conversationId: string | null; showHistory?: boolean };
 
 export function SommelierPanel() {
   const { isOpen, close, activeFlow } = useSommelier();
@@ -106,6 +106,7 @@ export function SommelierPanel() {
       <FullScreenChat
         conversationId={chatView.conversationId}
         onBack={() => setChatView('closed')}
+        initialSidebarOpen={chatView.showHistory}
       />
     );
   }
@@ -143,6 +144,13 @@ export function SommelierPanel() {
             <p className="text-xs text-muted-foreground">{t('chatPlaceholder')}</p>
           </div>
           <MessageCircle className="h-5 w-5 text-bordeaux-400 flex-shrink-0" />
+        </button>
+        <button
+          onClick={() => setChatView({ conversationId: null, showHistory: true })}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <History className="h-3.5 w-3.5" />
+          {t('chatHistory')}
         </button>
       </div>
     );

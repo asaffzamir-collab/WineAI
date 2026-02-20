@@ -19,7 +19,7 @@ const WineCard = dynamic(
 export function SearchFlow() {
   const t = useTranslations('search');
   const tSom = useTranslations('sommelier');
-  const { setActiveFlow, userId, refreshState } = useSommelier();
+  const { setActiveFlow, userId, refreshState, pendingSearchQuery, setPendingSearchQuery } = useSommelier();
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [wineResult, setWineResult] = useState<WineData | null>(null);
@@ -33,6 +33,7 @@ export function SearchFlow() {
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingConsumed = useRef(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -45,6 +46,46 @@ export function SearchFlow() {
       }
     } catch {}
   }, [userId]);
+
+  useEffect(() => {
+    if (pendingSearchQuery && !pendingConsumed.current) {
+      pendingConsumed.current = true;
+      setQuery(pendingSearchQuery);
+      setPendingSearchQuery(null);
+      const doSearch = async () => {
+        setIsSearching(true);
+        setError('');
+        setWineResult(null);
+        setMatchResult(null);
+        setSelectedRecent(null);
+        setUploadedImageUrl(null);
+        try {
+          const response = await fetch('/api/wine-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: pendingSearchQuery, userId }),
+          });
+          const data = await response.json();
+          if (data.error) {
+            setError(data.error);
+          } else if (data.wine) {
+            setWineResult(data.wine);
+            setMatchResult(data.match ?? null);
+            if (userId) { addRecentSearch(userId, data.wine); setRecentSearches(getRecentSearches(userId)); }
+          } else if (data.wines?.length > 0) {
+            setWineResult(data.wines[0]);
+            setMatchResult(data.match ?? null);
+            if (userId) { addRecentSearch(userId, data.wines[0]); setRecentSearches(getRecentSearches(userId)); }
+          }
+        } catch {
+          setError('Search failed. Please try again.');
+        } finally {
+          setIsSearching(false);
+        }
+      };
+      doSearch();
+    }
+  }, [pendingSearchQuery, setPendingSearchQuery, userId]);
 
   const saveAndSetResult = (wine: WineData, match?: ProfileMatchResult | null) => {
     setWineResult(wine);

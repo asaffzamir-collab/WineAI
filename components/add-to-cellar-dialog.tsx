@@ -173,21 +173,11 @@ export function AddToCellarDialog({
       const finalSlot = slotId ?? selectedSlotId;
       const newItemId: string | undefined = data?.cellarItemId;
       if (finalSlot && newItemId) {
-        // Persist slot assignment to database
-        fetch('/api/cellar', {
+        await fetch('/api/cellar', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: newItemId, slotId: finalSlot }),
-        }).catch(() => {});
-
-        // Also update localStorage for immediate cellar page consistency
-        try {
-          const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
-          const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
-          slots[newItemId] = finalSlot;
-          localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
-        } catch { /* silent */ }
-
+        });
         trackCellar('bottle_added_to_slot');
       }
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Wine, Loader2, ChevronRight } from 'lucide-react';
 import type { ChatMessage, ChatWineCard } from '@/lib/sommelier-types';
@@ -9,8 +8,7 @@ import { useSommelier } from '../sommelier-context';
 import { PierHeadAvatar } from '../sommelier-trigger';
 
 function WineMiniCard({ wine }: { wine: ChatWineCard }) {
-  const router = useRouter();
-  const { close } = useSommelier();
+  const { setActiveFlow, setPendingSearchQuery } = useSommelier();
   const [lazyUrl, setLazyUrl] = useState<string | null>(null);
   const fetched = useRef(false);
 
@@ -27,8 +25,8 @@ function WineMiniCard({ wine }: { wine: ChatWineCard }) {
 
   const handleClick = () => {
     const q = `${wine.name} ${wine.winery}`.trim();
-    close();
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+    setPendingSearchQuery(q);
+    setActiveFlow('search');
   };
 
   return (

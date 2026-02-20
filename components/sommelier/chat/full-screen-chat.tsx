@@ -42,9 +42,10 @@ function useVisualViewport() {
 interface FullScreenChatProps {
   conversationId: string | null;
   onBack: () => void;
+  initialSidebarOpen?: boolean;
 }
 
-export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) {
+export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: FullScreenChatProps) {
   const t = useTranslations('sommelier');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +53,7 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
   const [value, setValue] = useState('');
   const [title, setTitle] = useState<string | null>(null);
   const [convId, setConvId] = useState<string | null>(conversationId);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(initialSidebarOpen ?? false);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
