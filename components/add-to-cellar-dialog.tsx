@@ -112,14 +112,14 @@ export function AddToCellarDialog({
         }));
       }
 
-      let cellarItems: Array<Record<string, unknown>> = [];
+      let cellarItems: CellarApiItem[] = [];
       if (cellarRes.ok) {
         const cData = await cellarRes.json();
         cellarItems = cData.items || [];
       }
 
       setRacks(fetchedRacks);
-      setPlacementMap(buildPlacementMapFromItems(cellarItems as CellarApiItem[], fetchedRacks));
+      setPlacementMap(buildPlacementMapFromItems(cellarItems, fetchedRacks));
     } catch (err) {
       console.error('Failed to load rack data:', err);
       setRacks([]);
