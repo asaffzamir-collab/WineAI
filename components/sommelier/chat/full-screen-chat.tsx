@@ -2,11 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, Send, Wine, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Wine, Loader2, Menu, X, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeId } from '@/lib/utils';
 import { ChatBubble } from '../panel/chat-message';
 import type { ChatMessage } from '@/lib/sommelier-types';
+import type { ConversationSummary } from './conversation-list';
 
 interface FullScreenChatProps {
   conversationId: string | null;
@@ -21,6 +22,9 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
   const [value, setValue] = useState('');
   const [title, setTitle] = useState<string | null>(null);
   const [convId, setConvId] = useState<string | null>(conversationId);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [conversationsLoaded, setConversationsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleGenerated = useRef(false);
@@ -36,7 +40,6 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
   }, [value]);
 
-  // Load existing conversation
   useEffect(() => {
     if (!conversationId) return;
     setIsLoading(true);
@@ -53,6 +56,25 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, [conversationId]);
+
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/sommelier/conversations');
+      if (!res.ok) return;
+      const data = await res.json();
+      setConversations(data.conversations || []);
+    } catch {
+      // silent
+    } finally {
+      setConversationsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sidebarOpen && !conversationsLoaded) {
+      loadConversations();
+    }
+  }, [sidebarOpen, conversationsLoaded, loadConversations]);
 
   const saveMessages = useCallback(
     async (id: string, msgs: ChatMessage[]) => {
@@ -91,8 +113,8 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
     [],
   );
 
-  const handleSend = async () => {
-    const trimmed = value.trim();
+  const handleSend = async (text?: string) => {
+    const trimmed = (text ?? value).trim();
     if (!trimmed || isSending) return;
 
     setValue('');
@@ -117,7 +139,6 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
     setMessages((prev) => [...prev, userMsg, assistantPlaceholder]);
     setIsSending(true);
 
-    // Create conversation on first message if needed
     let activeId = convId;
     if (!activeId) {
       try {
@@ -164,7 +185,6 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
 
       setMessages(updatedMessages);
 
-      // Persist and auto-title
       const finalMessages = updatedMessages([...messages, userMsg, assistantPlaceholder]);
       if (activeId) {
         await saveMessages(activeId, finalMessages);
@@ -192,7 +212,44 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
     }
   };
 
-  // Auto-save on exit
+  const handleNewConversation = () => {
+    setMessages([]);
+    setConvId(null);
+    setTitle(null);
+    titleGenerated.current = false;
+    setSidebarOpen(false);
+  };
+
+  const handleSelectConversation = (conv: ConversationSummary) => {
+    setMessages([]);
+    setConvId(conv.id);
+    setTitle(conv.title);
+    titleGenerated.current = !!conv.title;
+    setSidebarOpen(false);
+    setIsLoading(true);
+    fetch(`/api/sommelier/conversations/${conv.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.conversation) {
+          const msgs = Array.isArray(data.conversation.messages) ? data.conversation.messages as ChatMessage[] : [];
+          setMessages(msgs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/sommelier/conversations/${id}`, { method: 'DELETE' });
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (convId === id) handleNewConversation();
+    } catch {
+      // silent
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (convId && messages.length > 0) {
@@ -205,78 +262,195 @@ export function FullScreenChat({ conversationId, onBack }: FullScreenChatProps) 
     };
   }, [convId, messages]);
 
-  return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex items-center gap-3 border-b border-border/50 px-4 py-3 flex-shrink-0">
-        <button
-          onClick={onBack}
-          className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-accent transition-colors"
-          aria-label={t('back')}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-foreground truncate">
-            {title || t('newConversation')}
-          </h2>
-        </div>
-      </header>
+  const suggestions = [
+    t('chatSuggestion1'),
+    t('chatSuggestion2'),
+    t('chatSuggestion3'),
+    t('chatSuggestion4'),
+  ];
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  const showWelcome = messages.length === 0 && !isLoading;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex bg-background">
+      {/* Sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-[71] bg-black/40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={cn(
+        'fixed inset-y-0 start-0 z-[72] w-[280px] flex flex-col bg-card border-e border-border/50 transition-transform duration-200',
+        'md:relative md:translate-x-0',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-full md:w-0 md:border-0',
+      )}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+          <h3 className="text-sm font-semibold text-foreground">{t('chatHistory')}</h3>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleNewConversation}
+              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+              aria-label={t('newConversation')}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent transition-colors md:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20 mb-4">
-              <Wine className="h-7 w-7 text-bordeaux-500 dark:text-bordeaux-400" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {!conversationsLoaded ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">{t('chatWelcomeTitle')}</p>
-            <p className="text-xs text-muted-foreground max-w-[260px] leading-relaxed">
-              {t('chatWelcomeDesc')}
+          ) : conversations.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-muted-foreground text-center">
+              {t('noConversations')}
             </p>
-          </div>
-        ) : (
-          <div className="px-4 py-4 space-y-3">
-            {messages.map((msg) => (
-              <ChatBubble key={msg.id} message={msg} />
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        )}
+          ) : (
+            <ul className="py-2 space-y-0.5 px-2">
+              {conversations.map((conv) => (
+                <li key={conv.id}>
+                  <button
+                    onClick={() => handleSelectConversation(conv)}
+                    className={cn(
+                      'w-full text-start rounded-lg px-3 py-2.5 text-sm transition-colors group',
+                      conv.id === convId
+                        ? 'bg-accent text-foreground'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                    )}
+                  >
+                    <p className="truncate font-medium text-[13px]">
+                      {conv.title || t('untitledConversation')}
+                    </p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      {conv.lastMessage && (
+                        <p className="text-[11px] text-muted-foreground/70 truncate flex-1 pe-2">
+                          {conv.lastMessage}
+                        </p>
+                      )}
+                      <button
+                        onClick={(e) => handleDeleteConversation(e, conv.id)}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground/50 hover:text-destructive transition-all flex-shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="border-t border-border/50 px-4 py-3 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-          className="flex items-end gap-2"
-        >
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('chatPlaceholder')}
-            rows={1}
-            className={cn(
-              'flex-1 resize-none rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm',
-              'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
-              'max-h-[120px] min-h-[44px]',
-            )}
-            disabled={isSending}
-          />
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="flex items-center gap-2 border-b border-border/50 px-3 py-2.5 flex-shrink-0">
           <button
-            type="submit"
-            disabled={!value.trim() || isSending}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40 flex-shrink-0"
+            onClick={onBack}
+            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+            aria-label={t('back')}
           >
-            <Send className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
-        </form>
+          <button
+            onClick={() => { if (!conversationsLoaded) loadConversations(); setSidebarOpen(!sidebarOpen); }}
+            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0">
+              <span className="text-xs font-bold">P</span>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-foreground truncate">
+                {title || t('pierGreeting')}
+              </h2>
+            </div>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : showWelcome ? (
+            <div className="flex flex-col items-center justify-center h-full px-6 pb-4">
+              <div className="flex flex-col items-center text-center max-w-sm">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-bordeaux-50 dark:bg-bordeaux-900/20 mb-5">
+                  <Wine className="h-8 w-8 text-bordeaux-500 dark:text-bordeaux-400" strokeWidth={1.5} />
+                </div>
+                <h2 className="text-lg font-semibold text-foreground mb-1">{t('chatWelcomeTitle')}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+                  {t('chatWelcomeDesc')}
+                </p>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(s)}
+                      disabled={isSending}
+                      className="rounded-xl border border-border/60 bg-card px-3 py-3 text-start text-xs text-foreground transition-colors hover:bg-accent/50 hover:border-bordeaux-200 dark:hover:border-bordeaux-800 leading-snug"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+              {messages.map((msg) => (
+                <ChatBubble key={msg.id} message={msg} />
+              ))}
+              <div ref={bottomRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-border/50 flex-shrink-0 pb-[env(safe-area-inset-bottom)]">
+          <div className="max-w-2xl mx-auto px-4 py-3">
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+              className="flex items-end gap-2"
+            >
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t('chatPlaceholder')}
+                rows={1}
+                className={cn(
+                  'flex-1 resize-none rounded-xl border border-border/60 bg-background px-4 py-3 text-sm',
+                  'placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring',
+                  'max-h-[120px] min-h-[44px]',
+                )}
+                disabled={isSending}
+              />
+              <button
+                type="submit"
+                disabled={!value.trim() || isSending}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bordeaux-600 text-white transition-colors hover:bg-bordeaux-700 disabled:opacity-40 flex-shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

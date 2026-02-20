@@ -41,11 +41,14 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
   if (message.isStreaming && !message.content) {
     return (
-      <div className="flex justify-start">
-        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-card border border-border/50 px-4 py-3 shadow-soft">
+      <div className="flex justify-start items-start gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0 mt-0.5">
+          <span className="text-[10px] font-bold">P</span>
+        </div>
+        <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-card border border-border/50 px-4 py-3 shadow-soft">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-bordeaux-500" />
-            <span className="text-sm text-muted-foreground animate-pulse">Thinking...</span>
+            <span className="text-sm text-muted-foreground animate-pulse">Pier is thinking...</span>
           </div>
         </div>
       </div>
@@ -53,13 +56,18 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   }
 
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start items-start gap-2.5')}>
+      {!isUser && (
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0 mt-0.5">
+          <span className="text-[10px] font-bold">P</span>
+        </div>
+      )}
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-4 py-3 shadow-soft',
           isUser
             ? 'rounded-br-md bg-bordeaux-600 text-white dark:bg-bordeaux-700'
-            : 'rounded-bl-md bg-card border border-border/50 text-foreground'
+            : 'rounded-tl-md bg-card border border-border/50 text-foreground'
         )}
       >
         <p className={cn(

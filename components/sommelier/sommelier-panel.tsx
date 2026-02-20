@@ -18,11 +18,9 @@ import { TasteEvolution } from './personalized/taste-evolution';
 import { CellarActions, FillRackFlow } from './personalized/cellar-actions';
 import { HowItWorks } from './how-it-works';
 import { SearchFlow } from './search-flow';
-import { ConversationList } from './chat/conversation-list';
 import { FullScreenChat } from './chat/full-screen-chat';
 import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 function useVisualViewportHeight() {
   const [height, setHeight] = useState<number | null>(null);
@@ -67,7 +65,7 @@ function useLockBodyScroll(locked: boolean) {
   }, [locked]);
 }
 
-type ChatView = 'closed' | 'list' | { conversationId: string | null };
+type ChatView = 'closed' | { conversationId: string | null };
 
 export function SommelierPanel() {
   const { isOpen, close, activeFlow } = useSommelier();
@@ -102,12 +100,11 @@ export function SommelierPanel() {
 
   if (!isOpen) return null;
 
-  // Full-screen chat is its own overlay, rendered above the panel
   if (typeof chatView === 'object') {
     return (
       <FullScreenChat
         conversationId={chatView.conversationId}
-        onBack={() => setChatView('list')}
+        onBack={() => setChatView('closed')}
       />
     );
   }
@@ -132,26 +129,22 @@ export function SommelierPanel() {
     }
   };
 
-  const renderConversationsSection = () => {
-    if (chatView === 'list') {
-      return (
-        <ConversationList
-          onSelect={(id) => setChatView({ conversationId: id })}
-          onNew={() => setChatView({ conversationId: null })}
-        />
-      );
-    }
-
+  const renderChatButton = () => {
     return (
       <div className="px-4 py-3">
-        <Button
-          variant="outline"
-          className="w-full gap-2 justify-center"
-          onClick={() => setChatView('list')}
+        <button
+          onClick={() => setChatView({ conversationId: null })}
+          className="w-full flex items-center gap-3 rounded-xl border border-bordeaux-200 dark:border-bordeaux-800 bg-gradient-to-r from-bordeaux-50 to-transparent dark:from-bordeaux-900/20 dark:to-transparent p-3.5 transition-all hover:shadow-soft hover:border-bordeaux-300 dark:hover:border-bordeaux-700 active:scale-[0.98]"
         >
-          <MessageCircle className="h-4 w-4" />
-          {t('conversations')}
-        </Button>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0">
+            <span className="text-sm font-bold">P</span>
+          </div>
+          <div className="text-start flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">{t('pierGreeting')}</p>
+            <p className="text-xs text-muted-foreground">{t('chatPlaceholder')}</p>
+          </div>
+          <MessageCircle className="h-5 w-5 text-bordeaux-400 flex-shrink-0" />
+        </button>
       </div>
     );
   };
@@ -161,9 +154,9 @@ export function SommelierPanel() {
   ) : (
     <>
       <StatusBanner />
+      {renderChatButton()}
       <QuickActions />
-      {renderConversationsSection()}
-      {chatView !== 'list' && <ConversationFeed />}
+      <ConversationFeed />
     </>
   );
 

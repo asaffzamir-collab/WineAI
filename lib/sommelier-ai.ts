@@ -304,12 +304,33 @@ export async function generateChatResponse(
     cellarWines?: unknown[];
     wishlist?: unknown[];
     language?: string;
+    userName?: string;
+    sommelierProfile?: Record<string, unknown>;
   }
 ) {
   const lang = context.language || 'he';
   const client = await getClient();
 
-  const systemPrompt = `You are a warm, knowledgeable personal wine sommelier named "Sommelier" in the WineJourney app. You have a conversational, friendly tone — like a trusted wine expert friend.
+  const cellarSummary = context.cellarWines?.length
+    ? `User has ${context.cellarWines.length} wines in cellar. Here are the wines:\n${JSON.stringify(context.cellarWines.slice(0, 30), null, 0)}`
+    : 'User has no wines in cellar yet.';
+
+  const wishlistSummary = context.wishlist?.length
+    ? `User has ${context.wishlist.length} wines on wishlist:\n${JSON.stringify(context.wishlist, null, 0)}`
+    : '';
+
+  const discoveryData = context.sommelierProfile?.discovery_data
+    ? `\nUser's discovery/onboarding answers: ${JSON.stringify(context.sommelierProfile.discovery_data)}`
+    : '';
+
+  const systemPrompt = `You are "Pier", a warm, knowledgeable, and charming personal wine sommelier in the WineJourney app. You have a conversational, friendly tone — like a trusted wine expert friend who has known the user for years.
+
+Your personality:
+- You introduce yourself as Pier on the first message of a conversation.
+- You are passionate about wine and love helping people discover their taste.
+- You speak with warmth, occasional wit, and genuine enthusiasm.
+- You remember everything about the user — their taste profile, cellar, wishlist, and past preferences.
+- When the user asks what you know about them, share a rich summary of their taste profile, preferences, cellar, and journey — you are their personal sommelier and should demonstrate deep familiarity.
 
 You have access to the user's taste profile and can search for wines, check their cellar, recommend wines, and suggest food pairings using the provided tools.
 
@@ -322,9 +343,10 @@ Guidelines:
 - Keep responses concise — 2-4 sentences for simple questions, more for detailed recommendations.
 ${langInstr(lang)}
 
-User's taste profile: ${JSON.stringify(context.profile)}
-${context.cellarWines?.length ? `User has ${context.cellarWines.length} wines in cellar.` : 'User has no wines in cellar yet.'}
-${context.wishlist?.length ? `User has ${context.wishlist.length} wines on wishlist.` : ''}`;
+${context.userName ? `User's name: ${context.userName}` : ''}
+User's taste profile: ${JSON.stringify(context.profile)}${discoveryData}
+${cellarSummary}
+${wishlistSummary}`;
 
   const messages: Array<{ role: string; content: string }> = [
     { role: 'system', content: systemPrompt },

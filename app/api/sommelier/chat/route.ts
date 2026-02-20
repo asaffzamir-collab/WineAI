@@ -25,13 +25,13 @@ export async function POST(request: Request) {
 
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('preferred_language')
+      .select('preferred_language, display_name')
       .eq('id', user.id)
       .single();
     const lang = userProfile?.preferred_language || 'he';
 
-    const [profileResult, cellarResult, wishlistResult] = await Promise.all([
-      supabase.from('taste_profiles').select('profile_data').eq('user_id', user.id),
+    const [profileResult, cellarResult, wishlistResult, sommelierProfileResult] = await Promise.all([
+      supabase.from('taste_profiles').select('profile_data, wine_type').eq('user_id', user.id),
       supabase
         .from('cellar_items')
         .select('wine_name, winery, wine_type, country, region, grapes, purchase_price, drink_from, drink_until, quantity')
@@ -43,6 +43,11 @@ export async function POST(request: Request) {
         .select('wine_name, winery, wine_type')
         .eq('user_id', user.id)
         .limit(20),
+      supabase
+        .from('sommelier_profiles')
+        .select('discovery_data, phase, taste_precision')
+        .eq('user_id', user.id)
+        .single(),
     ]);
 
     const combinedProfile = profileResult.data?.reduce(
@@ -52,6 +57,7 @@ export async function POST(request: Request) {
 
     const cellarWines = cellarResult.data || [];
     const wishlist = wishlistResult.data || [];
+    const sommelierProfile = (sommelierProfileResult.data as Record<string, unknown>) || {};
 
     const chatResult = await generateChatResponse(
       message,
@@ -61,6 +67,8 @@ export async function POST(request: Request) {
         cellarWines,
         wishlist,
         language: lang,
+        userName: userProfile?.display_name || undefined,
+        sommelierProfile,
       }
     );
 
@@ -220,7 +228,7 @@ export async function POST(request: Request) {
       const allWines = toolResults.flatMap(tr => tr.wines);
 
       const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
-      const systemPrompt = `You are a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar.
+      const systemPrompt = `You are "Pier", a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar. Always speak as Pier — with warmth, charm, and genuine passion for wine.
 ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine names and regions can stay in original language.' : ''}`;
 
       const msgs = [
