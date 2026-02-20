@@ -191,6 +191,20 @@ export function AdminPage({ adminEmail }: { adminEmail: string }) {
           { method: 'POST' }
         );
         if (!res.ok) throw new Error('Failed');
+        const eraseData = await res.json().catch(() => ({}));
+
+        // Clear client-side storage for the erased user
+        if (Array.isArray(eraseData.clearLocalStorage)) {
+          for (const key of eraseData.clearLocalStorage) {
+            try { localStorage.removeItem(key); } catch { /* ignore */ }
+          }
+        }
+        if (Array.isArray(eraseData.clearSessionStorage)) {
+          for (const key of eraseData.clearSessionStorage) {
+            try { sessionStorage.removeItem(key); } catch { /* ignore */ }
+          }
+        }
+
         setUsers((prev) =>
           prev.map((u) =>
             u.id === confirmAction.userId

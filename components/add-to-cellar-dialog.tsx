@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { LocationPickerModal } from '@/components/cellar/location-picker/location-picker-modal';
 import type { WineData } from '@/lib/openai';
-import type { Rack, Placement, SlotId } from '@/lib/cellar/types';
+import type { Rack, Placement, SlotId, WineCategory } from '@/lib/cellar/types';
+import { computeAllSlots } from '@/lib/cellar/types';
 import { trackCellar } from '@/lib/cellar/analytics';
 
 interface AddToCellarDialogProps {
@@ -19,30 +20,43 @@ interface AddToCellarDialogProps {
   onAdded: () => void;
 }
 
-function loadRacks(userId: string): Rack[] {
-  try {
-    const raw = localStorage.getItem(`cellar-racks:${userId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+function normalizeWineType(t: string | undefined): WineCategory {
+  const map: Record<string, WineCategory> = { red: 'red', white: 'white', rose: 'rose', sparkling: 'sparkling' };
+  return map[t || ''] || 'other';
 }
 
-function loadPlacements(userId: string): Map<SlotId, Placement> {
-  try {
-    const raw = localStorage.getItem(`cellar-slots:${userId}`);
-    if (!raw) return new Map();
-    const assignments: Record<string, SlotId> = JSON.parse(raw);
-    const map = new Map<SlotId, Placement>();
-    for (const [, slotId] of Object.entries(assignments)) {
-      if (slotId) {
-        map.set(slotId, { slotId, wineType: 'other' } as Placement);
-      }
+/**
+ * Build a placement map from cellar items and racks fetched from the API.
+ * This mirrors the logic in CellarRackProvider but is self-contained.
+ */
+function buildPlacementMapFromItems(
+  items: Array<{ id: string; slot_id?: string | null; quantity: number; wine_type?: string; wine_name?: string; wine_winery?: string; wine?: { wine_type?: string; name?: string; winery?: string } }>,
+  racks: Rack[],
+): Map<SlotId, Placement> {
+  const validSlots = new Set<SlotId>();
+  for (const rack of racks) {
+    for (const slotId of computeAllSlots(rack)) {
+      validSlots.add(slotId);
     }
-    return map;
-  } catch {
-    return new Map();
   }
+
+  const map = new Map<SlotId, Placement>();
+  for (const item of items) {
+    const slot = item.slot_id as SlotId | undefined;
+    if (!slot || !validSlots.has(slot)) continue;
+
+    const wine = item.wine as { wine_type?: string; name?: string; winery?: string } | undefined;
+    const wineType = normalizeWineType(wine?.wine_type || item.wine_type);
+    map.set(slot, {
+      slotId: slot,
+      cellarItemId: item.id,
+      wineType,
+      wineName: wine?.name || item.wine_name || '',
+      winery: wine?.winery || item.wine_winery || '',
+      quantity: item.quantity || 1,
+    } as Placement);
+  }
+  return map;
 }
 
 export function AddToCellarDialog({
@@ -65,6 +79,42 @@ export function AddToCellarDialog({
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
   const [racks, setRacks] = useState<Rack[]>([]);
   const [placementMap, setPlacementMap] = useState<Map<SlotId, Placement>>(new Map());
+  const [isLoadingRacks, setIsLoadingRacks] = useState(false);
+
+  const fetchRacksAndPlacements = useCallback(async () => {
+    setIsLoadingRacks(true);
+    try {
+      const [racksRes, cellarRes] = await Promise.all([
+        fetch(`/api/cellar/rack?userId=${encodeURIComponent(userId)}`),
+        fetch(`/api/cellar?userId=${encodeURIComponent(userId)}`),
+      ]);
+
+      let fetchedRacks: Rack[] = [];
+      if (racksRes.ok) {
+        const rData = await racksRes.json();
+        const rawRacks = rData.racks || [];
+        fetchedRacks = rawRacks.map((r: { id: string; config: Rack }) => ({
+          ...r.config,
+          id: r.id,
+        }));
+      }
+
+      let cellarItems: Array<Record<string, unknown>> = [];
+      if (cellarRes.ok) {
+        const cData = await cellarRes.json();
+        cellarItems = cData.items || [];
+      }
+
+      setRacks(fetchedRacks);
+      setPlacementMap(buildPlacementMapFromItems(cellarItems as never[], fetchedRacks));
+    } catch (err) {
+      console.error('Failed to load rack data:', err);
+      setRacks([]);
+      setPlacementMap(new Map());
+    } finally {
+      setIsLoadingRacks(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (wine) {
@@ -73,10 +123,9 @@ export function AddToCellarDialog({
       setPriceNis('');
       setError('');
       setSelectedSlotId(null);
-      setRacks(loadRacks(userId));
-      setPlacementMap(loadPlacements(userId));
+      fetchRacksAndPlacements();
     }
-  }, [wine, userId]);
+  }, [wine, userId, fetchRacksAndPlacements]);
 
   const handleConfirm = async (slotId?: SlotId | null) => {
     if (!wine) return;
@@ -111,18 +160,21 @@ export function AddToCellarDialog({
       const finalSlot = slotId ?? selectedSlotId;
       const newItemId: string | undefined = data?.cellarItemId;
       if (finalSlot && newItemId) {
+        // Persist slot assignment to database
+        fetch('/api/cellar', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: newItemId, slotId: finalSlot }),
+        }).catch(() => {});
+
+        // Also update localStorage for immediate cellar page consistency
         try {
           const slotsRaw = localStorage.getItem(`cellar-slots:${userId}`);
           const slots: Record<string, string> = slotsRaw ? JSON.parse(slotsRaw) : {};
           slots[newItemId] = finalSlot;
           localStorage.setItem(`cellar-slots:${userId}`, JSON.stringify(slots));
         } catch { /* silent */ }
-        // Persist slot assignment to database so cellar rack shows it
-        fetch('/api/cellar', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: newItemId, slotId: finalSlot }),
-        }).catch(() => {});
+
         trackCellar('bottle_added_to_slot');
       }
 
@@ -210,7 +262,7 @@ export function AddToCellarDialog({
                 >
                   {tCommon('cancel')}
                 </Button>
-                {racks.length > 0 ? (
+                {!isLoadingRacks && racks.length > 0 ? (
                   <Button
                     type="button"
                     className="flex-1 gap-1.5"
@@ -231,9 +283,9 @@ export function AddToCellarDialog({
                     type="button"
                     className="flex-1"
                     onClick={() => handleConfirm()}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isLoadingRacks}
                   >
-                    {isSubmitting ? (
+                    {isSubmitting || isLoadingRacks ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       tWineCard('addToCellar')

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Wine, Loader2, ChevronRight } from 'lucide-react';
 import type { ChatMessage, ChatWineCard } from '@/lib/sommelier-types';
 import { useSommelier } from '../sommelier-context';
+import { PierHeadAvatar } from '../sommelier-trigger';
 
 function WineMiniCard({ wine }: { wine: ChatWineCard }) {
   const router = useRouter();
@@ -71,9 +72,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   if (message.isStreaming && !message.content) {
     return (
       <div className="flex justify-start items-start gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0 mt-0.5">
-          <span className="text-[10px] font-bold">P</span>
-        </div>
+        <PierHeadAvatar className="h-7 w-7 flex-shrink-0 mt-0.5 rounded-full" />
         <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-card border border-border/50 px-4 py-3 shadow-soft">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-bordeaux-500" />
@@ -87,9 +86,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start items-start gap-2.5')}>
       {!isUser && (
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-bordeaux-500 text-white flex-shrink-0 mt-0.5">
-          <span className="text-[10px] font-bold">P</span>
-        </div>
+        <PierHeadAvatar className="h-7 w-7 flex-shrink-0 mt-0.5 rounded-full" />
       )}
       <div
         className={cn(
