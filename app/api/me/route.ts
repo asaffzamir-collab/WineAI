@@ -10,11 +10,20 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let { data: profile } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('onboarding_completed, profile_completed, display_name')
     .eq('id', user.id)
     .single();
+
+  if (profileError?.message?.includes('profile_completed')) {
+    const fallback = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed, display_name')
+      .eq('id', user.id)
+      .single();
+    profile = fallback.data ? { ...fallback.data, profile_completed: true } : null;
+  }
 
   if (!profile) {
     const meta = user.user_metadata as { display_name?: string; terms_accepted_at?: string } | undefined;

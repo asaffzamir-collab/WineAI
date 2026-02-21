@@ -9,11 +9,20 @@ export default async function SommelierWelcomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: profile } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('profile_completed, onboarding_completed, display_name')
     .eq('id', user.id)
     .single();
+
+  if (profileError?.message?.includes('profile_completed')) {
+    const fallback = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed, display_name')
+      .eq('id', user.id)
+      .single();
+    profile = fallback.data ? { ...fallback.data, profile_completed: true } : null;
+  }
 
   if (!profile?.profile_completed) redirect('/onboarding/profile');
   if (profile?.onboarding_completed) redirect('/');

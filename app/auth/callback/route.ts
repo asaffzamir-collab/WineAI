@@ -117,11 +117,20 @@ export async function GET(request: NextRequest) {
     return redirectToError('no_user', 'Could not retrieve user information');
   }
 
-  const { data: profile } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('id, profile_completed, onboarding_completed')
     .eq('id', user.id)
     .single();
+
+  if (profileError?.message?.includes('profile_completed')) {
+    const fallback = await supabase
+      .from('user_profiles')
+      .select('id, onboarding_completed')
+      .eq('id', user.id)
+      .single();
+    profile = fallback.data ? { ...fallback.data, profile_completed: true } : null;
+  }
 
   if (!profile) {
     const meta = user.user_metadata as { given_name?: string; full_name?: string } | undefined;
