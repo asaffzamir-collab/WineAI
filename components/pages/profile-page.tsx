@@ -222,12 +222,12 @@ function SectionHeading({
   subtitle: string;
 }) {
   return (
-    <div>
+    <div className="text-start">
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-bordeaux-600 dark:text-ivory-200">{title}</h3>
       </div>
-      <p className="mt-0.5 text-xs text-stone-600/80 italic dark:text-stone-400/80">{subtitle}</p>
+      <p className="mt-0.5 text-start text-xs text-stone-600/80 italic dark:text-stone-400/80">{subtitle}</p>
     </div>
   );
 }
@@ -515,47 +515,47 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         )}
 
                         {profile.overall_style && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               title={t('overallStyle')}
                               subtitle={t('overallStyleExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.overall_style}</p>
+                            <p className="mt-2 text-start leading-relaxed text-stone-600 dark:text-stone-400">{profile.overall_style}</p>
                           </section>
                         )}
 
                         {profile.body_structure && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               title={t('bodyStructure')}
                               subtitle={t('bodyStructureExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.body_structure}</p>
+                            <p className="mt-2 text-start leading-relaxed text-stone-600 dark:text-stone-400">{profile.body_structure}</p>
                           </section>
                         )}
 
                         {profile.fruit_profile && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               title={t('fruitProfile')}
                               subtitle={t('fruitProfileExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.fruit_profile}</p>
+                            <p className="mt-2 text-start leading-relaxed text-stone-600 dark:text-stone-400">{profile.fruit_profile}</p>
                           </section>
                         )}
 
                         {profile.style_notes && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               title={t('styleNotes')}
                               subtitle={t('styleNotesExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.style_notes}</p>
+                            <p className="mt-2 text-start leading-relaxed text-stone-600 dark:text-stone-400">{profile.style_notes}</p>
                           </section>
                         )}
 
                         {profile.recommended_grapes && profile.recommended_grapes.length > 0 && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               icon={<Grape className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedGrapes')}
@@ -575,7 +575,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         )}
 
                         {profile.recommended_regions && profile.recommended_regions.length > 0 && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               icon={<MapPin className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedRegions')}
@@ -595,7 +595,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         )}
 
                         {profile.what_to_avoid && profile.what_to_avoid.length > 0 && (
-                          <section>
+                          <section className="text-start">
                             <SectionHeading
                               icon={<AlertCircle className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('whatToAvoid')}
@@ -615,17 +615,17 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         )}
 
                         {profile.summary && (
-                          <section className="rounded-xl bg-ivory-300 p-4 dark:bg-charcoal-700/50">
+                          <section className="text-start rounded-xl bg-ivory-300 p-4 dark:bg-charcoal-700/50">
                             <SectionHeading
                               title={t('summary')}
                               subtitle={t('summaryExplain')}
                             />
-                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{profile.summary}</p>
+                            <p className="mt-2 text-start italic leading-relaxed text-stone-600 dark:text-stone-400">{profile.summary}</p>
                           </section>
                         )}
 
                         {(profile.liked_wines_detail && profile.liked_wines_detail.length > 0) && (
-                          <section>
+                          <section className="text-start">
                             <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}
@@ -706,7 +706,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                         {(!profile.liked_wines_detail || profile.liked_wines_detail.length === 0) &&
                           profile.liked_wines &&
                           profile.liked_wines.length > 0 && (
-                          <section>
+                          <section className="text-start">
                             <h3 className="mb-3 flex items-center gap-2 font-semibold text-bordeaux-600 dark:text-ivory-200">
                               <Wine className="h-4 w-4" strokeWidth={1.5} />
                               {t('winesThatBuiltProfile')}

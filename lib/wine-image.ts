@@ -5,11 +5,11 @@
  * hitting external sources. Once fetched, the URL is persisted to the DB
  * so subsequent requests never hit external APIs again.
  *
- * Strategy 1: Vivino JSON search API (browser-like headers).
- * Strategy 2: Vivino HTML scraping with challenge detection.
- * Strategy 3: Wine-Searcher scraping (independent CDN, less aggressive blocking).
+ * Strategy 1: Google Image Search (extracts Vivino/wine-retailer image URLs).
+ * Strategy 2: Wine-Searcher scraping (independent CDN).
+ * Strategy 3: OpenAI web search fallback (costs API credits, last resort).
  *
- * Negative-cache: failed lookups are remembered for 24 h so the same wine
+ * Negative-cache: failed lookups are remembered so the same wine
  * doesn't keep hammering external services on every page load.
  */
 
@@ -53,193 +53,105 @@ function browserHeaders(extra: Record<string, string> = {}): Record<string, stri
   };
 }
 
-// ───────────── Strategy 1: Vivino JSON API ─────────────
-
-interface VivinoExploreMatch {
-  vintage?: {
-    wine?: { name?: string; winery?: { name?: string } };
-    image?: {
-      location?: string;
-      variations?: { bottle_large?: string; bottle_medium?: string; large?: string; medium?: string };
-    };
-  };
+function detectChallengePage(html: string): boolean {
+  const markers = ['cf-challenge', 'Checking your browser', 'cf-turnstile', 'challenge-platform', 'px-captcha'];
+  return markers.some((m) => html.includes(m));
 }
 
-function isRelevantMatch(match: VivinoExploreMatch, query: string): boolean {
-  const wineName = (match?.vintage?.wine?.name ?? '').toLowerCase();
-  const wineryName = (match?.vintage?.wine?.winery?.name ?? '').toLowerCase();
-  const q = query.toLowerCase();
-  const queryWords = q.split(/\s+/).filter((w) => w.length > 2);
-  const matchText = `${wineName} ${wineryName}`;
-  const hits = queryWords.filter((w) => matchText.includes(w));
-  return hits.length >= Math.max(1, Math.ceil(queryWords.length * 0.3));
+// ───────────── Strategy 1: Google Image Search ─────────────
+
+const WINE_IMAGE_HOSTS = [
+  'images.vivino.com',
+  'images.wine-searcher.net',
+  'winelibrary.com',
+  'bottleraiders.com',
+  'wine.com',
+];
+
+function isWineImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (WINE_IMAGE_HOSTS.some((host) => lower.includes(host))) return true;
+  if (/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(url) && /wine|bottle|vivino|winery/i.test(url)) return true;
+  return false;
 }
 
-async function fetchVivinoJsonApi(query: string): Promise<string | null> {
-  const url = `https://www.vivino.com/api/explore/explore?q=${encodeURIComponent(query)}&limit=5&price_range_min=0&price_range_max=500&currency_code=USD`;
+function isUnwantedImage(url: string): boolean {
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('logo') ||
+    lower.includes('icon') ||
+    lower.includes('flag') ||
+    lower.includes('avatar') ||
+    lower.includes('placeholder') ||
+    lower.includes('default') ||
+    lower.includes('/press/') ||
+    lower.includes('/web/') ||
+    lower.includes('_40x') ||
+    lower.includes('_80x') ||
+    lower.includes('_32x') ||
+    lower.includes('/30/') ||
+    lower.includes('/40/') ||
+    lower.includes('/60/')
+  );
+}
+
+async function scrapeGoogleImages(query: string): Promise<string | null> {
+  const searchQuery = `${query} wine bottle`;
+  const url = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=isch`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        ...browserHeaders({
-          Accept: 'application/json',
-          Referer: 'https://www.vivino.com/',
-          Origin: 'https://www.vivino.com',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-        }),
-      },
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      console.error(`[wine-image] Vivino JSON API returned ${res.status} for: "${query}"`);
-      return null;
-    }
-
-    const data = await res.json();
-    const matches: VivinoExploreMatch[] =
-      data?.explore_vintage?.matches || data?.matches || [];
-
-    for (const match of matches) {
-      if (!isRelevantMatch(match, query)) continue;
-      const image = match?.vintage?.image;
-      if (!image) continue;
-      const loc =
-        image.variations?.bottle_large ||
-        image.variations?.bottle_medium ||
-        image.variations?.large ||
-        image.variations?.medium ||
-        image.location;
-      if (typeof loc === 'string' && loc.length > 10) {
-        return normalizeImageUrl(loc);
-      }
-    }
-
-    console.warn(`[wine-image] Vivino JSON API: no relevant image in ${matches.length} matches for: "${query}"`);
-    return null;
-  } catch (err: unknown) {
-    clearTimeout(timeout);
-    const isAbort =
-      (err instanceof DOMException && err.name === 'AbortError') ||
-      (err instanceof Error && err.name === 'AbortError');
-    console.error(
-      `[wine-image] Vivino JSON API ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
-      isAbort ? '' : err,
-    );
-    return null;
-  }
-}
-
-// ───────────── Strategy 2: Vivino HTML scraping ─────────────
-
-function detectChallengePage(html: string): boolean {
-  const markers = ['cf-challenge', 'Checking your browser', 'cf-turnstile', 'challenge-platform'];
-  return markers.some((m) => html.includes(m));
-}
-
-function extractImageFromPreloadedState(html: string): string | null {
-  const stateMatch = html.match(/data-preloaded-state="([^"]+)"/);
-  if (!stateMatch) return null;
-
-  try {
-    const raw = stateMatch[1]
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&#39;/g, "'");
-
-    const data = JSON.parse(raw);
-    const matches = data?.search_results?.matches;
-    if (!Array.isArray(matches) || matches.length === 0) return null;
-
-    for (const match of matches) {
-      const image = match?.vintage?.image;
-      if (!image) continue;
-      const location =
-        image?.variations?.bottle_large ||
-        image?.variations?.bottle_medium ||
-        image?.location;
-      if (typeof location === 'string' && location.includes('vivino.com')) {
-        return normalizeImageUrl(location);
-      }
-    }
-  } catch (err) {
-    console.warn('[wine-image] Failed to parse Vivino preloaded state:', err);
-  }
-  return null;
-}
-
-function extractImageFromHtml(html: string): string | null {
-  const imgRegex = /(?:https?:)?\/\/images\.vivino\.com\/thumbs\/[^"'\s)&]+/g;
-  let match: RegExpExecArray | null;
-  while ((match = imgRegex.exec(html)) !== null) {
-    const url = match[0];
-    if (url.includes('_40x') || url.includes('_80x') || url.includes('_32x')) continue;
-    if (url.includes('/foods/') || url.includes('/regions/')) continue;
-    return normalizeImageUrl(url);
-  }
-  return null;
-}
-
-async function scrapeVivinoHtml(query: string): Promise<string | null> {
-  const searchUrl = `https://www.vivino.com/search/wines?q=${encodeURIComponent(query)}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(searchUrl, {
-      signal: controller.signal,
       redirect: 'follow',
       headers: browserHeaders({
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        Referer: 'https://www.vivino.com/',
-        'Cache-Control': 'no-cache',
       }),
     });
     clearTimeout(timeout);
 
-    if (!response.ok) {
-      console.error(`[wine-image] Vivino HTML returned ${response.status} for: "${query}"`);
+    if (!res.ok) {
+      console.error(`[wine-image] Google Images returned ${res.status} for: "${query}"`);
       return null;
     }
 
-    const html = await response.text();
-
-    if (detectChallengePage(html)) {
-      console.error(`[wine-image] CAPTCHA/challenge page detected for: "${query}" — Vivino is blocking server IPs`);
+    const html = await res.text();
+    if (!html || html.length < 1000) {
+      console.error(`[wine-image] Google Images HTML too short (${html.length}) for: "${query}"`);
       return null;
     }
 
-    if (!html || html.length < 500) {
-      console.error(`[wine-image] Vivino HTML too short (${html.length} chars) for: "${query}"`);
-      return null;
+    // Extract Vivino image URLs first (highest priority — reliable wine bottle images)
+    const vivinoRegex = /https?:\/\/images\.vivino\.com\/thumbs\/[^\s"'<>&\\]+/g;
+    const vivinoMatches = Array.from(new Set(html.match(vivinoRegex) ?? []));
+    for (const img of vivinoMatches) {
+      if (!isUnwantedImage(img)) return normalizeImageUrl(img);
     }
 
-    const imageUrl = extractImageFromPreloadedState(html) || extractImageFromHtml(html);
-    if (!imageUrl) {
-      console.warn(`[wine-image] No image in Vivino HTML for: "${query}" (${html.length} chars)`);
+    // Extract other wine-related image URLs
+    const generalRegex = /https?:\/\/[^\s"'<>&\\]+\.(?:jpg|jpeg|png|webp)/gi;
+    const allImages = Array.from(new Set(html.match(generalRegex) ?? []));
+    for (const img of allImages) {
+      if (isWineImageUrl(img) && !isUnwantedImage(img)) return normalizeImageUrl(img);
     }
-    return imageUrl;
+
+    console.warn(`[wine-image] Google Images: no wine image found for: "${query}"`);
+    return null;
   } catch (err: unknown) {
     clearTimeout(timeout);
     const isAbort =
       (err instanceof DOMException && err.name === 'AbortError') ||
       (err instanceof Error && err.name === 'AbortError');
     console.error(
-      `[wine-image] Vivino HTML ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
+      `[wine-image] Google Images ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
       isAbort ? '' : err,
     );
     return null;
   }
 }
 
-// ───────────── Strategy 3: Wine-Searcher scraping ─────────────
+// ───────────── Strategy 2: Wine-Searcher scraping ─────────────
 
 async function scrapeWineSearcher(query: string): Promise<string | null> {
   const slug = query.toLowerCase().replace(/[^a-z0-9]+/g, '+');
@@ -270,21 +182,17 @@ async function scrapeWineSearcher(query: string): Promise<string | null> {
       return null;
     }
 
-    // Wine-Searcher uses images from their own CDN
     const wsImgRegex = /(?:https?:)?\/\/images\.wine-searcher\.net\/[^"'\s)&]+\.(?:jpg|jpeg|png|webp)/gi;
     let match: RegExpExecArray | null;
     while ((match = wsImgRegex.exec(html)) !== null) {
       const url = match[0];
-      if (url.includes('icon') || url.includes('logo') || url.includes('flag')) continue;
-      // Skip very small thumbnails
-      if (url.includes('/30/') || url.includes('/40/') || url.includes('/60/')) continue;
+      if (isUnwantedImage(url)) continue;
       return normalizeImageUrl(url);
     }
 
-    // Also look for og:image meta tag
     const ogMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)
       || html.match(/<meta\s+content="([^"]+)"\s+property="og:image"/i);
-    if (ogMatch?.[1] && !ogMatch[1].includes('logo') && !ogMatch[1].includes('default')) {
+    if (ogMatch?.[1] && !isUnwantedImage(ogMatch[1])) {
       return normalizeImageUrl(ogMatch[1]);
     }
 
@@ -303,7 +211,7 @@ async function scrapeWineSearcher(query: string): Promise<string | null> {
   }
 }
 
-// ───────────── Strategy 4: OpenAI web search fallback ─────────────
+// ───────────── Strategy 3: OpenAI web search fallback ─────────────
 
 async function searchViaOpenAI(query: string): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -342,7 +250,7 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
     const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i)
       || text.match(/https?:\/\/images\.vivino\.com\/[^\s"'<>]+/i)
       || text.match(/https?:\/\/images\.wine-searcher\.net\/[^\s"'<>]+/i);
-    if (urlMatch && !urlMatch[0].includes('logo') && !urlMatch[0].includes('icon')) {
+    if (urlMatch && !isUnwantedImage(urlMatch[0])) {
       return normalizeImageUrl(urlMatch[0]);
     }
 
@@ -367,28 +275,21 @@ async function fetchWineImage(wineName: string, winery: string): Promise<string 
   const query = `${winery} ${wineName}`.trim();
   if (!query) return null;
 
-  // Strategy 1: Vivino JSON API (fast, structured)
-  const jsonResult = await fetchVivinoJsonApi(query);
-  if (jsonResult) return jsonResult;
+  // Strategy 1: Google Image Search (fast, reliable from server IPs)
+  const googleResult = await scrapeGoogleImages(query);
+  if (googleResult) return googleResult;
 
-  // Strategy 2: Vivino HTML scraping
-  const htmlResult = await scrapeVivinoHtml(query);
-  if (htmlResult) return htmlResult;
-
-  // Strategy 3: Wine-Searcher (independent source, different CDN)
+  // Strategy 2: Wine-Searcher scraping
   const wsResult = await scrapeWineSearcher(query);
   if (wsResult) return wsResult;
 
-  // Retry with just wine name as a broader query
+  // Retry Google with just wine name for broader results
   if (wineName !== query) {
-    const retryVivino = await fetchVivinoJsonApi(wineName);
-    if (retryVivino) return retryVivino;
-
-    const retryWs = await scrapeWineSearcher(wineName);
-    if (retryWs) return retryWs;
+    const retryGoogle = await scrapeGoogleImages(wineName);
+    if (retryGoogle) return retryGoogle;
   }
 
-  // Strategy 4: OpenAI web search (last resort)
+  // Strategy 3: OpenAI web search (last resort, costs API credits)
   const aiResult = await searchViaOpenAI(query);
   if (aiResult) return aiResult;
 
