@@ -162,7 +162,7 @@ export async function findCachedImageUrl(
 }
 
 /**
- * Persist a wine's image_url to the DB so future requests skip Vivino.
+ * Persist a wine's image_url to the DB so future requests skip external APIs.
  */
 export async function cacheImageUrl(
   name: string,
@@ -177,6 +177,25 @@ export async function cacheImageUrl(
       .eq('name', name)
       .eq('winery', winery)
       .is('image_url', null);
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Clear a stale/broken image_url from the DB so the next request re-fetches.
+ */
+export async function clearCachedImageUrl(
+  name: string,
+  winery: string,
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from('wines')
+      .update({ image_url: null })
+      .eq('name', name)
+      .eq('winery', winery);
   } catch {
     // best-effort
   }

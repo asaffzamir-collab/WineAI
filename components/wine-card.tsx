@@ -191,6 +191,9 @@ export function WineCard({
                     setLazyImageUrl(null);
                   }
                   setImageError(true);
+                  if (wine.name) {
+                    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`, { method: 'DELETE' }).catch(() => {});
+                  }
                 }}
               />
             </div>

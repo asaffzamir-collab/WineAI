@@ -16,6 +16,7 @@
 import {
   findCachedImageUrl,
   cacheImageUrl,
+  clearCachedImageUrl,
   isNegativelyCached,
   cacheNegativeResult,
 } from '@/lib/wine-cache';
@@ -37,6 +38,30 @@ function randomUA(): string {
 function normalizeImageUrl(url: string): string {
   if (url.startsWith('//')) return `https:${url}`;
   return url;
+}
+
+/**
+ * HEAD-request an image URL and return it only if it responds 200.
+ * Prevents broken/403 URLs from being cached and served to clients.
+ */
+async function validateImageUrl(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+    const res = await fetch(url, {
+      method: 'HEAD',
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: { 'User-Agent': randomUA() },
+    });
+    clearTimeout(timeout);
+    if (res.ok) return url;
+    console.warn(`[wine-image] URL validation failed (${res.status}): ${url}`);
+    return null;
+  } catch {
+    console.warn(`[wine-image] URL validation error: ${url}`);
+    return null;
+  }
 }
 
 /** Shared browser-like headers that reduce bot-detection fingerprinting. */
@@ -122,21 +147,30 @@ async function scrapeGoogleImages(query: string): Promise<string | null> {
       return null;
     }
 
-    // Extract Vivino image URLs first (highest priority — reliable wine bottle images)
-    const vivinoRegex = /https?:\/\/images\.vivino\.com\/thumbs\/[^\s"'<>&\\]+/g;
-    const vivinoMatches = Array.from(new Set(html.match(vivinoRegex) ?? []));
-    for (const img of vivinoMatches) {
-      if (!isUnwantedImage(img)) return normalizeImageUrl(img);
-    }
-
-    // Extract other wine-related image URLs
+    // Extract ALL image URLs from Google results, deduplicate
     const generalRegex = /https?:\/\/[^\s"'<>&\\]+\.(?:jpg|jpeg|png|webp)/gi;
     const allImages = Array.from(new Set(html.match(generalRegex) ?? []));
-    for (const img of allImages) {
-      if (isWineImageUrl(img) && !isUnwantedImage(img)) return normalizeImageUrl(img);
+
+    // Filter: keep only non-Google, non-unwanted image URLs
+    const candidates = allImages.filter((img) => {
+      const lower = img.toLowerCase();
+      if (lower.includes('google.com') || lower.includes('gstatic.com') || lower.includes('googleapis.com')) return false;
+      if (isUnwantedImage(img)) return false;
+      return true;
+    });
+
+    // Prioritize Vivino CDN URLs
+    const vivino = candidates.filter((u) => u.includes('images.vivino.com'));
+    const others = candidates.filter((u) => !u.includes('images.vivino.com'));
+    const ordered = [...vivino, ...others];
+
+    // Validate top candidates with a HEAD request (try up to 3)
+    for (const img of ordered.slice(0, 3)) {
+      const validated = await validateImageUrl(normalizeImageUrl(img));
+      if (validated) return validated;
     }
 
-    console.warn(`[wine-image] Google Images: no wine image found for: "${query}"`);
+    console.warn(`[wine-image] Google Images: no valid image in ${ordered.length} candidates for: "${query}"`);
     return null;
   } catch (err: unknown) {
     clearTimeout(timeout);
@@ -187,13 +221,15 @@ async function scrapeWineSearcher(query: string): Promise<string | null> {
     while ((match = wsImgRegex.exec(html)) !== null) {
       const url = match[0];
       if (isUnwantedImage(url)) continue;
-      return normalizeImageUrl(url);
+      const validated = await validateImageUrl(normalizeImageUrl(url));
+      if (validated) return validated;
     }
 
     const ogMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)
       || html.match(/<meta\s+content="([^"]+)"\s+property="og:image"/i);
     if (ogMatch?.[1] && !isUnwantedImage(ogMatch[1])) {
-      return normalizeImageUrl(ogMatch[1]);
+      const validated = await validateImageUrl(normalizeImageUrl(ogMatch[1]));
+      if (validated) return validated;
     }
 
     console.warn(`[wine-image] No image in Wine-Searcher for: "${query}"`);
@@ -251,7 +287,8 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
       || text.match(/https?:\/\/images\.vivino\.com\/[^\s"'<>]+/i)
       || text.match(/https?:\/\/images\.wine-searcher\.net\/[^\s"'<>]+/i);
     if (urlMatch && !isUnwantedImage(urlMatch[0])) {
-      return normalizeImageUrl(urlMatch[0]);
+      const validated = await validateImageUrl(normalizeImageUrl(urlMatch[0]));
+      if (validated) return validated;
     }
 
     console.warn(`[wine-image] OpenAI search: no usable URL for: "${query}"`);
@@ -305,7 +342,13 @@ export async function fetchWineImageUrl(
   winery: string,
 ): Promise<string | null> {
   const cached = await findCachedImageUrl(wineName, winery);
-  if (cached) return cached;
+  if (cached) {
+    const valid = await validateImageUrl(cached);
+    if (valid) return valid;
+    // Stale URL — clear it from DB so we re-fetch
+    await clearCachedImageUrl(wineName, winery);
+    console.warn(`[wine-image] Cleared stale cached URL for: "${wineName}" / "${winery}"`);
+  }
 
   if (await isNegativelyCached(wineName, winery)) return null;
 
