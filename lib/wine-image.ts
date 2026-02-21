@@ -291,6 +291,62 @@ async function scrapeWineSearcher(query: string): Promise<string | null> {
   }
 }
 
+// ───────────── Strategy 4: OpenAI web search fallback ─────────────
+
+async function searchViaOpenAI(query: string): Promise<string | null> {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        tools: [{ type: 'web_search_preview' }],
+        input: `Find a product image URL for this wine bottle: "${query}". I need a direct URL to a .jpg, .jpeg, .png, or .webp image of the wine bottle (not a logo or thumbnail). Return ONLY the image URL, nothing else. If you cannot find one, return "NONE".`,
+      }),
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.error(`[wine-image] OpenAI search returned ${res.status} for: "${query}"`);
+      return null;
+    }
+
+    const data = await res.json();
+    const text: string =
+      data?.output?.find((o: { type: string }) => o.type === 'message')?.content
+        ?.find((c: { type: string }) => c.type === 'output_text')?.text
+      ?? '';
+
+    const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i);
+    if (urlMatch && !urlMatch[0].includes('logo') && !urlMatch[0].includes('icon')) {
+      return normalizeImageUrl(urlMatch[0]);
+    }
+
+    console.warn(`[wine-image] OpenAI search: no usable URL for: "${query}"`);
+    return null;
+  } catch (err: unknown) {
+    clearTimeout(timeout);
+    const isAbort =
+      (err instanceof DOMException && err.name === 'AbortError') ||
+      (err instanceof Error && err.name === 'AbortError');
+    console.error(
+      `[wine-image] OpenAI search ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
+      isAbort ? '' : err,
+    );
+    return null;
+  }
+}
+
 // ───────────── Combined fetch with multi-source fallback ─────────────
 
 async function fetchWineImage(wineName: string, winery: string): Promise<string | null> {
@@ -317,6 +373,10 @@ async function fetchWineImage(wineName: string, winery: string): Promise<string 
     const retryWs = await scrapeWineSearcher(wineName);
     if (retryWs) return retryWs;
   }
+
+  // Strategy 4: OpenAI web search (last resort)
+  const aiResult = await searchViaOpenAI(query);
+  if (aiResult) return aiResult;
 
   return null;
 }

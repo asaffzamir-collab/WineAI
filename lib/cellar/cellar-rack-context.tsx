@@ -60,6 +60,10 @@ interface CellarRackContextValue {
   wineCardPlacement: Placement | null;
   setWineCardPlacement: (p: Placement | null) => void;
 
+  /** ID of a cellar item waiting to be placed via the location picker */
+  placingItemId: string | null;
+  setPlacingItemId: (id: string | null) => void;
+
   userId: string;
   refreshCellar: () => Promise<void>;
 }
@@ -209,6 +213,8 @@ export function CellarRackProvider({
   const [editingRack, setEditingRack] = useState<Rack | null>(null);
   const [isPickerMode, setIsPickerMode] = useState(false);
   const [wineCardPlacement, setWineCardPlacement] = useState<Placement | null>(null);
+  const [placingItemId, setPlacingItemId] = useState<string | null>(null);
+  const [racksReady, setRacksReady] = useState(false);
   const fetchingRef = useRef(false);
   const initializedRef = useRef(false);
 
@@ -227,7 +233,6 @@ export function CellarRackProvider({
     (async () => {
       let result = await fetchRacksFromDb(userId);
 
-      // If table doesn't exist, try auto-creating it then retry
       if (result.tableMissing) {
         const fixed = await tryEnsureSchema();
         if (fixed) {
@@ -235,7 +240,6 @@ export function CellarRackProvider({
         }
       }
 
-      // If we have DB data, use it
       if (result.rows.length > 0) {
         const loaded = result.rows.map((r) => r.rack);
         for (const r of result.rows) {
@@ -244,23 +248,21 @@ export function CellarRackProvider({
         setRacks(loaded);
         setActiveRackIdState(loaded[0].id);
         cacheRacksLocally(userId, loaded);
+        setRacksReady(true);
         return;
       }
 
-      // DB empty (or still missing) — check localStorage for data to migrate
       const localRacks = loadLocalRacks(userId);
       if (localRacks.length > 0) {
         setRacks(localRacks);
         setActiveRackIdState(localRacks[0].id);
 
         if (!result.tableMissing) {
-          // Migrate localStorage racks to DB
           for (const rack of localRacks) {
             const dbId = await postRackToDb(userId, rack);
             if (dbId) rackDbIds.current[rack.id] = dbId;
           }
 
-          // Migrate localStorage slot assignments to DB
           const localSlots = loadLocalSlotAssignments(userId);
           const slotEntries = Object.entries(localSlots);
           if (slotEntries.length > 0) {
@@ -273,33 +275,30 @@ export function CellarRackProvider({
             }
           }
         }
+        setRacksReady(true);
         return;
       }
 
-      // Nothing anywhere — create a default rack
-      const defaultRack = createDefaultRack('My Wine Rack');
-      if (!result.tableMissing) {
-        const dbId = await postRackToDb(userId, defaultRack);
-        if (dbId) rackDbIds.current[defaultRack.id] = dbId;
-      }
-      setRacks([defaultRack]);
-      setActiveRackIdState(defaultRack.id);
-      cacheRacksLocally(userId, [defaultRack]);
+      // No racks anywhere — don't auto-create a default; let the user build one
+      setRacksReady(true);
     })();
   }, [userId]);
 
-  // Handle ?place=<itemId> — auto-open rack builder if no racks, or switch to rack view
+  // Handle ?place=<itemId> — wait for racks to load, then open picker or rack builder
   const placeHandled = useRef(false);
   useEffect(() => {
-    if (!placeItemId || placeHandled.current || !initializedRef.current) return;
+    if (!placeItemId || placeHandled.current || !racksReady) return;
     placeHandled.current = true;
 
     setActiveTab('rack');
 
     if (racks.length === 0) {
       setIsRackBuilderOpen(true);
+      setPlacingItemId(placeItemId);
+    } else {
+      setPlacingItemId(placeItemId);
     }
-  }, [placeItemId, racks]);
+  }, [placeItemId, racksReady, racks]);
 
   // Persist view mode
   useEffect(() => {
@@ -322,6 +321,22 @@ export function CellarRackProvider({
 
   const createRack = useCallback((rack: Rack) => {
     setRacks((prev) => {
+      // If the only existing rack is the auto-created default with no bottles, replace it
+      const isDefaultOnly =
+        prev.length === 1 &&
+        prev[0].name === 'My Wine Rack' &&
+        !cellarItems.some((item) => item.slot_id?.startsWith(prev[0].id));
+      if (isDefaultOnly) {
+        const oldId = prev[0].id;
+        const oldDbId = rackDbIds.current[oldId];
+        if (oldDbId) {
+          deleteRackFromDb(oldDbId);
+          delete rackDbIds.current[oldId];
+        }
+        const next = [rack];
+        cacheRacksLocally(userId, next);
+        return next;
+      }
       const next = [...prev, rack];
       cacheRacksLocally(userId, next);
       return next;
@@ -330,7 +345,7 @@ export function CellarRackProvider({
     postRackToDb(userId, rack).then((dbId) => {
       if (dbId) rackDbIds.current[rack.id] = dbId;
     });
-  }, [userId]);
+  }, [userId, cellarItems]);
 
   const updateRack = useCallback((rack: Rack) => {
     setRacks((prev) => {
@@ -350,24 +365,14 @@ export function CellarRackProvider({
     }
     setRacks((prev) => {
       const next = prev.filter((r) => r.id !== id);
-      if (next.length === 0) {
-        const defaultRack = createDefaultRack('My Wine Rack');
-        setActiveRackIdState(defaultRack.id);
-        postRackToDb(userId, defaultRack).then((newDbId) => {
-          if (newDbId) rackDbIds.current[defaultRack.id] = newDbId;
-        });
-        cacheRacksLocally(userId, [defaultRack]);
-        return [defaultRack];
-      }
       cacheRacksLocally(userId, next);
+      if (activeRackId === id && next.length > 0) {
+        setActiveRackIdState(next[0].id);
+      } else if (next.length === 0) {
+        setActiveRackIdState(null);
+      }
       return next;
     });
-    if (activeRackId === id) {
-      setRacks((prev) => {
-        if (prev.length > 0) setActiveRackIdState(prev[0].id);
-        return prev;
-      });
-    }
   }, [activeRackId, userId]);
 
   // --------------- Derive slot assignments from cellarItems[].slot_id ---------------
@@ -518,6 +523,8 @@ export function CellarRackProvider({
     setIsPickerMode,
     wineCardPlacement,
     setWineCardPlacement,
+    placingItemId,
+    setPlacingItemId,
     userId,
     refreshCellar,
   }), [
@@ -528,7 +535,7 @@ export function CellarRackProvider({
     filters, resetFilters, filteredPlacements,
     viewMode, activeTab,
     heatmapEnabled, isRackBuilderOpen, editingRack, isPickerMode,
-    wineCardPlacement,
+    wineCardPlacement, placingItemId,
     userId, refreshCellar,
   ]);
 

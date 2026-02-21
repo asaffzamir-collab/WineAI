@@ -50,7 +50,11 @@ function MobileInlineFilters() {
 
 function MobileRackSelector() {
   const t = useTranslations('cellar');
-  const { racks, activeRackId, setActiveRackId, setIsRackBuilderOpen, setEditingRack, allPlacements } = useCellarRack();
+  const {
+    racks, activeRackId, setActiveRackId,
+    setIsRackBuilderOpen, setEditingRack, deleteRack, allPlacements,
+  } = useCellarRack();
+  const [menuRackId, setMenuRackId] = useState<string | null>(null);
   const totalBottles = allPlacements.reduce((sum, p) => sum + p.quantity, 0);
 
   if (racks.length === 0) return null;
@@ -63,18 +67,48 @@ function MobileRackSelector() {
       </div>
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {racks.map((rack) => (
-          <button
-            key={rack.id}
-            type="button"
-            onClick={() => setActiveRackId(rack.id)}
-            className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              activeRackId === rack.id
-                ? 'bg-garnet-500/15 text-garnet-600 dark:text-garnet-400'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {rack.name} ({rack.columns}×{rack.rows})
-          </button>
+          <div key={rack.id} className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveRackId(rack.id)}
+              onContextMenu={(e) => { e.preventDefault(); setMenuRackId(rack.id); }}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeRackId === rack.id
+                  ? 'bg-garnet-500/15 text-garnet-600 dark:text-garnet-400'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {rack.name} ({rack.columns}×{rack.rows})
+            </button>
+            {menuRackId === rack.id && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuRackId(null)} />
+                <div className="absolute top-full mt-1 start-0 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <button
+                    type="button"
+                    className="w-full text-start px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+                    onClick={() => {
+                      setMenuRackId(null);
+                      setEditingRack(rack);
+                      setIsRackBuilderOpen(true);
+                    }}
+                  >
+                    {t('editRack')}
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full text-start px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                    onClick={() => {
+                      setMenuRackId(null);
+                      deleteRack(rack.id);
+                    }}
+                  >
+                    {t('deleteRack')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         ))}
         <button
           type="button"

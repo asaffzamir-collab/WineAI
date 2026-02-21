@@ -297,6 +297,9 @@
     "tabInsights": "Insights",
     "askSommelier": "Ask Sommelier",
     "editRack": "Edit Rack",
+    "deleteRack": "Delete Rack",
+    "confirmDelete": "Click again to confirm",
+    "deleteRackConfirm": "Click again to delete this rack. Bottles will become unassigned.",
     "createRack": "New Rack",
     "close": "Close",
     "shelfZone": "Shelf zone",
@@ -416,7 +419,10 @@
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
     "guideCard": "App Guide & What's New",
-    "guideCardDesc": "Learn about features and see recent updates"
+    "guideCardDesc": "Learn about features and see recent updates",
+    "legal": "Legal",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   },
   "admin": {
     "title": "Admin Panel",
@@ -510,6 +516,8 @@
     "tierUnlockHint": "Like {count} more",
     "startTasteMapping": "Start Taste Mapping",
     "bannerLearning": "Learning your taste — {precision}% clarity",
+    "bannerLearningTitle": "Pier is learning your taste",
+    "bannerLearningDesc": "Like {count, plural, one {1 more wine} other {{count} more wines}} to unlock personalized recommendations.",
     "bannerLearningHint": "Each wine you like teaches me more. Just a bit more to unlock your full profile!",
     "bannerPersonalized": "Profile Active — Highly Personalized",
     "precisionLabel": "Precision: {precision}%",

@@ -19,10 +19,15 @@ export async function GET() {
   if (profileError?.message?.includes('profile_completed')) {
     const fallback = await supabase
       .from('user_profiles')
-      .select('onboarding_completed, display_name')
+      .select('onboarding_completed, display_name, first_name')
       .eq('id', user.id)
       .single();
-    profile = fallback.data ? { ...fallback.data, profile_completed: true } : null;
+    if (fallback.data) {
+      const hasExtendedProfile = !!fallback.data.first_name;
+      profile = { ...fallback.data, profile_completed: hasExtendedProfile };
+    } else {
+      profile = null;
+    }
   }
 
   if (!profile) {

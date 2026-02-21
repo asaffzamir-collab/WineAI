@@ -297,6 +297,9 @@
     "tabInsights": "תובנות",
     "askSommelier": "שאל את הסומלייה",
     "editRack": "ערוך מקרר יין",
+    "deleteRack": "מחק מקרר יין",
+    "confirmDelete": "לחץ שוב לאישור",
+    "deleteRackConfirm": "לחץ שוב למחיקה. בקבוקים יעברו לרשימה ללא מיקום.",
     "createRack": "מקרר יין חדש",
     "close": "סגור",
     "shelfZone": "אזור מדף",
@@ -416,7 +419,10 @@
     "darkMode": "מצב כהה",
     "lightMode": "מצב בהיר",
     "guideCard": "מדריך ומה חדש",
-    "guideCardDesc": "למד על תכונות וראה עדכונים אחרונים"
+    "guideCardDesc": "למד על תכונות וראה עדכונים אחרונים",
+    "legal": "משפטי",
+    "termsOfService": "תנאי שימוש",
+    "privacyPolicy": "מדיניות פרטיות"
   },
   "admin": {
     "title": "פאנל ניהול",
@@ -510,6 +516,8 @@
     "tierUnlockHint": "סמן עוד {count}",
     "startTasteMapping": "התחל מיפוי טעם",
     "bannerLearning": "לומד את הטעם שלך — {precision}% דיוק",
+    "bannerLearningTitle": "פייר לומד את הטעם שלך",
+    "bannerLearningDesc": "סמן לייק ל-{count} יינות נוספים כדי לפתוח המלצות מותאמות אישית.",
     "bannerLearningHint": "כל יין שאתה אוהב מלמד אותי יותר. עוד קצת ונגיע לפרופיל מלא!",
     "bannerPersonalized": "פרופיל פעיל — מותאם אישית ברמה גבוהה",
     "precisionLabel": "דיוק: {precision}%",

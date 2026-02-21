@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -227,6 +227,37 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                 </CardContent>
               </Card>
             </button>
+
+            {/* Legal */}
+            <div className="pt-2 space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">{t('legal')}</h3>
+              <Link href="/terms" className="block">
+                <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800/30">
+                        <Scale className="h-4.5 w-4.5 text-stone-500 dark:text-stone-400" strokeWidth={1.5} />
+                      </div>
+                      <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{t('termsOfService')}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-stone-400" strokeWidth={1.5} />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/privacy" className="block">
+                <Card className="cursor-pointer hover:shadow-soft-lg hover:translate-y-[-1px] transition-all duration-200">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800/30">
+                        <FileText className="h-4.5 w-4.5 text-stone-500 dark:text-stone-400" strokeWidth={1.5} />
+                      </div>
+                      <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{t('privacyPolicy')}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-stone-400" strokeWidth={1.5} />
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
 
             {/* Sign Out */}
             <div className="pt-2">
