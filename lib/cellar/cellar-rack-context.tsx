@@ -183,10 +183,11 @@ interface CellarRackProviderProps {
   children: React.ReactNode;
   userId: string;
   initialItems: CellarItem[];
+  placeItemId?: string | null;
 }
 
 export function CellarRackProvider({
-  children, userId, initialItems,
+  children, userId, initialItems, placeItemId,
 }: CellarRackProviderProps) {
   const [racks, setRacks] = useState<Rack[]>([]);
   const [activeRackId, setActiveRackIdState] = useState<string | null>(null);
@@ -286,6 +287,19 @@ export function CellarRackProvider({
       cacheRacksLocally(userId, [defaultRack]);
     })();
   }, [userId]);
+
+  // Handle ?place=<itemId> — auto-open rack builder if no racks, or switch to rack view
+  const placeHandled = useRef(false);
+  useEffect(() => {
+    if (!placeItemId || placeHandled.current || !initializedRef.current) return;
+    placeHandled.current = true;
+
+    setActiveTab('rack');
+
+    if (racks.length === 0) {
+      setIsRackBuilderOpen(true);
+    }
+  }, [placeItemId, racks]);
 
   // Persist view mode
   useEffect(() => {

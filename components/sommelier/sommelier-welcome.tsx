@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Wine, Sparkles, ArrowRight } from 'lucide-react';
+import { Wine, Search, ArrowRight } from 'lucide-react';
 
 interface Props {
   displayName: string | null;
@@ -11,13 +11,9 @@ interface Props {
 export function SommelierWelcome({ displayName }: Props) {
   const router = useRouter();
   const t = useTranslations('sommelier');
+  const tOnboarding = useTranslations('onboarding');
 
   const handleStart = async () => {
-    await fetch('/api/onboarding/complete', { method: 'POST' });
-    router.replace('/?sommelier=open&flow=discovery');
-  };
-
-  const handleSkip = async () => {
     await fetch('/api/onboarding/complete', { method: 'POST' });
     router.replace('/');
   };
@@ -33,24 +29,20 @@ export function SommelierWelcome({ displayName }: Props) {
       </h1>
 
       <p className="text-lg text-bordeaux-200 mb-2">{t('welcomeHeadline')}</p>
+      <p className="text-sm text-bordeaux-300/80 max-w-sm leading-relaxed mb-4">
+        {tOnboarding('welcomeBody')}
+      </p>
       <p className="text-sm text-bordeaux-300/80 max-w-sm leading-relaxed mb-12">
-        {t('welcomeSubheadline')}
+        {tOnboarding('welcomeValue')}
       </p>
 
       <button
         onClick={handleStart}
         className="flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-bordeaux-700 shadow-lift transition-all hover:scale-[1.02] active:scale-[0.98]"
       >
-        <Sparkles className="h-5 w-5" />
-        {t('welcomePrimaryCTA')}
+        <Search className="h-5 w-5" strokeWidth={1.5} />
+        {tOnboarding('findFirstWine')}
         <ArrowRight className="h-4 w-4" />
-      </button>
-
-      <button
-        onClick={handleSkip}
-        className="mt-4 text-sm text-bordeaux-300 underline underline-offset-2 hover:text-white transition-colors"
-      >
-        {t('welcomeSecondaryCTA')}
       </button>
     </div>
   );

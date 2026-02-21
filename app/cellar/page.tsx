@@ -5,7 +5,11 @@ import type { CellarItem } from '@/components/pages/cellar-page';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ place?: string }>;
+}) {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -14,6 +18,9 @@ export default async function Page() {
   }
 
   const userId = session.user.id;
+  const params = await searchParams;
+  const placeItemId = params.place || null;
+
   let cellarItems: CellarItem[] = [];
   try {
     let { data, error } = await supabase
@@ -44,5 +51,5 @@ export default async function Page() {
     console.error('Cellar page error:', e);
   }
 
-  return <NewCellarPage userId={userId} initialItems={cellarItems} />;
+  return <NewCellarPage userId={userId} initialItems={cellarItems} placeItemId={placeItemId} />;
 }

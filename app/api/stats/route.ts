@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
       supabase.from('wishlist_items').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-      supabase.from('taste_profiles').select('wine_type').eq('user_id', userId),
+      supabase.from('taste_profiles').select('wine_type, profile_data').eq('user_id', userId),
       supabase.from('sommelier_profiles').select('discovery_data').eq('user_id', userId).single(),
     ]);
 
@@ -108,6 +108,12 @@ export async function GET(request: Request) {
     const hasRoseProfile = profileTypes.includes('rose');
     const hasSommelierDiscovery = !!sommelierProfileRes.data?.discovery_data && Object.keys(sommelierProfileRes.data.discovery_data as object).length > 0;
 
+    let likedWinesCount = 0;
+    for (const tp of (tasteProfilesRes.data ?? [])) {
+      const pd = tp.profile_data as Record<string, unknown> | null;
+      if (pd && Array.isArray(pd.liked_wines)) likedWinesCount += pd.liked_wines.length;
+    }
+
     return NextResponse.json({
       displayName: profileRes.data?.display_name ?? null,
       winesTasted: tastingsRes.count ?? 0,
@@ -124,6 +130,7 @@ export async function GET(request: Request) {
       hasWhiteProfile,
       hasRoseProfile,
       hasSommelierDiscovery,
+      likedWinesCount,
     });
   } catch (error) {
     console.error('Stats API error:', error);

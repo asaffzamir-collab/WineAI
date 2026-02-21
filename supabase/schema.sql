@@ -6,10 +6,17 @@
 -- User Profiles table
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  first_name TEXT,
+  last_name TEXT,
   display_name TEXT,
+  country TEXT,
+  birthday DATE,
+  gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say')),
   preferred_language TEXT DEFAULT 'he' CHECK (preferred_language IN ('he', 'en')),
   preferred_currency TEXT DEFAULT 'ILS',
+  profile_completed BOOLEAN DEFAULT FALSE,
   onboarding_completed BOOLEAN DEFAULT FALSE,
+  terms_accepted_at TIMESTAMP WITH TIME ZONE,
   is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -299,6 +299,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
   const refreshProfiles = useCallback(async () => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
+    lastFetchRef.current = Date.now();
     try {
       const res = await fetch(
         `/api/profile?userId=${encodeURIComponent(userId)}&_t=${Date.now()}`,
@@ -634,7 +635,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                                         type="button"
                                         onClick={() => setSelectedWine(w.full_wine ?? { name: w.name, winery: w.winery, country: w.country ?? '', region: w.region, vintage: w.vintage, grapes: w.grapes ?? [], wine_type: (w.wine_type as WineData['wine_type']) ?? 'red', image_url: w.image_url })}
                                         className={cn(
-                                          'min-w-0 flex-1 cursor-pointer text-left',
+                                          'min-w-0 flex-1 cursor-pointer text-start',
                                           'hover:opacity-80 transition-all duration-200 flex items-center gap-3'
                                         )}
                                       >

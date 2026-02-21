@@ -394,7 +394,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                 type="button"
                 onClick={() => setSelectedItem(item)}
                 className={cn(
-                  'w-full rounded-2xl bg-card p-3.5 text-left shadow-soft',
+                  'w-full rounded-2xl bg-card p-3.5 text-start shadow-soft',
                   'card-hover',
                   'flex items-center gap-3',
                 )}

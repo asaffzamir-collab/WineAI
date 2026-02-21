@@ -1,28 +1,29 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SommelierWelcome } from '@/components/sommelier/sommelier-welcome';
+import { ProfileSetupPage } from '@/components/pages/profile-setup-page';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SommelierWelcomePage() {
+export default async function Page() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('profile_completed, onboarding_completed, display_name')
+    .select('profile_completed, display_name')
     .eq('id', user.id)
     .single();
 
-  if (!profile?.profile_completed) redirect('/onboarding/profile');
-  if (profile?.onboarding_completed) redirect('/');
+  if (profile?.profile_completed) {
+    redirect('/sommelier/welcome');
+  }
 
   const displayName =
     profile?.display_name
     ?? (user.user_metadata as { display_name?: string })?.display_name
     ?? user.email?.split('@')[0]
-    ?? null;
+    ?? '';
 
-  return <SommelierWelcome displayName={displayName} />;
+  return <ProfileSetupPage userId={user.id} initialDisplayName={displayName} />;
 }

@@ -3,11 +3,6 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/me
- * Returns current user id, email, and onboarding status. Creates user_profile if missing.
- * 401 if not signed in.
- */
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,28 +12,29 @@ export async function GET() {
 
   let { data: profile } = await supabase
     .from('user_profiles')
-    .select('onboarding_completed, display_name')
+    .select('onboarding_completed, profile_completed, display_name')
     .eq('id', user.id)
     .single();
 
   if (!profile) {
-    const displayName =
-      (user.user_metadata as { display_name?: string })?.display_name
-        || user.email?.split('@')[0]
-        || 'Wine Lover';
+    const meta = user.user_metadata as { display_name?: string; terms_accepted_at?: string } | undefined;
+    const displayName = meta?.display_name || user.email?.split('@')[0] || 'Wine Lover';
     await supabase.from('user_profiles').insert({
       id: user.id,
       display_name: displayName,
       preferred_language: 'he',
       preferred_currency: 'ILS',
+      profile_completed: false,
       onboarding_completed: false,
+      terms_accepted_at: meta?.terms_accepted_at ?? null,
     });
-    profile = { onboarding_completed: false, display_name: displayName };
+    profile = { onboarding_completed: false, profile_completed: false, display_name: displayName };
   }
 
   return NextResponse.json({
     id: user.id,
     email: user.email ?? null,
+    profileCompleted: profile?.profile_completed ?? false,
     onboardingCompleted: profile?.onboarding_completed ?? false,
     displayName: profile?.display_name ?? null,
   });

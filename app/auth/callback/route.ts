@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('id, onboarding_completed')
+    .select('id, profile_completed, onboarding_completed')
     .eq('id', user.id)
     .single();
 
@@ -135,13 +135,18 @@ export async function GET(request: NextRequest) {
       display_name: displayName,
       preferred_language: 'he',
       preferred_currency: 'ILS',
+      profile_completed: false,
       onboarding_completed: false,
     });
-    return NextResponse.redirect(new URL('/onboarding', request.url));
+    return NextResponse.redirect(new URL('/onboarding/profile', request.url));
+  }
+
+  if (!profile.profile_completed) {
+    return NextResponse.redirect(new URL('/onboarding/profile', request.url));
   }
 
   if (!profile.onboarding_completed) {
-    return NextResponse.redirect(new URL('/onboarding', request.url));
+    return NextResponse.redirect(new URL('/sommelier/welcome', request.url));
   }
 
   return NextResponse.redirect(new URL('/', request.url));

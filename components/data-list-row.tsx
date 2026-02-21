@@ -25,7 +25,7 @@ export function DataListRow({
     <Component
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
+        'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start transition-colors',
         onClick && 'cursor-pointer hover:bg-surface-raised active:bg-surface-2',
         className
       )}

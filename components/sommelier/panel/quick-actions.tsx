@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { Compass, Search, HelpCircle, Sparkles, Wine, GlassWater, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
+import { GlassWater, ShoppingBag, Heart, TrendingUp, UtensilsCrossed, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -14,44 +14,19 @@ interface QuickAction {
   route?: string;
 }
 
-const DISCOVERY_ACTIONS: QuickAction[] = [
-  { id: 'map', icon: Compass, labelKey: 'actionMapTaste', flow: 'discovery' },
-  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
-  { id: 'how', icon: HelpCircle, labelKey: 'actionHowItWorks', flow: 'how-it-works' },
-  { id: 'surprise', icon: Sparkles, labelKey: 'actionSurpriseMe', flow: 'wine-discovery' },
-];
-
-const LEARNING_ACTIONS: QuickAction[] = [
-  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
-  { id: 'similar', icon: Wine, labelKey: 'actionFindSimilar', flow: 'wine-discovery' },
-];
-
-const PERSONALIZED_ACTIONS: QuickAction[] = [
-  { id: 'search', icon: Search, labelKey: 'actionSearchWine', flow: 'search' },
+const FULL_ACCESS_ACTIONS: QuickAction[] = [
   { id: 'tonight', icon: GlassWater, labelKey: 'actionTonight', flow: 'tonight' },
   { id: 'buy', icon: ShoppingBag, labelKey: 'actionGoodBuy', flow: 'buying-intel' },
+  { id: 'food', icon: UtensilsCrossed, labelKey: 'actionPairDinner', flow: 'food-pairing' },
   { id: 'love', icon: Heart, labelKey: 'actionFindLove', flow: 'wine-discovery' },
   { id: 'evolving', icon: TrendingUp, labelKey: 'actionEvolving', flow: 'taste-evolution' },
+  { id: 'how', icon: HelpCircle, labelKey: 'actionHowItWorks', flow: 'how-it-works' },
 ];
 
 export function QuickActions() {
-  const { phase, hasDiscoveryData, setActiveFlow, close } = useSommelier();
+  const { setActiveFlow, close } = useSommelier();
   const t = useTranslations('sommelier');
   const router = useRouter();
-
-  let actions: QuickAction[];
-  if (phase === 'discovery') {
-    actions = hasDiscoveryData
-      ? [
-          { id: 'map', icon: Compass, labelKey: 'actionViewProfile', flow: 'discovery' },
-          ...DISCOVERY_ACTIONS.filter(a => a.id !== 'map'),
-        ]
-      : DISCOVERY_ACTIONS;
-  } else if (phase === 'learning') {
-    actions = LEARNING_ACTIONS;
-  } else {
-    actions = PERSONALIZED_ACTIONS;
-  }
 
   const handleAction = (action: QuickAction) => {
     if (action.route) {
@@ -62,15 +37,10 @@ export function QuickActions() {
     }
   };
 
-  const isWide = phase === 'personalization';
-
   return (
     <div className="px-4 py-4">
-      <div className={cn(
-        'grid gap-2',
-        isWide ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'
-      )}>
-        {actions.map(action => {
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {FULL_ACCESS_ACTIONS.map(action => {
           const Icon = action.icon;
           return (
             <button

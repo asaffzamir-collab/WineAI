@@ -29,6 +29,7 @@ const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.Wi
 interface NewCellarPageProps {
   userId: string;
   initialItems: CellarItem[];
+  placeItemId?: string | null;
 }
 
 function MobileInlineFilters() {
@@ -228,7 +229,7 @@ function CellarContent() {
   );
 }
 
-export function NewCellarPage({ userId, initialItems }: NewCellarPageProps) {
+export function NewCellarPage({ userId, initialItems, placeItemId }: NewCellarPageProps) {
   const t = useTranslations('cellar');
   return (
     <AppShell>
@@ -237,7 +238,7 @@ export function NewCellarPage({ userId, initialItems }: NewCellarPageProps) {
         fallbackMessage={t('errorDesc')}
         retryLabel={t('errorRetry')}
       >
-        <CellarRackProvider userId={userId} initialItems={initialItems}>
+        <CellarRackProvider userId={userId} initialItems={initialItems} placeItemId={placeItemId}>
           <CellarContent />
         </CellarRackProvider>
       </CellarErrorBoundary>

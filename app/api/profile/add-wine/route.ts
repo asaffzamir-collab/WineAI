@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
 
@@ -259,6 +260,7 @@ export async function POST(request: Request) {
       }
     }
 
+    revalidatePath('/profile');
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error('Add wine to profile error:', error);

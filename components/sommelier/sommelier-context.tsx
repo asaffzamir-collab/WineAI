@@ -28,8 +28,6 @@ interface SommelierContextValue {
   sendChatMessage: (text: string) => Promise<void>;
   isChatLoading: boolean;
   clearChat: () => void;
-  pendingSearchQuery: string | null;
-  setPendingSearchQuery: (q: string | null) => void;
 }
 
 const SommelierContext = createContext<SommelierContextValue | null>(null);
@@ -53,7 +51,6 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [pendingSearchQuery, setPendingSearchQuery] = useState<string | null>(null);
   const hasFetched = useRef(false);
 
   const refreshState = useCallback(async () => {
@@ -199,7 +196,6 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
         activeFlow, setActiveFlow,
         refreshState, isLoading,
         chatMessages, sendChatMessage, isChatLoading, clearChat,
-        pendingSearchQuery, setPendingSearchQuery,
       }}
     >
       {children}

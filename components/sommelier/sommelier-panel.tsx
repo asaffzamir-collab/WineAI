@@ -17,7 +17,6 @@ import { WineDiscovery } from './personalized/wine-discovery';
 import { TasteEvolution } from './personalized/taste-evolution';
 import { CellarActions, FillRackFlow } from './personalized/cellar-actions';
 import { HowItWorks } from './how-it-works';
-import { SearchFlow } from './search-flow';
 import { FullScreenChat } from './chat/full-screen-chat';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, History } from 'lucide-react';
@@ -69,7 +68,8 @@ function useLockBodyScroll(locked: boolean) {
 type ChatView = 'closed' | { conversationId: string | null; showHistory?: boolean };
 
 export function SommelierPanel() {
-  const { isOpen, close, activeFlow } = useSommelier();
+  const { isOpen, close, activeFlow, likedWinesCount } = useSommelier();
+  const hasFullAccess = likedWinesCount >= 2;
   const vpHeight = useVisualViewportHeight();
   const t = useTranslations('sommelier');
   const [chatView, setChatView] = useState<ChatView>('closed');
@@ -132,7 +132,6 @@ export function SommelierPanel() {
       case 'cellar-context': return <CellarActions />;
       case 'fill-rack': return <FillRackFlow />;
       case 'how-it-works': return <HowItWorks />;
-      case 'search': return <SearchFlow />;
       default: return null;
     }
   };
@@ -168,7 +167,7 @@ export function SommelierPanel() {
     <>
       <StatusBanner />
       {renderChatButton()}
-      <QuickActions />
+      {hasFullAccess && <QuickActions />}
       <ConversationFeed />
     </>
   );

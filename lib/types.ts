@@ -1,10 +1,17 @@
 // Database types
 export interface UserProfile {
   id: string;
+  first_name?: string;
+  last_name?: string;
   display_name?: string;
+  country?: string;
+  birthday?: string;
+  gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say';
   preferred_language?: 'he' | 'en';
   preferred_currency?: string;
+  profile_completed: boolean;
   onboarding_completed: boolean;
+  terms_accepted_at?: string;
   created_at?: string;
 }
 

@@ -306,6 +306,7 @@ export async function generateChatResponse(
     language?: string;
     userName?: string;
     sommelierProfile?: Record<string, unknown>;
+    hasFullAccess?: boolean;
   }
 ) {
   const lang = context.language || 'he';
@@ -341,6 +342,14 @@ Guidelines:
 - When you use a tool, incorporate the results naturally into your response.
 - You can suggest follow-up actions the user might want to take.
 - Keep responses concise — 2-4 sentences for simple questions, more for detailed recommendations.
+${!context.hasFullAccess ? `
+IMPORTANT: The user has not yet built a full taste profile (they need to like at least 2 wines).
+In this basic tier, focus on:
+- Helping them find wines they might enjoy through conversation
+- Encouraging them to search for wines they already know and like
+- When they express interest in a wine, remind them to tap the heart icon to like it
+- Be encouraging about their journey — they're just getting started!
+Do NOT offer personalized recommendation features yet — explain these unlock after they like 2 wines.` : ''}
 ${langInstr(lang)}
 
 ${context.userName ? `User's name: ${context.userName}` : ''}

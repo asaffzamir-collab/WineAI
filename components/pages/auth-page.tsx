@@ -19,6 +19,7 @@ export function AuthPage() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,7 @@ export function AuthPage() {
           options: {
             data: {
               display_name: displayName || email.split('@')[0],
+              terms_accepted_at: new Date().toISOString(),
             },
           },
         });
@@ -180,6 +182,23 @@ export function AuthPage() {
                 )}
               </div>
 
+              {mode === 'register' && (
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-muted-foreground leading-snug">
+                    {t('termsPrefix')}{' '}
+                    <a href="/terms" target="_blank" className="text-primary hover:underline">{t('termsLink')}</a>
+                    {' '}{t('termsAnd')}{' '}
+                    <a href="/privacy" target="_blank" className="text-primary hover:underline">{t('privacyLink')}</a>
+                  </span>
+                </label>
+              )}
+
               {error && (
                 <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {error}
@@ -189,7 +208,7 @@ export function AuthPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={isLoading || (mode === 'register' && !termsAccepted)}
               >
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

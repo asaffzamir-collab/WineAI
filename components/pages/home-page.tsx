@@ -80,6 +80,7 @@ interface Stats {
   hasWhiteProfile: boolean;
   hasRoseProfile: boolean;
   hasSommelierDiscovery: boolean;
+  likedWinesCount?: number;
 }
 
 const GUIDE_DISMISSED_KEY = 'winejourney_guide_dismissed';
@@ -295,11 +296,11 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   };
 
   const hasTasteProfile = stats.hasRedProfile || stats.hasWhiteProfile || stats.hasRoseProfile;
-  const hasCompletedDiscovery = stats.hasSommelierDiscovery || hasTasteProfile;
   const hasSearchedWine = stats.winesTasted > 0;
   const hasLikedWine = hasTasteProfile;
   const hasCellarOrWishlist = stats.bottlesInCellar > 0 || stats.wishlistCount > 0;
-  const allJourneyComplete = hasCompletedDiscovery && hasSearchedWine && hasLikedWine && hasCellarOrWishlist;
+  const hasUnlockedRecommendations = (stats.likedWinesCount ?? 0) >= 2;
+  const allJourneyComplete = hasSearchedWine && hasLikedWine && hasCellarOrWishlist && hasUnlockedRecommendations;
   const showJourney = !isLoading && !allJourneyComplete && !guideDismissed;
   const showGuide = false;
 
@@ -403,33 +404,33 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
               {/* Progress bar */}
               <div className="flex gap-1.5 mb-5">
-                {[hasCompletedDiscovery, hasSearchedWine, hasLikedWine, hasCellarOrWishlist].map((done, i) => (
+                {[hasSearchedWine, hasLikedWine, hasCellarOrWishlist, hasUnlockedRecommendations].map((done, i) => (
                   <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${done ? 'bg-bordeaux-500' : 'bg-muted'}`} />
                 ))}
               </div>
 
               <div className="space-y-3">
                 <JourneyStep
-                  done={hasCompletedDiscovery}
-                  icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasSearchedWine}
+                  icon={<Camera className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep1Title')}
                   desc={t('journeyStep1Desc')}
                 />
                 <JourneyStep
-                  done={hasSearchedWine}
-                  icon={<Camera className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasLikedWine}
+                  icon={<Heart className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep2Title')}
                   desc={t('journeyStep2Desc')}
                 />
                 <JourneyStep
-                  done={hasLikedWine}
-                  icon={<Heart className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasCellarOrWishlist}
+                  icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep3Title')}
                   desc={t('journeyStep3Desc')}
                 />
                 <JourneyStep
-                  done={hasCellarOrWishlist}
-                  icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasUnlockedRecommendations}
+                  icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep4Title')}
                   desc={t('journeyStep4Desc')}
                 />

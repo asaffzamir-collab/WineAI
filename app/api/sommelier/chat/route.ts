@@ -57,6 +57,12 @@ export async function POST(request: Request) {
       {} as Record<string, unknown>
     ) || {};
 
+    let likedWinesCount = 0;
+    for (const tp of (profileResult.data || [])) {
+      const pd = tp.profile_data as Record<string, unknown> | null;
+      if (pd && Array.isArray(pd.liked_wines)) likedWinesCount += pd.liked_wines.length;
+    }
+
     const cellarWines = cellarResult.data || [];
     const wishlist = wishlistResult.data || [];
     const sommelierProfile = (sommelierProfileResult.data as Record<string, unknown>) || {};
@@ -71,6 +77,7 @@ export async function POST(request: Request) {
         language: lang,
         userName: userProfile?.display_name || undefined,
         sommelierProfile,
+        hasFullAccess: likedWinesCount >= 2,
       }
     );
 

@@ -27,7 +27,7 @@ export function WineListItem({
       type="button"
       onClick={onClick}
       className={cn(
-        'w-full rounded-xl bg-card p-3.5 text-left shadow-soft',
+        'w-full rounded-xl bg-card p-3.5 text-start shadow-soft',
         'card-hover',
         'flex items-center gap-3',
         className

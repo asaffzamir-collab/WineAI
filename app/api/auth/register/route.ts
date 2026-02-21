@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { email, password, displayName } = await request.json();
+    const { email, password, displayName, termsAccepted } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -54,14 +54,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create user profile
     const name = displayName || email.split('@')[0];
     await supabase.from('user_profiles').upsert({
       id: data.user.id,
       display_name: name,
       preferred_language: 'he',
       preferred_currency: 'ILS',
+      profile_completed: false,
       onboarding_completed: false,
+      terms_accepted_at: termsAccepted ? new Date().toISOString() : null,
     });
 
     return NextResponse.json({

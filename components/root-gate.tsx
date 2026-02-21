@@ -8,7 +8,13 @@ import { AuthPage } from '@/components/pages/auth-page';
 import { Loader2 } from 'lucide-react';
 import { WineLogo } from '@/components/wine-logo';
 
-type Me = { id: string; email: string | null; onboardingCompleted: boolean; displayName: string | null };
+type Me = {
+  id: string;
+  email: string | null;
+  profileCompleted: boolean;
+  onboardingCompleted: boolean;
+  displayName: string | null;
+};
 
 export function RootGate() {
   const router = useRouter();
@@ -38,6 +44,11 @@ export function RootGate() {
           return;
         }
         const me: Me = await res.json();
+
+        if (!me.profileCompleted) {
+          router.replace('/onboarding/profile');
+          return;
+        }
         if (!me.onboardingCompleted) {
           router.replace('/sommelier/welcome');
           return;
