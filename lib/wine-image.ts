@@ -57,6 +57,7 @@ function browserHeaders(extra: Record<string, string> = {}): Record<string, stri
 
 interface VivinoExploreMatch {
   vintage?: {
+    wine?: { name?: string; winery?: { name?: string } };
     image?: {
       location?: string;
       variations?: { bottle_large?: string; bottle_medium?: string; large?: string; medium?: string };
@@ -64,8 +65,18 @@ interface VivinoExploreMatch {
   };
 }
 
+function isRelevantMatch(match: VivinoExploreMatch, query: string): boolean {
+  const wineName = (match?.vintage?.wine?.name ?? '').toLowerCase();
+  const wineryName = (match?.vintage?.wine?.winery?.name ?? '').toLowerCase();
+  const q = query.toLowerCase();
+  const queryWords = q.split(/\s+/).filter((w) => w.length > 2);
+  const matchText = `${wineName} ${wineryName}`;
+  const hits = queryWords.filter((w) => matchText.includes(w));
+  return hits.length >= Math.max(1, Math.ceil(queryWords.length * 0.3));
+}
+
 async function fetchVivinoJsonApi(query: string): Promise<string | null> {
-  const url = `https://www.vivino.com/api/explore/explore?q=${encodeURIComponent(query)}&limit=3&price_range_min=0&price_range_max=500&currency_code=USD`;
+  const url = `https://www.vivino.com/api/explore/explore?q=${encodeURIComponent(query)}&limit=5&price_range_min=0&price_range_max=500&currency_code=USD`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -95,6 +106,7 @@ async function fetchVivinoJsonApi(query: string): Promise<string | null> {
       data?.explore_vintage?.matches || data?.matches || [];
 
     for (const match of matches) {
+      if (!isRelevantMatch(match, query)) continue;
       const image = match?.vintage?.image;
       if (!image) continue;
       const loc =
@@ -108,7 +120,7 @@ async function fetchVivinoJsonApi(query: string): Promise<string | null> {
       }
     }
 
-    console.warn(`[wine-image] Vivino JSON API: no image in ${matches.length} matches for: "${query}"`);
+    console.warn(`[wine-image] Vivino JSON API: no relevant image in ${matches.length} matches for: "${query}"`);
     return null;
   } catch (err: unknown) {
     clearTimeout(timeout);
@@ -311,7 +323,7 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         tools: [{ type: 'web_search_preview' }],
-        input: `Find a product image URL for this wine bottle: "${query}". I need a direct URL to a .jpg, .jpeg, .png, or .webp image of the wine bottle (not a logo or thumbnail). Return ONLY the image URL, nothing else. If you cannot find one, return "NONE".`,
+        input: `Find a product image URL for this wine bottle: "${query}". Search on vivino.com, wine-searcher.com, or any wine retailer. I need a direct URL to an image of the wine bottle (not a logo, icon, or generic placeholder). The URL should end in .jpg, .jpeg, .png, or .webp, OR be from images.vivino.com. Return ONLY the image URL, nothing else. If you cannot find one, return "NONE".`,
       }),
     });
     clearTimeout(timeout);

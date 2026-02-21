@@ -83,7 +83,10 @@ export default async function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg">
           Skip to content
         </a>
-        <NextIntlClientProvider messages={messages as AbstractIntlMessages}>
+        <NextIntlClientProvider
+          messages={messages as AbstractIntlMessages}
+          defaultTranslationValues={{ gender: 'male' }}
+        >
           <UserProvider>
             <div id="main-content">{children}</div>
           </UserProvider>

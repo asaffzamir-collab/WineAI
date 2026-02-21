@@ -257,6 +257,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         hasWhiteProfile: data.hasWhiteProfile ?? false,
         hasRoseProfile: data.hasRoseProfile ?? false,
         hasSommelierDiscovery: data.hasSommelierDiscovery ?? false,
+        likedWinesCount: data.likedWinesCount ?? 0,
       });
     } finally {
       setIsLoading(false);
