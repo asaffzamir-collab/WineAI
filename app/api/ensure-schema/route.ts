@@ -36,6 +36,16 @@ ALTER TABLE cellar_items ADD COLUMN IF NOT EXISTS slot_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_cellar_items_slot_id ON cellar_items(slot_id);
 `;
 
+const USER_PROFILE_EXTENDED_SQL = `
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS birthday DATE;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say'));
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMP WITH TIME ZONE;
+`;
+
 async function runMigrations(): Promise<{ success: boolean; message: string }> {
   const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
   if (!dbUrl) {
@@ -51,6 +61,7 @@ async function runMigrations(): Promise<{ success: boolean; message: string }> {
 
     await sql.unsafe(CELLAR_RACKS_SQL);
     await sql.unsafe(SLOT_ID_SQL);
+    await sql.unsafe(USER_PROFILE_EXTENDED_SQL);
 
     // Reload PostgREST schema cache so the new table/column is immediately available
     await sql.unsafe('NOTIFY pgrst, \'reload schema\'');
@@ -73,6 +84,7 @@ export async function POST() {
       sql: {
         cellar_racks: CELLAR_RACKS_SQL.trim(),
         slot_id: SLOT_ID_SQL.trim(),
+        user_profile_extended: USER_PROFILE_EXTENDED_SQL.trim(),
       },
     }, { status: result.message.includes('No DATABASE_URL') ? 400 : 500 });
   }
@@ -86,6 +98,7 @@ export async function GET() {
     sql: {
       cellar_racks: CELLAR_RACKS_SQL.trim(),
       slot_id: SLOT_ID_SQL.trim(),
+      user_profile_extended: USER_PROFILE_EXTENDED_SQL.trim(),
     },
   });
 }
