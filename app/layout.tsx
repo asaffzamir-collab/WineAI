@@ -5,6 +5,7 @@ import { getLocale, getMessages } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { UserProvider } from '@/lib/user-context';
+import { DirectionProvider } from '@/lib/direction-provider';
 import './globals.css';
 
 const heebo = Heebo({
@@ -83,14 +84,16 @@ export default async function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg">
           Skip to content
         </a>
-        <NextIntlClientProvider
-          messages={messages as AbstractIntlMessages}
-          defaultTranslationValues={{ gender: 'male' }}
-        >
-          <UserProvider>
-            <div id="main-content">{children}</div>
-          </UserProvider>
-        </NextIntlClientProvider>
+        <DirectionProvider dir={locale === 'he' ? 'rtl' : 'ltr'}>
+          <NextIntlClientProvider
+            messages={messages as AbstractIntlMessages}
+            defaultTranslationValues={{ gender: 'male' }}
+          >
+            <UserProvider>
+              <div id="main-content">{children}</div>
+            </UserProvider>
+          </NextIntlClientProvider>
+        </DirectionProvider>
         <Analytics />
         <SpeedInsights />
       </body>
