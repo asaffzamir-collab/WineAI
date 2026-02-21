@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,6 +132,8 @@ export function WineCard({
   uploadedImageUrl,
 }: WineCardProps) {
   const t = useTranslations('wineCard');
+  const { gender } = useUser();
+  const g = { gender };
   const [imageError, setImageError] = useState(false);
   const [lazyImageUrl, setLazyImageUrl] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
@@ -204,14 +207,14 @@ export function WineCard({
                 'flex h-20 w-20 flex-shrink-0 flex-col items-center justify-center gap-1 rounded-xl shadow-inner-soft transition-all duration-200 hover:opacity-80',
                 wineTypeColors[wine.wine_type] || 'bg-ivory-400'
               )}
-              title={t('seeOnVivino')}
+              title={t('seeOnVivino', g)}
             >
               <Wine className={cn(
                 'h-8 w-8',
                 wine.wine_type === 'white' || wine.wine_type === 'sparkling' ? 'text-stone-600' : 'text-white/80'
               )} strokeWidth={1.5} />
               <span className="text-[10px] font-medium opacity-70 max-w-full truncate px-1">
-                {t('seeOnVivino')}
+                {t('seeOnVivino', g)}
               </span>
             </a>
           )}
@@ -491,7 +494,7 @@ export function WineCard({
               )}
             >
               <Heart className={cn("me-2 h-4 w-4", isAddingToProfile && "fill-bordeaux-400")} strokeWidth={1.5} />
-              {isAddingToProfile ? t('addedToProfile') : t('likeThisWine')}
+              {isAddingToProfile ? t('addedToProfile') : t('likeThisWine', g)}
             </Button>
             <p className="text-[10px] text-muted-foreground/70 text-center mt-1 leading-tight">{t('likeHint')}</p>
           </div>
@@ -507,7 +510,7 @@ export function WineCard({
                   disabled={isAddingToCellar}
                   className={cn("flex-1", isAddingToCellar && "bg-green-600 hover:bg-green-600")}
                 >
-                  {isAddingToCellar ? t('addedToCellar') : t('addToCellar')}
+                  {isAddingToCellar ? t('addedToCellar') : t('addToCellar', g)}
                 </Button>
               )}
               {onAddToWishlist != null && (
@@ -517,7 +520,7 @@ export function WineCard({
                   disabled={isAddingToWishlist}
                   className={cn("flex-1", isAddingToWishlist && "border-bordeaux-300 bg-bordeaux-50 text-bordeaux-500")}
                 >
-                  {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist')}
+                  {isAddingToWishlist ? t('addedToWishlist') : t('addToWishlist', g)}
                 </Button>
               )}
             </div>

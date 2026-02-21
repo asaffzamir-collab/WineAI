@@ -4,6 +4,7 @@ import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { UserProvider } from '@/lib/user-context';
 import './globals.css';
 
 const heebo = Heebo({
@@ -83,7 +84,9 @@ export default async function RootLayout({
           Skip to content
         </a>
         <NextIntlClientProvider messages={messages as AbstractIntlMessages}>
-          <div id="main-content">{children}</div>
+          <UserProvider>
+            <div id="main-content">{children}</div>
+          </UserProvider>
         </NextIntlClientProvider>
         <Analytics />
         <SpeedInsights />

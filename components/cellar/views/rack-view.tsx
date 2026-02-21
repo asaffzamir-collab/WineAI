@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Wine } from 'lucide-react';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { UnassignedBin } from '@/components/cellar/unassigned-bin';
@@ -25,6 +26,8 @@ const Rack3DCanvas = dynamic(
 
 export function RackView() {
   const t = useTranslations('cellar');
+  const { gender } = useUser();
+  const g = { gender };
   const {
     activeRack, setIsRackBuilderOpen, setEditingRack,
     placingItemId, setPlacingItemId, racks, placementMap, assignSlot,
@@ -44,7 +47,7 @@ export function RackView() {
       <EmptyState
         icon={Wine}
         title={t('noRack')}
-        description={t('noRackDesc')}
+        description={t('noRackDesc', g)}
         actionLabel={t('createRack')}
         onAction={() => {
           setEditingRack(null);

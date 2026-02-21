@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { Search, Camera, Upload, Loader2, Wine, ChevronRight } from 'lucide-react';
+import { Search, Camera, Upload, Loader2, Wine, ChevronRight, Sparkles, Lock } from 'lucide-react';
+import { useUser } from '@/lib/user-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,7 +40,10 @@ function buildWineMetadata(
 
 export function SearchPage({ userId }: SearchPageProps) {
   const t = useTranslations('search');
+  const tHome = useTranslations('home');
   const tProfile = useTranslations('profile');
+  const { gender } = useUser();
+  const g = { gender };
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQ);
@@ -61,10 +65,15 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
   const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
+  const [hasFullPersonalization, setHasFullPersonalization] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRecentSearches(getRecentSearches(userId));
+    fetch(`/api/stats?userId=${encodeURIComponent(userId)}`)
+      .then((r) => r.json())
+      .then((data) => setHasFullPersonalization((data.likedWinesCount ?? 0) >= 2))
+      .catch(() => {});
   }, [userId]);
 
   useEffect(() => {
@@ -455,6 +464,26 @@ export function SearchPage({ userId }: SearchPageProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Match status banner */}
+        {hasFullPersonalization !== null && (
+          <div className={`mt-4 flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-xs ${
+            hasFullPersonalization
+              ? 'bg-bordeaux-50 text-bordeaux-700 dark:bg-bordeaux-900/20 dark:text-bordeaux-300'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            {hasFullPersonalization ? (
+              <Sparkles className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+            ) : (
+              <Lock className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+            )}
+            <span>
+              {hasFullPersonalization
+                ? tHome('matchActiveBanner')
+                : tHome('matchLockedBanner', g)}
+            </span>
+          </div>
+        )}
 
         {/* Multiple text results */}
         {wineCandidates.length > 1 && !isSearching && (

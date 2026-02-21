@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight, Pencil, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -107,6 +108,8 @@ function toWineData(wine: CellarWineData): WineData {
 export function CellarPage({ userId, initialItems, initialFilter }: CellarPageProps) {
   const t = useTranslations('cellar');
   const tSearch = useTranslations('search');
+  const { gender } = useUser();
+  const g = { gender };
   const [items, setItems] = useState<CellarItem[]>(initialItems);
   const [activeFilter, setActiveFilter] = useState<string | undefined>(initialFilter);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -367,7 +370,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
           <EmptyState
             icon={Wine}
             title={t('empty')}
-            description={t('emptyDescription')}
+            description={t('emptyDescription', g)}
             actionLabel={t('addWine')}
             actionHref="/search"
           />

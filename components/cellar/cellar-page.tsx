@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import dynamic from 'next/dynamic';
 import { Loader2, Plus, Wine } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
@@ -265,12 +266,14 @@ function CellarContent() {
 
 export function NewCellarPage({ userId, initialItems, placeItemId }: NewCellarPageProps) {
   const t = useTranslations('cellar');
+  const { gender } = useUser();
+  const g = { gender };
   return (
     <AppShell>
       <CellarErrorBoundary
         errorTitle={t('errorTitle')}
-        fallbackMessage={t('errorDesc')}
-        retryLabel={t('errorRetry')}
+        fallbackMessage={t('errorDesc', g)}
+        retryLabel={t('errorRetry', g)}
       >
         <CellarRackProvider userId={userId} initialItems={initialItems} placeItemId={placeItemId}>
           <CellarContent />

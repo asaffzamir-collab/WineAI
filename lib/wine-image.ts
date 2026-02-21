@@ -65,7 +65,7 @@ interface VivinoExploreMatch {
 }
 
 async function fetchVivinoJsonApi(query: string): Promise<string | null> {
-  const url = `https://www.vivino.com/api/explore/explore?q=${encodeURIComponent(query)}&limit=3`;
+  const url = `https://www.vivino.com/api/explore/explore?q=${encodeURIComponent(query)}&limit=3&price_range_min=0&price_range_max=500&currency_code=USD`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
@@ -327,7 +327,9 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
         ?.find((c: { type: string }) => c.type === 'output_text')?.text
       ?? '';
 
-    const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i);
+    const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i)
+      || text.match(/https?:\/\/images\.vivino\.com\/[^\s"'<>]+/i)
+      || text.match(/https?:\/\/images\.wine-searcher\.net\/[^\s"'<>]+/i);
     if (urlMatch && !urlMatch[0].includes('logo') && !urlMatch[0].includes('icon')) {
       return normalizeImageUrl(urlMatch[0]);
     }

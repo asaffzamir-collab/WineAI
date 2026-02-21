@@ -22,12 +22,14 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { AppShell } from '@/components/app-shell';
 import { WineLogo } from '@/components/wine-logo';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { FeatureTour } from '@/components/feature-tour';
+import { useUser } from '@/lib/user-context';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
   loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
@@ -118,8 +120,13 @@ function AnimatedNumber({ value, isLoading }: { value: number; isLoading: boolea
   return <>{displayed}</>;
 }
 
+const CELEBRATION_KEY = 'winejourney_journey_celebrated';
+
 export function HomePage({ userId, displayName: initialDisplayName }: HomePageProps) {
   const t = useTranslations('home');
+  const { gender } = useUser();
+  const g = { gender };
+  const [showCelebration, setShowCelebration] = useState(false);
   const [stats, setStats] = useState<Stats>({
     winesTasted: 0,
     bottlesInCellar: 0,
@@ -304,6 +311,12 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const showJourney = !isLoading && !allJourneyComplete && !guideDismissed;
   const showGuide = false;
 
+  useEffect(() => {
+    if (!allJourneyComplete || isLoading) return;
+    if (localStorage.getItem(CELEBRATION_KEY) === 'true') return;
+    setShowCelebration(true);
+  }, [allJourneyComplete, isLoading]);
+
   const typeTotal = Object.values(stats.wineTypeDistribution).reduce((a, b) => a + b, 0);
   const typeEntries = Object.entries(stats.wineTypeDistribution).sort((a, b) => b[1] - a[1]);
 
@@ -400,7 +413,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             </button>
             <CardContent className="px-5 py-5">
               <p className="text-sm font-semibold text-foreground mb-1">{t('journeyTitle')}</p>
-              <p className="text-xs text-muted-foreground mb-4">{t('journeySubtitle')}</p>
+              <p className="text-xs text-muted-foreground mb-4">{t('journeySubtitle', g)}</p>
 
               {/* Progress bar */}
               <div className="flex gap-1.5 mb-5">
@@ -413,26 +426,26 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                 <JourneyStep
                   done={hasSearchedWine}
                   icon={<Camera className="h-4 w-4" strokeWidth={1.5} />}
-                  title={t('journeyStep1Title')}
-                  desc={t('journeyStep1Desc')}
+                  title={t('journeyStep1Title', g)}
+                  desc={t('journeyStep1Desc', g)}
                 />
                 <JourneyStep
                   done={hasLikedWine}
                   icon={<Heart className="h-4 w-4" strokeWidth={1.5} />}
-                  title={t('journeyStep2Title')}
-                  desc={t('journeyStep2Desc')}
+                  title={t('journeyStep2Title', g)}
+                  desc={t('journeyStep2Desc', g)}
                 />
                 <JourneyStep
                   done={hasCellarOrWishlist}
                   icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
-                  title={t('journeyStep3Title')}
-                  desc={t('journeyStep3Desc')}
+                  title={t('journeyStep3Title', g)}
+                  desc={t('journeyStep3Desc', g)}
                 />
                 <JourneyStep
                   done={hasUnlockedRecommendations}
                   icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
-                  title={t('journeyStep4Title')}
-                  desc={t('journeyStep4Desc')}
+                  title={t('journeyStep4Title', g)}
+                  desc={t('journeyStep4Desc', g)}
                 />
               </div>
 
@@ -642,6 +655,38 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         </DialogContent>
       </Dialog>
       <FeatureTour />
+
+      {/* Celebration modal — shown once when journey is fully unlocked */}
+      <Dialog open={showCelebration} onOpenChange={(open) => {
+        if (!open) {
+          localStorage.setItem(CELEBRATION_KEY, 'true');
+          setShowCelebration(false);
+        }
+      }}>
+        <DialogContent className="max-w-md text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-bordeaux-400 to-bordeaux-600 shadow-lg">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="heading-serif text-xl text-foreground">{t('celebrationTitle')}</h2>
+            <div className="space-y-3 text-sm text-muted-foreground text-start">
+              <p>{t('celebrationPier', g)}</p>
+              <p>{t('celebrationMatch', g)}</p>
+              <p>{t('celebrationGrowing', g)}</p>
+            </div>
+            <Button
+              className="mt-2 w-full"
+              onClick={() => {
+                localStorage.setItem(CELEBRATION_KEY, 'true');
+                setShowCelebration(false);
+              }}
+            >
+              {t('celebrationCta')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </AppShell>
   );

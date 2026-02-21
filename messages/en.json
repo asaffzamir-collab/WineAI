@@ -124,7 +124,14 @@
     "typeDessert": "Dessert",
     "settings": "Settings",
     "guideCardTitle": "Tips & Guide",
-    "guideCardDesc": "Learn how to get the most out of WineJourney"
+    "guideCardDesc": "Learn how to get the most out of WineJourney",
+    "celebrationTitle": "Your Wine Journey is Fully Unlocked!",
+    "celebrationPier": "Pier has learned your preferences and is ready to be your personal sommelier. Ask for recommendations, food pairings, or anything wine-related — tailored just for you.",
+    "celebrationMatch": "Every wine you search for will now include a detailed match analysis against your taste profile, with a compatibility score and personalized insights.",
+    "celebrationGrowing": "The more wines you explore and rate, the smarter Pier gets. Your recommendations will only get better over time.",
+    "celebrationCta": "Let's explore",
+    "matchActiveBanner": "Your taste profile is active — every wine shows your personal match",
+    "matchLockedBanner": "Rate 2 wines to unlock personal match analysis"
   },
   "search": {
     "title": "Search Wine",

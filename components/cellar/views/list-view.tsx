@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Wine, MapPin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
@@ -100,6 +101,8 @@ function ListItem({ placement, onSelect }: { placement: Placement; onSelect: () 
 
 export function ListView() {
   const t = useTranslations('cellar');
+  const { gender } = useUser();
+  const g = { gender };
   const { filteredPlacements, setWineCardPlacement } = useCellarRack();
 
   if (filteredPlacements.length === 0) {
@@ -107,7 +110,7 @@ export function ListView() {
       <EmptyState
         icon={Wine}
         title={t('empty')}
-        description={t('emptyDescription')}
+        description={t('emptyDescription', g)}
         actionLabel={t('addWine')}
         actionHref="/search"
       />

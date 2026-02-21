@@ -23,7 +23,7 @@ export async function GET() {
 
   let { data: profile, error: profileError } = await supabase
     .from('user_profiles')
-    .select('onboarding_completed, profile_completed, display_name')
+    .select('onboarding_completed, profile_completed, display_name, gender')
     .eq('id', user.id)
     .single();
 
@@ -32,7 +32,7 @@ export async function GET() {
     await tryEnsureSchema();
     const retry = await supabase
       .from('user_profiles')
-      .select('onboarding_completed, profile_completed, display_name')
+      .select('onboarding_completed, profile_completed, display_name, gender')
       .eq('id', user.id)
       .single();
     if (retry.data) {
@@ -45,7 +45,7 @@ export async function GET() {
         .select('onboarding_completed, display_name')
         .eq('id', user.id)
         .single();
-      profile = fallback.data ? { ...fallback.data, profile_completed: false } : null;
+      profile = fallback.data ? { ...fallback.data, profile_completed: false, gender: null } : null;
       profileError = null;
     }
   }
@@ -66,7 +66,7 @@ export async function GET() {
     } catch {
       // Insert might fail if profile_completed column doesn't exist; that's okay
     }
-    profile = { onboarding_completed: false, profile_completed: false, display_name: displayName };
+    profile = { onboarding_completed: false, profile_completed: false, display_name: displayName, gender: null };
   }
 
   return NextResponse.json({
@@ -75,5 +75,6 @@ export async function GET() {
     profileCompleted: profile?.profile_completed ?? false,
     onboardingCompleted: profile?.onboarding_completed ?? false,
     displayName: profile?.display_name ?? null,
+    gender: profile?.gender ?? null,
   });
 }

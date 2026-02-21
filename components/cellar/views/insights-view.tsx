@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Wine, Clock, AlertTriangle, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,8 @@ function TypeDistribution({ placements }: { placements: Placement[] }) {
 
 export function InsightsView() {
   const t = useTranslations('cellar');
+  const { gender } = useUser();
+  const g = { gender };
   const { allPlacements, activeRack, unassignedPlacements, setActiveTab, setFilters } = useCellarRack();
   const { open: openSommelier } = useSommelier();
 
@@ -126,7 +129,7 @@ export function InsightsView() {
       <EmptyState
         icon={Wine}
         title={t('empty')}
-        description={t('emptyDescription')}
+        description={t('emptyDescription', g)}
         actionLabel={t('addWine')}
         actionHref="/search"
       />

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useUser } from '@/lib/user-context';
 import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -168,11 +169,13 @@ function SpectrumBar({
 function TasteSpectrumChart({
   spectrum,
   t,
+  g,
   expandedInfos,
   toggleInfo,
 }: {
   spectrum: TasteSpectrum;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string>) => string;
+  g: { gender: string };
   expandedInfos: Set<string>;
   toggleInfo: (key: string) => void;
 }) {
@@ -189,7 +192,7 @@ function TasteSpectrumChart({
         {t('tasteSpectrumTitle')}
       </h3>
       <p className="mb-4 text-center text-xs text-stone-600 dark:text-stone-400">
-        {t('spectrumTapToLearn')}
+        {t('spectrumTapToLearn', g)}
       </p>
       <div className="space-y-1">
         {axes.map((axis) => (
@@ -231,6 +234,8 @@ function SectionHeading({
 
 export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
   const t = useTranslations('profile');
+  const { gender } = useUser();
+  const g = { gender };
   const router = useRouter();
 
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
@@ -489,11 +494,11 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                       <div className="py-8 text-center text-stone-600 dark:text-stone-400">
                         <Wine className="mx-auto h-12 w-12 text-ivory-400 dark:text-charcoal-700" strokeWidth={1.5} />
                         <p className="mt-4">{t('noProfileYet')}</p>
-                        <p className="text-sm">{t('addWinesToBuildProfile')}</p>
+                        <p className="text-sm">{t('addWinesToBuildProfile', g)}</p>
                         <Button asChild variant="outline" className="mt-4">
                           <Link href="/search" className="inline-flex items-center gap-2">
                             <Search className="h-4 w-4" strokeWidth={1.5} />
-                            {t('goToSearch')}
+                            {t('goToSearch', g)}
                           </Link>
                         </Button>
                       </div>
@@ -503,6 +508,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <TasteSpectrumChart
                             spectrum={profile.taste_spectrum}
                             t={t}
+                            g={g}
                             expandedInfos={expandedInfos}
                             toggleInfo={toggleInfo}
                           />
@@ -512,7 +518,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('overallStyle')}
-                              subtitle={t('overallStyleExplain')}
+                              subtitle={t('overallStyleExplain', g)}
                             />
                             <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.overall_style}</p>
                           </section>
@@ -532,7 +538,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                           <section>
                             <SectionHeading
                               title={t('fruitProfile')}
-                              subtitle={t('fruitProfileExplain')}
+                              subtitle={t('fruitProfileExplain', g)}
                             />
                             <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.fruit_profile}</p>
                           </section>
@@ -553,7 +559,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             <SectionHeading
                               icon={<Grape className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedGrapes')}
-                              subtitle={t('recommendedGrapesExplain')}
+                              subtitle={t('recommendedGrapesExplain', g)}
                             />
                             <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_grapes.map((grape, idx) => (
@@ -573,7 +579,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                             <SectionHeading
                               icon={<MapPin className="h-4 w-4" strokeWidth={1.5} />}
                               title={t('recommendedRegions')}
-                              subtitle={t('recommendedRegionsExplain')}
+                              subtitle={t('recommendedRegionsExplain', g)}
                             />
                             <div className="mt-2 flex flex-wrap gap-2">
                               {profile.recommended_regions.map((region, idx) => (

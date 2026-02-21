@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // ───────────── Negative image cache (in-memory, 24 h TTL) ─────────────
 
-const NEGATIVE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const NEGATIVE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const negativeImageCache = new Map<string, number>();
 

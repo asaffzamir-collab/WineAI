@@ -4,10 +4,12 @@ import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { PrecisionMeter } from '../precision-meter';
 import { Heart } from 'lucide-react';
+import { useUser } from '@/lib/user-context';
 
 export function StatusBanner() {
   const { likedWinesCount, precision } = useSommelier();
   const t = useTranslations('sommelier');
+  const { gender } = useUser();
 
   const hasFullAccess = likedWinesCount >= 2;
 
@@ -26,7 +28,7 @@ export function StatusBanner() {
             {t('bannerLearningTitle')}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {t('bannerLearningDesc', { count: remaining })}
+            {t('bannerLearningDesc', { count: remaining, gender })}
           </p>
         </div>
       </div>
