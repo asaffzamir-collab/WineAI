@@ -27,10 +27,10 @@ const FEATURES = [
 ] as const;
 
 const QUICKSTART_STEPS = [
-  { id: 'scan', icon: Camera, href: '/search', color: 'bg-bordeaux-500' },
-  { id: 'ask', icon: MessageCircle, href: null, color: 'bg-garnet-500' },
-  { id: 'collect', icon: Wine, href: '/cellar', color: 'bg-ruby-500' },
-  { id: 'discover', icon: Sparkles, href: null, color: 'bg-copper-500' },
+  { id: 'addWines', icon: Heart, href: '/search', color: 'bg-bordeaux-500' },
+  { id: 'scan', icon: Camera, href: '/search', color: 'bg-garnet-500' },
+  { id: 'ask', icon: MessageCircle, href: null, color: 'bg-ruby-500' },
+  { id: 'collect', icon: Wine, href: '/cellar', color: 'bg-copper-500' },
 ] as const;
 
 const TAG_STYLES: Record<ChangelogHighlight['tag'], string> = {
@@ -86,7 +86,7 @@ function QuickStartCard({
   return content;
 }
 
-function FeatureCard({ feature, t, onClick }: { feature: typeof FEATURES[number]; t: ReturnType<typeof useTranslations>; onClick?: () => void }) {
+function FeatureCard({ feature, t, dynamicTitle, dynamicDesc, onClick }: { feature: typeof FEATURES[number]; t: ReturnType<typeof useTranslations>; dynamicTitle?: string; dynamicDesc?: string; onClick?: () => void }) {
   const Icon = feature.icon;
   const isInteractive = !!feature.href || !!onClick;
   const content = (
@@ -96,10 +96,10 @@ function FeatureCard({ feature, t, onClick }: { feature: typeof FEATURES[number]
           <Icon className="h-5.5 w-5.5" strokeWidth={1.5} />
         </div>
         <h3 className="text-heading text-foreground mb-1.5">
-          {t(`feature_${feature.id}_title`)}
+          {dynamicTitle || t(`feature_${feature.id}_title`)}
         </h3>
         <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-          {t(`feature_${feature.id}_desc`)}
+          {dynamicDesc || t(`feature_${feature.id}_desc`)}
         </p>
         {isInteractive && (
           <div className="mt-4 flex items-center gap-1 text-xs font-medium text-primary group-hover:gap-2 transition-all duration-200">
@@ -209,6 +209,17 @@ export function GuidePage() {
   );
 }
 
+interface DynamicFaqItem {
+  question: string;
+  answer: string;
+}
+
+interface DynamicFeatureItem {
+  id: string;
+  title: string;
+  description: string;
+}
+
 function GuideContent() {
   const t = useTranslations('guide');
   const tNav = useTranslations('nav');
@@ -217,6 +228,8 @@ function GuideContent() {
   const [activeTab, setActiveTab] = useState<Tab>('quickstart');
   const [locale, setLocale] = useState('en');
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>(changelog);
+  const [dynamicFaq, setDynamicFaq] = useState<DynamicFaqItem[] | null>(null);
+  const [dynamicFeatures, setDynamicFeatures] = useState<DynamicFeatureItem[] | null>(null);
 
   useEffect(() => {
     const cookie = document.cookie.split(';').find(c => c.trim().startsWith('locale='));
@@ -235,6 +248,16 @@ function GuideContent() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    fetch(`/api/guide?locale=${locale}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.faq) && data.faq.length > 0) setDynamicFaq(data.faq);
+        if (Array.isArray(data.features) && data.features.length > 0) setDynamicFeatures(data.features);
+      })
+      .catch(() => {});
+  }, [locale]);
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'quickstart', label: t('tabQuickStart') },
     { id: 'features', label: t('tabFeatures') },
@@ -242,10 +265,12 @@ function GuideContent() {
     { id: 'faq', label: t('tabFaq') },
   ];
 
-  const faqItems = Array.from({ length: 6 }, (_, i) => ({
-    question: t(`faq_q${i + 1}`),
-    answer: t(`faq_a${i + 1}`),
-  }));
+  const faqItems = dynamicFaq
+    ? dynamicFaq.map((f) => ({ question: f.question, answer: f.answer }))
+    : Array.from({ length: 6 }, (_, i) => ({
+        question: t(`faq_q${i + 1}`),
+        answer: t(`faq_a${i + 1}`),
+      }));
 
   return (
     <div className="animate-page py-6 md:py-8 lg:py-10">
@@ -295,7 +320,7 @@ function GuideContent() {
                     index={i}
                     t={t}
                     onClick={
-                      step.id === 'ask' || step.id === 'discover'
+                      step.id === 'ask'
                         ? () => { router.push('/'); setTimeout(() => openSommelier(), 300); }
                         : undefined
                     }
@@ -321,14 +346,19 @@ function GuideContent() {
             <div className="space-y-8">
               <p className="text-muted-foreground max-w-2xl">{t('featuresIntro')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {FEATURES.map((feature) => (
-                  <FeatureCard
-                    key={feature.id}
-                    feature={feature}
-                    t={t}
-                    onClick={feature.id === 'sommelier' ? () => openSommelier() : undefined}
-                  />
-                ))}
+                {FEATURES.map((feature) => {
+                  const dynFeat = dynamicFeatures?.find((f) => f.id === feature.id);
+                  return (
+                    <FeatureCard
+                      key={feature.id}
+                      feature={feature}
+                      t={t}
+                      dynamicTitle={dynFeat?.title}
+                      dynamicDesc={dynFeat?.description}
+                      onClick={feature.id === 'sommelier' ? () => openSommelier() : undefined}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

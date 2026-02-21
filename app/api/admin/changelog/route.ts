@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { triggerGuideRegeneration } from './guide-regen';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,12 @@ export async function POST(request: Request) {
       .single();
 
     if (dbError) throw dbError;
+
+    // Auto-regenerate guide FAQ/features in the background
+    triggerGuideRegeneration().catch((e) =>
+      console.error('[changelog] Guide regeneration failed:', e),
+    );
+
     return NextResponse.json({ entry: data });
   } catch (err) {
     console.error('Changelog POST error:', err);

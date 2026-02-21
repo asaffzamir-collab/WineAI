@@ -92,6 +92,16 @@ export async function POST(request: Request) {
       reason?: string;
       tasting_note?: string;
       image_url?: string;
+      food_pairings?: string[];
+      alcohol?: string;
+      vivino_rating?: number;
+      vivino_reviews?: number;
+      tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
+      serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
+      positive_matches?: string[];
+      mismatches?: string[];
+      wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+      profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
     }
     interface ToolResult {
       id: string;
@@ -108,21 +118,60 @@ export async function POST(request: Request) {
               try {
                 const query = tc.arguments.query as string;
                 const cached = await findCachedWines(query);
-                const { searchWinesByText } = await import('@/lib/openai');
+                const { searchWinesByText, matchWineToProfile } = await import('@/lib/openai');
                 const wines = cached.length > 0 ? cached : await searchWinesByText(query);
+                const top = wines.slice(0, 5);
+
+                const enriched = await Promise.all(
+                  top.map(async (w) => {
+                    let matchData: { match_percentage?: number; explanation?: string; positive_matches?: string[]; mismatches?: string[]; wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number }; profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number } } = {};
+                    try {
+                      if (Object.keys(combinedProfile).length > 0) {
+                        const raw = await matchWineToProfile(w, combinedProfile);
+                        matchData = {
+                          match_percentage: raw.match_percentage,
+                          explanation: raw.explanation,
+                          positive_matches: raw.positive_matches,
+                          mismatches: raw.mismatches,
+                          wine_spectrum: raw.wine_spectrum ? { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity } : undefined,
+                          profile_spectrum: raw.profile_spectrum ? { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity } : undefined,
+                        };
+                      }
+                    } catch {}
+                    return {
+                      name: w.name,
+                      winery: w.winery,
+                      region: w.region,
+                      grape: w.grapes?.join(', '),
+                      wine_type: w.wine_type,
+                      country: w.country,
+                      image_url: w.image_url,
+                      food_pairings: w.food_pairings,
+                      alcohol: w.alcohol != null ? String(w.alcohol) : undefined,
+                      vivino_rating: w.vivino_rating,
+                      vivino_reviews: w.vivino_reviews,
+                      tasting_notes: w.tasting_notes,
+                      serving: w.serving ? {
+                        drink_from: w.serving.drink_from,
+                        drink_until: w.serving.drink_until,
+                        decant_minutes: w.serving.decant_minutes,
+                        temperature_celsius: w.serving.temperature_celsius ? Number(w.serving.temperature_celsius) : undefined,
+                      } : undefined,
+                      match: matchData.match_percentage,
+                      reason: matchData.explanation,
+                      positive_matches: matchData.positive_matches,
+                      mismatches: matchData.mismatches,
+                      wine_spectrum: matchData.wine_spectrum as ToolResultWine['wine_spectrum'],
+                      profile_spectrum: matchData.profile_spectrum as ToolResultWine['profile_spectrum'],
+                    };
+                  }),
+                );
+
                 return {
                   id: tc.id,
                   name: tc.name,
-                  result: JSON.stringify(wines.slice(0, 5)),
-                  wines: wines.slice(0, 5).map(w => ({
-                    name: w.name,
-                    winery: w.winery,
-                    region: w.region,
-                    grape: w.grapes?.join(', '),
-                    wine_type: w.wine_type,
-                    country: w.country,
-                    image_url: w.image_url,
-                  })),
+                  result: JSON.stringify(top),
+                  wines: enriched,
                 };
               } catch {
                 return { id: tc.id, name: tc.name, result: '[]', wines: [] };
@@ -172,6 +221,10 @@ export async function POST(request: Request) {
                     match?: number;
                     reason?: string;
                     tasting_note?: string;
+                    food_pairings?: string[];
+                    positive_matches?: string[];
+                    mismatches?: string[];
+                    wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
                   }>;
                 };
                 return {
@@ -188,6 +241,10 @@ export async function POST(request: Request) {
                     match: w.match,
                     reason: w.reason,
                     tasting_note: w.tasting_note,
+                    food_pairings: w.food_pairings,
+                    positive_matches: w.positive_matches,
+                    mismatches: w.mismatches,
+                    wine_spectrum: w.wine_spectrum,
                   })) || [],
                 };
               } catch {

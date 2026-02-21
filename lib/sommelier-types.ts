@@ -80,6 +80,16 @@ export interface ChatWineCard {
   reason?: string;
   tasting_note?: string;
   image_url?: string;
+  food_pairings?: string[];
+  alcohol?: string;
+  vivino_rating?: number;
+  vivino_reviews?: number;
+  tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
+  serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
+  positive_matches?: string[];
+  mismatches?: string[];
+  wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+  profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
 }
 
 export interface ChatMessage {

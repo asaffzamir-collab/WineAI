@@ -5,9 +5,12 @@
  * hitting external sources. Once fetched, the URL is persisted to the DB
  * so subsequent requests never hit external APIs again.
  *
- * Strategy 1: Google Image Search (extracts Vivino/wine-retailer image URLs).
+ * Strategy 0: Vivino-targeted Google search (site:vivino.com).
+ * Strategy 1: Google Image Search (extracts wine-retailer image URLs).
  * Strategy 2: Wine-Searcher scraping (independent CDN).
  * Strategy 3: OpenAI web search fallback (costs API credits, last resort).
+ *
+ * Hebrew wine names are transliterated to English before searching.
  *
  * Negative-cache: failed lookups are remembered so the same wine
  * doesn't keep hammering external services on every page load.
@@ -22,6 +25,7 @@ import {
 } from '@/lib/wine-cache';
 
 const FETCH_TIMEOUT_MS = 15_000;
+const MIN_IMAGE_BYTES = 5_000;
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -40,9 +44,60 @@ function normalizeImageUrl(url: string): string {
   return url;
 }
 
+const HEBREW_RE = /[\u0590-\u05FF]/;
+
+function containsHebrew(text: string): boolean {
+  return HEBREW_RE.test(text);
+}
+
 /**
- * HEAD-request an image URL and return it only if it responds 200.
- * Prevents broken/403 URLs from being cached and served to clients.
+ * Transliterate/translate a Hebrew wine name to English using OpenAI.
+ * Returns the original text if no Hebrew is detected or the call fails.
+ */
+async function transliterateHebrew(text: string): Promise<string> {
+  if (!containsHebrew(text)) return text;
+
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return text;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 120,
+        temperature: 0,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Transliterate the following Hebrew wine name/winery to English. Keep grape variety names in their standard English form (e.g. שיראז→Shiraz, קברנה סוביניון→Cabernet Sauvignon). Return ONLY the English transliteration, nothing else.',
+          },
+          { role: 'user', content: text },
+        ],
+      }),
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return text;
+    const data = await res.json();
+    const result = data?.choices?.[0]?.message?.content?.trim();
+    return result || text;
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * HEAD-request an image URL and return it only if it responds 200
+ * and the content is large enough to be a real product photo.
  */
 async function validateImageUrl(url: string): Promise<string | null> {
   try {
@@ -55,9 +110,19 @@ async function validateImageUrl(url: string): Promise<string | null> {
       headers: { 'User-Agent': randomUA() },
     });
     clearTimeout(timeout);
-    if (res.ok) return url;
-    console.warn(`[wine-image] URL validation failed (${res.status}): ${url}`);
-    return null;
+
+    if (!res.ok) {
+      console.warn(`[wine-image] URL validation failed (${res.status}): ${url}`);
+      return null;
+    }
+
+    const contentLength = Number(res.headers.get('content-length') || 0);
+    if (contentLength > 0 && contentLength < MIN_IMAGE_BYTES) {
+      console.warn(`[wine-image] Image too small (${contentLength}B): ${url}`);
+      return null;
+    }
+
+    return url;
   } catch {
     console.warn(`[wine-image] URL validation error: ${url}`);
     return null;
@@ -83,7 +148,7 @@ function detectChallengePage(html: string): boolean {
   return markers.some((m) => html.includes(m));
 }
 
-// ───────────── Strategy 1: Google Image Search ─────────────
+// ───────────── Image filtering ─────────────
 
 const WINE_IMAGE_HOSTS = [
   'images.vivino.com',
@@ -91,6 +156,14 @@ const WINE_IMAGE_HOSTS = [
   'winelibrary.com',
   'bottleraiders.com',
   'wine.com',
+  'totalwine.com',
+  'klwines.com',
+  'wineenthusiast.com',
+  'jamesuckling.com',
+  'winespectator.com',
+  'dalton-winery.com',
+  'golanwines.co.il',
+  'barkan-winery.com',
 ];
 
 function isWineImageUrl(url: string): boolean {
@@ -100,28 +173,33 @@ function isWineImageUrl(url: string): boolean {
   return false;
 }
 
+const UNWANTED_URL_PATTERNS = [
+  'logo', 'icon', 'flag', 'avatar', 'placeholder', 'default',
+  '/press/', '/web/',
+  '_40x', '_80x', '_32x', '/30/', '/40/', '/60/',
+  // Social media
+  'instagram.com', 'facebook.com', 'fbcdn.net', 'twitter.com', 'x.com/pic',
+  'pinterest.com', 'pinimg.com', 'reddit.com', 'redditmedia.com',
+  'tiktok.com', 'youtube.com', 'ytimg.com',
+  // Stock photo sites
+  'shutterstock.com', 'gettyimages.com', 'alamy.com', 'istockphoto.com',
+  'dreamstime.com', 'depositphotos.com', 'stock.adobe.com',
+  // Common non-product patterns in URLs
+  'profile_image', 'user_photo', 'banner', 'header', 'background',
+  'thumbnail_small', 'emoji', 'sticker', 'badge',
+];
+
 function isUnwantedImage(url: string): boolean {
   const lower = url.toLowerCase();
-  return (
-    lower.includes('logo') ||
-    lower.includes('icon') ||
-    lower.includes('flag') ||
-    lower.includes('avatar') ||
-    lower.includes('placeholder') ||
-    lower.includes('default') ||
-    lower.includes('/press/') ||
-    lower.includes('/web/') ||
-    lower.includes('_40x') ||
-    lower.includes('_80x') ||
-    lower.includes('_32x') ||
-    lower.includes('/30/') ||
-    lower.includes('/40/') ||
-    lower.includes('/60/')
-  );
+  return UNWANTED_URL_PATTERNS.some((p) => lower.includes(p));
 }
 
-async function scrapeGoogleImages(query: string): Promise<string | null> {
-  const searchQuery = `${query} wine bottle`;
+// ───────────── Strategy 0 & 1: Google Image Search ─────────────
+
+async function scrapeGoogleImages(query: string, siteRestrict?: string): Promise<string | null> {
+  const searchQuery = siteRestrict
+    ? `${query} wine bottle site:${siteRestrict}`
+    : `${query} wine bottle product`;
   const url = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=isch`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -147,11 +225,9 @@ async function scrapeGoogleImages(query: string): Promise<string | null> {
       return null;
     }
 
-    // Extract ALL image URLs from Google results, deduplicate
     const generalRegex = /https?:\/\/[^\s"'<>&\\]+\.(?:jpg|jpeg|png|webp)/gi;
     const allImages = Array.from(new Set(html.match(generalRegex) ?? []));
 
-    // Filter: keep only non-Google, non-unwanted image URLs
     const candidates = allImages.filter((img) => {
       const lower = img.toLowerCase();
       if (lower.includes('google.com') || lower.includes('gstatic.com') || lower.includes('googleapis.com')) return false;
@@ -159,13 +235,12 @@ async function scrapeGoogleImages(query: string): Promise<string | null> {
       return true;
     });
 
-    // Prioritize Vivino CDN URLs
-    const vivino = candidates.filter((u) => u.includes('images.vivino.com'));
-    const others = candidates.filter((u) => !u.includes('images.vivino.com'));
-    const ordered = [...vivino, ...others];
+    // Prioritize known wine retailer CDN URLs
+    const priority = candidates.filter((u) => WINE_IMAGE_HOSTS.some((h) => u.toLowerCase().includes(h)));
+    const others = candidates.filter((u) => !WINE_IMAGE_HOSTS.some((h) => u.toLowerCase().includes(h)));
+    const ordered = [...priority, ...others];
 
-    // Validate top candidates with a HEAD request (try up to 3)
-    for (const img of ordered.slice(0, 3)) {
+    for (const img of ordered.slice(0, 5)) {
       const validated = await validateImageUrl(normalizeImageUrl(img));
       if (validated) return validated;
     }
@@ -309,10 +384,17 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
 // ───────────── Combined fetch with multi-source fallback ─────────────
 
 async function fetchWineImage(wineName: string, winery: string): Promise<string | null> {
-  const query = `${winery} ${wineName}`.trim();
-  if (!query) return null;
+  const rawQuery = `${winery} ${wineName}`.trim();
+  if (!rawQuery) return null;
 
-  // Strategy 1: Google Image Search (fast, reliable from server IPs)
+  // Transliterate Hebrew to English for better search results
+  const query = await transliterateHebrew(rawQuery);
+
+  // Strategy 0: Vivino-targeted Google search (most reliable product images)
+  const vivinoResult = await scrapeGoogleImages(query, 'vivino.com');
+  if (vivinoResult) return vivinoResult;
+
+  // Strategy 1: General Google Image Search with enhanced filtering
   const googleResult = await scrapeGoogleImages(query);
   if (googleResult) return googleResult;
 
@@ -320,9 +402,10 @@ async function fetchWineImage(wineName: string, winery: string): Promise<string 
   const wsResult = await scrapeWineSearcher(query);
   if (wsResult) return wsResult;
 
-  // Retry Google with just wine name for broader results
-  if (wineName !== query) {
-    const retryGoogle = await scrapeGoogleImages(wineName);
+  // Retry Google with just the wine name for broader results
+  const transliteratedName = await transliterateHebrew(wineName);
+  if (transliteratedName !== query) {
+    const retryGoogle = await scrapeGoogleImages(transliteratedName);
     if (retryGoogle) return retryGoogle;
   }
 

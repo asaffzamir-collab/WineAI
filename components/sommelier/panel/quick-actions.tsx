@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
-import { GlassWater, ShoppingBag, Heart, TrendingUp, UtensilsCrossed, HelpCircle } from 'lucide-react';
+import { GlassWater, ShoppingBag, Heart, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
@@ -19,8 +19,6 @@ const FULL_ACCESS_ACTIONS: QuickAction[] = [
   { id: 'buy', icon: ShoppingBag, labelKey: 'actionGoodBuy', flow: 'buying-intel' },
   { id: 'food', icon: UtensilsCrossed, labelKey: 'actionPairDinner', flow: 'food-pairing' },
   { id: 'love', icon: Heart, labelKey: 'actionFindLove', flow: 'wine-discovery' },
-  { id: 'evolving', icon: TrendingUp, labelKey: 'actionEvolving', flow: 'taste-evolution' },
-  { id: 'how', icon: HelpCircle, labelKey: 'actionHowItWorks', flow: 'how-it-works' },
 ];
 
 export function QuickActions() {

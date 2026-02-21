@@ -188,10 +188,10 @@ export async function generateWineDiscovery(
 ) {
   const system = `You are a wine sommelier. Recommend 4 wines the user would love based on their profile. Avoid wines they've already tried. Mix familiar styles with one adventurous pick.
 IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel (Israeli wineries or international wines distributed in Israeli wine shops), so the user can find and buy them locally.
-Return JSON: { "wines": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "wine_type": "red"|"white"|"rose"|"sparkling", "country": "Israel", "match": 0-100, "reason": "brief reason", "tasting_note": "1-2 sentence tasting description" }, ...] }
+Return JSON: { "wines": [{ "name": "...", "winery": "...", "region": "...", "grape": "...", "wine_type": "red"|"white"|"rose"|"sparkling", "country": "...", "match": 0-100, "reason": "2-3 sentence explanation of why this wine matches the profile", "tasting_note": "1-2 sentence tasting description", "food_pairings": ["pairing1", "pairing2", "pairing3"], "positive_matches": ["what aligns with profile point 1", "point 2"], "mismatches": ["slight deviation from profile, if any"], "wine_spectrum": { "body": 0-100, "tannin": 0-100, "sweetness": 0-100, "acidity": 0-100 } }, ...] }
 ${langInstr(language)}`;
 
-  return await ask(system, `Profile: ${JSON.stringify(profile)}\nRecent/liked wines: ${JSON.stringify(recentWines)}`);
+  return await ask(system, `Profile: ${JSON.stringify(profile)}\nRecent/liked wines: ${JSON.stringify(recentWines)}`, { maxTokens: 3000 });
 }
 
 export async function generateTasteEvolutionInsight(

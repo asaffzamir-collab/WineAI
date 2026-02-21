@@ -1,10 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateWineDiscovery } from '@/lib/sommelier-ai';
+import { fetchWineImagesForMany } from '@/lib/wine-image';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 45;
 
-export async function POST(request: Request) {
+interface DiscoveredWine {
+  name: string;
+  winery: string;
+  region?: string;
+  grape?: string;
+  wine_type?: string;
+  country?: string;
+  match?: number;
+  reason?: string;
+  tasting_note?: string;
+  image_url?: string;
+  positive_matches?: string[];
+  mismatches?: string[];
+  wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+}
+
+export async function POST() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -20,8 +38,24 @@ export async function POST(request: Request) {
       return Array.isArray(d?.liked_wines) ? d.liked_wines as string[] : [];
     }) || [];
 
-    const result = await generateWineDiscovery(combinedProfile, likedWines, lang);
-    return NextResponse.json(result);
+    const result = await generateWineDiscovery(combinedProfile, likedWines, lang) as {
+      wines?: DiscoveredWine[];
+    };
+
+    const wines: DiscoveredWine[] = result?.wines || [];
+
+    // Fetch images server-side for all discovered wines
+    if (wines.length > 0) {
+      const imgResults = await fetchWineImagesForMany(
+        wines.map((w) => ({ name: w.name, winery: w.winery || '' })),
+      );
+      wines.forEach((w, i) => {
+        const url = imgResults.get(`${i}`);
+        if (url) w.image_url = url;
+      });
+    }
+
+    return NextResponse.json({ wines });
   } catch (error) {
     console.error('Discovery error:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
