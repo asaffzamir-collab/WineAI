@@ -63,6 +63,7 @@ interface WineRow {
   image_url: string | null;
   serving: Record<string, unknown> | null;
   food_pairings: string[] | null;
+  taste_spectrum: { body: number; tannin: number; sweetness: number; acidity: number } | null;
 }
 
 function rowToWineData(row: WineRow): WineData {
@@ -80,13 +81,14 @@ function rowToWineData(row: WineRow): WineData {
     image_url: row.image_url ?? undefined,
     serving: row.serving as WineData['serving'],
     food_pairings: row.food_pairings ?? undefined,
+    taste_spectrum: row.taste_spectrum ?? undefined,
   };
 }
 
 const WINE_SELECT = `
   id, name, winery, vivino_rating, vivino_reviews,
   country, region, grapes, alcohol, wine_type,
-  tasting_notes, ai_description, image_url, serving, food_pairings
+  tasting_notes, ai_description, image_url, serving, food_pairings, taste_spectrum
 `;
 
 /**
@@ -196,6 +198,27 @@ export async function clearCachedImageUrl(
       .update({ image_url: null })
       .eq('name', name)
       .eq('winery', winery);
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Persist a wine's taste_spectrum to the DB so future lookups return consistent values.
+ */
+export async function cacheTasteSpectrum(
+  name: string,
+  winery: string,
+  tasteSpectrum: { body: number; tannin: number; sweetness: number; acidity: number },
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from('wines')
+      .update({ taste_spectrum: tasteSpectrum })
+      .eq('name', name)
+      .eq('winery', winery)
+      .is('taste_spectrum', null);
   } catch {
     // best-effort
   }

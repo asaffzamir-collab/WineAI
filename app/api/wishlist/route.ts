@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
     const supabase = await createClient();
 
-    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings').eq('name', wine.name).eq('winery', wine.winery).single();
+    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings, taste_spectrum').eq('name', wine.name).eq('winery', wine.winery).single();
     let wineId = existingWine?.id;
     if (wineId && existingWine) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       if (wine.tasting_notes) updates.tasting_notes = wine.tasting_notes;
       const aiDesc = wine.winery_description ?? wine.ai_description;
       if (aiDesc) updates.ai_description = aiDesc;
+      if (wine.taste_spectrum && !existingWine.taste_spectrum) updates.taste_spectrum = wine.taste_spectrum;
       if (Object.keys(updates).length > 0) {
         const admin = tryAdminClient();
         const client = admin ?? supabase;
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         image_url: wine.image_url ?? null,
         serving: wine.serving ?? null,
         food_pairings: Array.isArray(wine.food_pairings) ? wine.food_pairings : null,
+        taste_spectrum: wine.taste_spectrum ?? null,
       }).select('id').single();
       if (wineError) throw wineError;
       wineId = newWine.id;

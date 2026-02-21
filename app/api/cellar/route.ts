@@ -84,6 +84,7 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
     image_url: (typeof wine.image_url === 'string' ? wine.image_url : null) as string | null,
     serving: wine.serving ?? null,
     food_pairings: Array.isArray(wine.food_pairings) ? wine.food_pairings : null,
+    taste_spectrum: wine.taste_spectrum ?? null,
   };
 }
 
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const wineRow = normalizeWineForDb(wine);
 
-    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
+    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings, taste_spectrum').eq('name', wineRow.name).eq('winery', wineRow.winery).single();
     let wineId = existingWine?.id;
     if (wineId && existingWine) {
       // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
       if (wineRow.vivino_rating != null) updates.vivino_rating = wineRow.vivino_rating;
       if (wineRow.tasting_notes) updates.tasting_notes = wineRow.tasting_notes;
       if (wineRow.ai_description) updates.ai_description = wineRow.ai_description;
+      if (wineRow.taste_spectrum && !existingWine.taste_spectrum) updates.taste_spectrum = wineRow.taste_spectrum;
       if (Object.keys(updates).length > 0) {
         const admin = tryAdminClient();
         const client = admin ?? supabase;

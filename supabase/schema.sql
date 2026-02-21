@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS wines (
   tasting_notes JSONB,
   ai_description TEXT,
   image_url TEXT,
+  taste_spectrum JSONB,
+  serving JSONB,
+  food_pairings TEXT[],
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

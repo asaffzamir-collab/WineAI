@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
-import { findCachedWines } from '@/lib/wine-cache';
+import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -58,6 +58,10 @@ export async function POST(request: Request) {
         getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale),
       ]);
       if (imageUrl) wine.image_url = imageUrl;
+      // Persist taste_spectrum for future consistency
+      if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
+        cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
+      }
       return NextResponse.json({ wine, match });
     }
 
@@ -87,6 +91,13 @@ export async function POST(request: Request) {
           const url = imgResults.get(`${mapIdx}`);
           if (url) wines[i].image_url = url;
         });
+      }
+
+      // Persist taste_spectrum for all AI-generated wines (best-effort, in background)
+      for (const w of wines) {
+        if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
+          cacheTasteSpectrum(w.name, w.winery, w.taste_spectrum).catch(() => {});
+        }
       }
 
       if (wines.length === 1) {

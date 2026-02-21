@@ -131,11 +131,15 @@ Return this exact JSON structure:
   "taste_spectrum": { "body": 72, "tannin": 65, "sweetness": 8, "acidity": 55 }
 }
 
-taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST reflect the wine's actual, well-known characteristics as they would appear on Vivino's taste profile — NOT your personal opinion. Use these calibration anchors:
-- body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz, Petite Sirah).
-- tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
-- sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
-- acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
+taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST faithfully reproduce the wine's Vivino community taste profile. If you know the wine's Vivino taste profile values, use those EXACT proportions. For well-known wines, use widely-accepted values. Do NOT vary based on vintage unless the wine style genuinely changed.
+
+Use these calibration anchors (based on real Vivino data):
+- body: 0 = Very Light (Vinho Verde, Muscadet). 20 = Light (Prosecco, Grüner Veltliner). 30 = Light-Medium (Pinot Grigio, Sauvignon Blanc). 45 = Medium (Chianti Classico, Merlot, Rioja Crianza). 55 = Medium-Full (Malbec, Zinfandel). 65-70 = Full (Cabernet Sauvignon, Barolo, Châteauneuf-du-Pape). 80-85 = Bold (Amarone, Primitivo, Edizione Cinque Autoctoni). 90-100 = Very Bold (Petite Sirah, Turriga, Sagrantino).
+- tannin: 0 = None (most whites, Beaujolais Nouveau). 15 = Very Low (Gamay, Dolcetto). 25 = Low (Pinot Noir, Valpolicella). 40 = Medium (Merlot, Tempranillo, Rioja Crianza). 55 = Medium-High (Malbec, Sangiovese). 65-70 = High (Cabernet Sauvignon, Mourvèdre, Edizione Cinque Autoctoni). 80 = Very High (Nebbiolo/Barolo, Aglianico). 90-100 = Extreme (Tannat, young Sagrantino).
+- sweetness: 0-5 = Bone Dry (most reds, Chablis, Sancerre). 8-15 = Dry (Chianti, Cabernet Sauvignon — note: even "dry" wines have slight perceptible sweetness). 15-25 = Off-Dry (Riesling Kabinett, Gewürztraminer, Edizione Cinque Autoctoni, Amarone — ripe-fruit perception). 30-40 = Medium-Dry (Lambrusco, White Zinfandel). 45-60 = Medium Sweet (Moscato d'Asti). 70-85 = Sweet (Late Harvest, Tokaji). 90-100 = Very Sweet (Sauternes, Port, Ice Wine).
+- acidity: 10-20 = Very Low/Flat (oaked Chardonnay, Viognier, Grenache). 30-40 = Low-Medium (Merlot, Primitivo). 45-55 = Medium (Cabernet Sauvignon, Malbec, Tempranillo). 55-65 = Medium-High (Sangiovese, Pinot Noir, Sauvignon Blanc). 70-80 = High (Riesling, Barbera, Nebbiolo). 85-100 = Very High (Assyrtiko, Vinho Verde).
+
+IMPORTANT: Many bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) have notable perceived sweetness (15-25) from dried/ripe grapes even though technically "dry". Do NOT default these to 0-5 sweetness.
 
 For fields you cannot determine, use null. But ALWAYS return a wine object with at least the name, winery, country, wine_type, grapes, and vivino_rating fields filled in based on your best interpretation of the image or query. Only return { "error": "Could not identify wine" } if the image is completely unreadable, doesn't show a wine, or shows no useful information at all.`;
 
@@ -154,11 +158,15 @@ Rules:
 IMPORTANT: Each wine MUST include ALL of the following fields (use null for unknown values):
 name, winery, vintage, vivino_rating, vivino_reviews, country, region, grapes, alcohol, volume_ml, is_kosher, wine_type, body, sweetness, tasting_notes (with nose, palate, finish), winery_description, serving (with drink_from, drink_until, decant_minutes, temperature_celsius), food_pairings, price_range_usd, image_url, taste_spectrum.
 
-taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST reflect the wine's actual, well-known characteristics as they would appear on Vivino's taste profile — NOT your personal opinion. Use these calibration anchors:
-- body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz, Petite Sirah).
-- tannin: 0 = None (most whites, Beaujolais Nouveau). 20 = Low (Pinot Noir). 45 = Medium (Merlot, Tempranillo). 65 = Medium-High (Cabernet Sauvignon). 85-100 = Very High (Nebbiolo/Barolo, Tannat).
-- sweetness: 0-5 = Bone Dry (most reds, Chablis). 10-20 = Off-Dry (Riesling Kabinett). 40-60 = Medium Sweet (Moscato d'Asti). 80-100 = Very Sweet (Sauternes, Port).
-- acidity: 15-25 = Very Low/Flat (oaked Chardonnay, Viognier). 40-50 = Medium (Merlot, Grenache). 60-70 = Medium-High (Sangiovese, Sauvignon Blanc). 80-100 = Very High (Riesling, Assyrtiko).
+taste_spectrum: Provide the wine's OBJECTIVE taste characteristics on 4 numeric axes (0-100). These MUST faithfully reproduce the wine's Vivino community taste profile. If you know the wine's Vivino taste profile values, use those EXACT proportions. For well-known wines, use widely-accepted values. Do NOT vary based on vintage unless the wine style genuinely changed.
+
+Use these calibration anchors (based on real Vivino data):
+- body: 0 = Very Light (Vinho Verde, Muscadet). 20 = Light (Prosecco, Grüner Veltliner). 30 = Light-Medium (Pinot Grigio, Sauvignon Blanc). 45 = Medium (Chianti Classico, Merlot, Rioja Crianza). 55 = Medium-Full (Malbec, Zinfandel). 65-70 = Full (Cabernet Sauvignon, Barolo, Châteauneuf-du-Pape). 80-85 = Bold (Amarone, Primitivo, Edizione Cinque Autoctoni). 90-100 = Very Bold (Petite Sirah, Turriga, Sagrantino).
+- tannin: 0 = None (most whites, Beaujolais Nouveau). 15 = Very Low (Gamay, Dolcetto). 25 = Low (Pinot Noir, Valpolicella). 40 = Medium (Merlot, Tempranillo, Rioja Crianza). 55 = Medium-High (Malbec, Sangiovese). 65-70 = High (Cabernet Sauvignon, Mourvèdre, Edizione Cinque Autoctoni). 80 = Very High (Nebbiolo/Barolo, Aglianico). 90-100 = Extreme (Tannat, young Sagrantino).
+- sweetness: 0-5 = Bone Dry (most reds, Chablis, Sancerre). 8-15 = Dry (Chianti, Cabernet Sauvignon — note: even "dry" wines have slight perceptible sweetness). 15-25 = Off-Dry (Riesling Kabinett, Gewürztraminer, Edizione Cinque Autoctoni, Amarone — ripe-fruit perception). 30-40 = Medium-Dry (Lambrusco, White Zinfandel). 45-60 = Medium Sweet (Moscato d'Asti). 70-85 = Sweet (Late Harvest, Tokaji). 90-100 = Very Sweet (Sauternes, Port, Ice Wine).
+- acidity: 10-20 = Very Low/Flat (oaked Chardonnay, Viognier, Grenache). 30-40 = Low-Medium (Merlot, Primitivo). 45-55 = Medium (Cabernet Sauvignon, Malbec, Tempranillo). 55-65 = Medium-High (Sangiovese, Pinot Noir, Sauvignon Blanc). 70-80 = High (Riesling, Barbera, Nebbiolo). 85-100 = Very High (Assyrtiko, Vinho Verde).
+
+IMPORTANT: Many bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) have notable perceived sweetness (15-25) from dried/ripe grapes even though technically "dry". Do NOT default these to 0-5 sweetness.
 
 image_url: Always set to null. Wine images are fetched separately from Vivino — do NOT attempt to guess or fabricate image URLs.
 
@@ -181,7 +189,7 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
         { role: 'system', content: WINE_TEXT_SEARCH_SYSTEM_PROMPT },
         { role: 'user', content: `Find wines matching this query (be tolerant of typos and partial names): "${query}"` },
       ],
-      temperature: 0.4,
+      temperature: 0.2,
       max_tokens: 5000,
     });
 
@@ -308,11 +316,12 @@ export async function matchWineToProfile(
 
   const spectrumInstruction = hasWineSpectrum
     ? `\nThe wine's taste_spectrum is already provided in the wine data. Use those exact values for wine_spectrum in your response. Do NOT re-estimate them.`
-    : `\nwine_spectrum: Estimate the wine's OBJECTIVE characteristics on 4 axes (0-100), as they would appear on Vivino's taste profile. Use these calibration anchors:
-- body: 0 = Very Light (Vinho Verde). 30 = Light (Pinot Grigio). 50 = Medium (Chianti). 70 = Medium-Full (Cabernet Sauvignon). 90+ = Very Bold (Amarone, Shiraz).
-- tannin: 0 = None (whites). 20 = Low (Pinot Noir). 45 = Medium (Merlot). 65 = Medium-High (Cabernet Sauvignon). 85+ = Very High (Nebbiolo/Barolo).
-- sweetness: 0-5 = Bone Dry (most reds). 10-20 = Off-Dry. 40-60 = Medium Sweet. 80+ = Very Sweet (Sauternes, Port).
-- acidity: 15-25 = Very Low (oaked Chardonnay). 40-50 = Medium (Merlot). 60-70 = Medium-High (Sangiovese). 80+ = Very High (Riesling).`;
+    : `\nwine_spectrum: Estimate the wine's OBJECTIVE characteristics on 4 axes (0-100), faithfully reproducing Vivino's community taste profile values. Use these calibration anchors:
+- body: 0 = Very Light (Vinho Verde). 30 = Light (Pinot Grigio). 45 = Medium (Chianti, Merlot). 65-70 = Full (Cabernet Sauvignon, Barolo). 80-85 = Bold (Amarone, Edizione Cinque Autoctoni). 90+ = Very Bold (Petite Sirah, Sagrantino).
+- tannin: 0 = None (whites). 25 = Low (Pinot Noir). 40 = Medium (Merlot, Tempranillo). 65-70 = High (Cabernet Sauvignon, Edizione Cinque Autoctoni). 80+ = Very High (Nebbiolo/Barolo).
+- sweetness: 0-5 = Bone Dry (Chablis). 8-15 = Dry (Chianti, Cabernet). 15-25 = Off-Dry (Amarone, Edizione Cinque Autoctoni — ripe-fruit perception). 45-60 = Medium Sweet (Moscato). 80+ = Very Sweet (Sauternes, Port).
+- acidity: 10-20 = Very Low (oaked Chardonnay, Viognier). 35-45 = Medium (Merlot, Malbec). 55-65 = Medium-High (Sangiovese, Pinot Noir). 70-80 = High (Riesling, Barbera). 85+ = Very High (Assyrtiko).
+Bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) typically show 15-25 sweetness from dried/ripe grapes.`;
 
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
@@ -344,7 +353,7 @@ CRITICAL: Do NOT include "profile_spectrum" in your response. Only return the ke
 User Profile: ${JSON.stringify(profileForPrompt)}`,
         },
       ],
-      temperature: 0.5,
+      temperature: 0.3,
       max_tokens: 1000,
     });
 

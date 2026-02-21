@@ -4,17 +4,41 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { FeatureTour, resetTour } from '@/components/feature-tour';
 
+const COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+  'Bahrain', 'Bangladesh', 'Belarus', 'Belgium', 'Bolivia', 'Bosnia and Herzegovina', 'Brazil', 'Bulgaria',
+  'Cambodia', 'Cameroon', 'Canada', 'Chile', 'China', 'Colombia', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+  'Denmark', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Estonia', 'Ethiopia',
+  'Finland', 'France', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Guatemala',
+  'Honduras', 'Hong Kong', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy',
+  'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Latvia', 'Lebanon', 'Libya', 'Lithuania', 'Luxembourg',
+  'Malaysia', 'Mexico', 'Moldova', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+  'Nepal', 'Netherlands', 'New Zealand', 'Nigeria', 'North Macedonia', 'Norway',
+  'Oman', 'Pakistan', 'Palestine', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar', 'Romania', 'Russia', 'Saudi Arabia', 'Senegal', 'Serbia', 'Singapore', 'Slovakia', 'Slovenia',
+  'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Sweden', 'Switzerland', 'Syria',
+  'Taiwan', 'Tanzania', 'Thailand', 'Tunisia', 'Turkey', 'UAE', 'Uganda', 'UK', 'Ukraine', 'Uruguay', 'USA',
+  'Uzbekistan', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
+];
+
 interface UserProfile {
   id: string;
+  first_name?: string;
+  last_name?: string;
   display_name?: string;
+  country?: string;
+  birthday?: string;
+  gender?: string;
   preferred_language?: string;
   preferred_currency?: string;
 }
@@ -35,6 +59,18 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: profile?.first_name || '',
+    lastName: profile?.last_name || '',
+    displayName: profile?.display_name || '',
+    country: profile?.country || '',
+    birthday: profile?.birthday || '',
+    gender: profile?.gender || '',
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const tCommon = useTranslations('common');
   const tGuide = useTranslations('guide');
 
   useEffect(() => {
@@ -69,6 +105,37 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, targetLanguage: lang }),
     }).catch(() => {});
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    setProfileMessage(null);
+    try {
+      const res = await fetch('/api/profile/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: profileForm.firstName,
+          lastName: profileForm.lastName,
+          alias: profileForm.displayName || profileForm.firstName,
+          country: profileForm.country || null,
+          birthday: profileForm.birthday || null,
+          gender: profileForm.gender || null,
+          preferredLanguage: currentLanguage,
+        }),
+      });
+      if (!res.ok) {
+        setProfileMessage({ type: 'error', text: t('profileSaveError') });
+      } else {
+        setProfileMessage({ type: 'success', text: t('profileSaved') });
+        setIsEditingProfile(false);
+        router.refresh();
+      }
+    } catch {
+      setProfileMessage({ type: 'error', text: t('profileSaveError') });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -106,6 +173,196 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                     </p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Info — Editable */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                    {t('personalInfo')}
+                  </CardTitle>
+                  {!isEditingProfile && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Pencil className="h-3 w-3" strokeWidth={1.5} />
+                      {tCommon('edit')}
+                    </button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isEditingProfile ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="settings-firstName">{t('firstName')}</Label>
+                        <Input
+                          id="settings-firstName"
+                          value={profileForm.firstName}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="settings-lastName">{t('lastName')}</Label>
+                        <Input
+                          id="settings-lastName"
+                          value={profileForm.lastName}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="settings-displayName">{t('displayName')}</Label>
+                      <Input
+                        id="settings-displayName"
+                        value={profileForm.displayName}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, displayName: e.target.value }))}
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="settings-country">{t('country')}</Label>
+                      <select
+                        id="settings-country"
+                        value={profileForm.country}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, country: e.target.value }))}
+                        className="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">{t('countryPlaceholder')}</option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="settings-birthday">{t('birthday')}</Label>
+                      <Input
+                        id="settings-birthday"
+                        type="date"
+                        value={profileForm.birthday}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, birthday: e.target.value }))}
+                        className="mt-1.5"
+                        dir="ltr"
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="settings-gender">{t('gender')}</Label>
+                      <select
+                        id="settings-gender"
+                        value={profileForm.gender}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, gender: e.target.value }))}
+                        className="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">{t('genderPlaceholder')}</option>
+                        <option value="male">{t('genderMale')}</option>
+                        <option value="female">{t('genderFemale')}</option>
+                        <option value="non-binary">{t('genderNonBinary')}</option>
+                        <option value="prefer-not-to-say">{t('genderPreferNot')}</option>
+                      </select>
+                    </div>
+                    {profileMessage && (
+                      <div className={`rounded-xl px-4 py-3 text-sm ${profileMessage.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-destructive/10 text-destructive'}`}>
+                        {profileMessage.text}
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleSaveProfile}
+                        disabled={isSavingProfile || !profileForm.firstName.trim() || !profileForm.lastName.trim()}
+                        className="flex-1"
+                      >
+                        {isSavingProfile ? (
+                          <>
+                            <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                            {t('savingProfile')}
+                          </>
+                        ) : (
+                          <>
+                            <Check className="me-2 h-4 w-4" strokeWidth={1.5} />
+                            {t('saveProfile')}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingProfile(false);
+                          setProfileMessage(null);
+                          setProfileForm({
+                            firstName: profile?.first_name || '',
+                            lastName: profile?.last_name || '',
+                            displayName: profile?.display_name || '',
+                            country: profile?.country || '',
+                            birthday: profile?.birthday || '',
+                            gender: profile?.gender || '',
+                          });
+                        }}
+                      >
+                        {tCommon('cancel')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    {profileForm.firstName && (
+                      <p>
+                        <span className="text-stone-600 dark:text-stone-400">{t('firstName')}:</span>{' '}
+                        <span className="font-medium">{profileForm.firstName}</span>
+                        {profileForm.lastName && <span className="font-medium"> {profileForm.lastName}</span>}
+                      </p>
+                    )}
+                    {profileForm.displayName && (
+                      <p>
+                        <span className="text-stone-600 dark:text-stone-400">{t('displayName')}:</span>{' '}
+                        <span className="font-medium">{profileForm.displayName}</span>
+                      </p>
+                    )}
+                    {profileForm.country && (
+                      <p>
+                        <span className="text-stone-600 dark:text-stone-400">{t('country')}:</span>{' '}
+                        <span className="font-medium">{profileForm.country}</span>
+                      </p>
+                    )}
+                    {profileForm.gender && (
+                      <p>
+                        <span className="text-stone-600 dark:text-stone-400">{t('gender')}:</span>{' '}
+                        <span className="font-medium">
+                          {profileForm.gender === 'male' ? t('genderMale') :
+                           profileForm.gender === 'female' ? t('genderFemale') :
+                           profileForm.gender === 'non-binary' ? t('genderNonBinary') :
+                           profileForm.gender === 'prefer-not-to-say' ? t('genderPreferNot') :
+                           profileForm.gender}
+                        </span>
+                      </p>
+                    )}
+                    {profileForm.birthday && (
+                      <p>
+                        <span className="text-stone-600 dark:text-stone-400">{t('birthday')}:</span>{' '}
+                        <span className="font-medium" dir="ltr">{profileForm.birthday}</span>
+                      </p>
+                    )}
+                    {!profileForm.firstName && !profileForm.displayName && !profileForm.country && !profileForm.gender && !profileForm.birthday && (
+                      <p className="text-muted-foreground italic">{t('personalInfo')}</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="mt-2 text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Pencil className="h-3 w-3" strokeWidth={1.5} />
+                      {tCommon('edit')}
+                    </button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

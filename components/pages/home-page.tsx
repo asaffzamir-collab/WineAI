@@ -308,15 +308,16 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const hasLikedWine = hasTasteProfile;
   const hasCellarOrWishlist = stats.bottlesInCellar > 0 || stats.wishlistCount > 0;
   const hasUnlockedRecommendations = (stats.likedWinesCount ?? 0) >= 2;
-  const allJourneyComplete = hasSearchedWine && hasLikedWine && hasCellarOrWishlist && hasUnlockedRecommendations;
+  const celebrationReady = hasSearchedWine && hasLikedWine && hasUnlockedRecommendations;
+  const allJourneyComplete = celebrationReady && hasCellarOrWishlist;
   const showJourney = !isLoading && !allJourneyComplete && !guideDismissed;
   const showGuide = false;
 
   useEffect(() => {
-    if (!allJourneyComplete || isLoading) return;
+    if (!celebrationReady || isLoading) return;
     if (localStorage.getItem(CELEBRATION_KEY) === 'true') return;
     setShowCelebration(true);
-  }, [allJourneyComplete, isLoading]);
+  }, [celebrationReady, isLoading]);
 
   const typeTotal = Object.values(stats.wineTypeDistribution).reduce((a, b) => a + b, 0);
   const typeEntries = Object.entries(stats.wineTypeDistribution).sort((a, b) => b[1] - a[1]);
@@ -418,7 +419,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
               {/* Progress bar */}
               <div className="flex gap-1.5 mb-5">
-                {[hasSearchedWine, hasLikedWine, hasCellarOrWishlist, hasUnlockedRecommendations].map((done, i) => (
+                {[hasSearchedWine, hasLikedWine, hasUnlockedRecommendations, hasCellarOrWishlist].map((done, i) => (
                   <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${done ? 'bg-bordeaux-500' : 'bg-muted'}`} />
                 ))}
               </div>
@@ -437,14 +438,14 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   desc={t('journeyStep2Desc', g)}
                 />
                 <JourneyStep
-                  done={hasCellarOrWishlist}
-                  icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasUnlockedRecommendations}
+                  icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep3Title', g)}
                   desc={t('journeyStep3Desc', g)}
                 />
                 <JourneyStep
-                  done={hasUnlockedRecommendations}
-                  icon={<Compass className="h-4 w-4" strokeWidth={1.5} />}
+                  done={hasCellarOrWishlist}
+                  icon={<BookmarkPlus className="h-4 w-4" strokeWidth={1.5} />}
                   title={t('journeyStep4Title', g)}
                   desc={t('journeyStep4Desc', g)}
                 />

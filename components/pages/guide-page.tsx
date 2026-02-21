@@ -226,17 +226,16 @@ function GuideContent() {
   const { open: openSommelier } = useSommelier();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('quickstart');
-  const [locale, setLocale] = useState('en');
+  const [locale, setLocale] = useState(() => {
+    if (typeof document !== 'undefined') {
+      const cookie = document.cookie.split(';').find(c => c.trim().startsWith('locale='));
+      return cookie?.split('=')[1]?.trim() || 'he';
+    }
+    return 'he';
+  });
   const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>(changelog);
   const [dynamicFaq, setDynamicFaq] = useState<DynamicFaqItem[] | null>(null);
   const [dynamicFeatures, setDynamicFeatures] = useState<DynamicFeatureItem[] | null>(null);
-
-  useEffect(() => {
-    const cookie = document.cookie.split(';').find(c => c.trim().startsWith('locale='));
-    if (cookie) {
-      setLocale(cookie.split('=')[1]?.trim() || 'en');
-    }
-  }, []);
 
   useEffect(() => {
     fetchChangelog().then(setChangelogEntries);
