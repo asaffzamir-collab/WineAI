@@ -382,14 +382,14 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
   }
 }
 
-export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>, language?: string, userName?: string) {
+export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>, language?: string) {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
     ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
     : '';
-  const nameInstruction = userName
-    ? `\nWhen referring to the user in generated text, use their name "${userName}" instead of "the user", "המשתמש", or any generic reference.`
-    : '';
+  const addressInstruction = lang === 'he'
+    ? '\nWhen referring to the user in generated text, address them directly as "אתה" (you). NEVER use "המשתמש" (the user).'
+    : '\nWhen referring to the user in generated text, address them directly as "you". NEVER use "the user".';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -398,7 +398,7 @@ export async function generateTasteProfile(onboardingAnswers: Record<string, unk
           role: 'system',
           content: `You are an experienced wine sommelier and personal wine advisor. Based on the user's onboarding quiz answers, create detailed, insightful taste profiles for red, white, and rosé wines.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${nameInstruction}
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${addressInstruction}
 
 Guidelines for each field:
 - overall_style: 2-3 sentences describing their preferred wine style, what makes them tick, and what kind of wine experience they're drawn to.
@@ -463,16 +463,16 @@ export async function updateTasteProfileFromWine(
   wine: WineData,
   currentProfile: Record<string, unknown>,
   language?: string,
-  options?: { wineType?: string; userName?: string }
+  options?: { wineType?: string }
 ): Promise<Record<string, unknown> | null> {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
     ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
     : '';
   const categoryLabel = options?.wineType || wine.wine_type || 'red';
-  const nameInstruction = options?.userName
-    ? `\nWhen referring to the user in generated text, use their name "${options.userName}" instead of "the user", "המשתמש", or any generic reference.`
-    : '';
+  const addressInstruction = lang === 'he'
+    ? '\nWhen referring to the user in generated text, address them directly as "אתה" (you). NEVER use "המשתמש" (the user).'
+    : '\nWhen referring to the user in generated text, address them directly as "you". NEVER use "the user".';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
@@ -483,7 +483,7 @@ export async function updateTasteProfileFromWine(
 
 This profile is specifically for ${categoryLabel} wines.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${nameInstruction}
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${addressInstruction}
 
 The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed. Look at patterns across all wines they've liked.
 
