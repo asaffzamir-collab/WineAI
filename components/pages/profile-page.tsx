@@ -62,6 +62,7 @@ export interface TasteProfile {
 interface ProfilePageProps {
   userId: string;
   profiles: TasteProfile[];
+  firstName?: string;
 }
 
 function toWineData(raw: Record<string, unknown>): WineData {
@@ -232,14 +233,28 @@ function SectionHeading({
   );
 }
 
-export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePageProps) {
+function personalizeText(text: string, name?: string): string {
+  if (!name) return text;
+  return text
+    .replace(/המשתמש/g, name)
+    .replace(/\bThe user\b/gi, name)
+    .replace(/\bthe user\b/g, name);
+}
+
+export function ProfilePage({ userId, profiles: initialProfiles, firstName }: ProfilePageProps) {
   const t = useTranslations('profile');
-  const { gender } = useUser();
+  const { gender, displayName } = useUser();
   const g = { gender };
   const router = useRouter();
+  const userName = firstName || displayName || undefined;
 
   const [profiles, setProfiles] = useState<TasteProfile[]>(initialProfiles);
-  const [activeTab, setActiveTab] = useState('red');
+  const [activeTab, setActiveTab] = useState(() => {
+    const populated = initialProfiles
+      .filter(p => p.profile_data?.overall_style)
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    return populated[0]?.wine_type || 'red';
+  });
   const [selectedWine, setSelectedWine] = useState<Record<string, unknown> | null>(null);
   const [displayWine, setDisplayWine] = useState<Record<string, unknown> | null>(null);
   const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
@@ -421,6 +436,21 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
     rose: 'bg-bordeaux-200 text-bordeaux-800',
   };
 
+  const pillColors: Record<string, { grape: string; region: string }> = {
+    red: {
+      grape: 'bg-bordeaux-50 text-bordeaux-600 dark:bg-bordeaux-900/20 dark:text-bordeaux-300',
+      region: 'bg-bordeaux-50 text-bordeaux-600 dark:bg-bordeaux-900/20 dark:text-bordeaux-300',
+    },
+    white: {
+      grape: 'bg-gold-50 text-gold-600 dark:bg-gold-900/20 dark:text-gold-300',
+      region: 'bg-gold-50 text-gold-600 dark:bg-gold-900/20 dark:text-gold-300',
+    },
+    rose: {
+      grape: 'bg-bordeaux-50 text-bordeaux-400 dark:bg-bordeaux-900/15 dark:text-bordeaux-200',
+      region: 'bg-bordeaux-50 text-bordeaux-400 dark:bg-bordeaux-900/15 dark:text-bordeaux-200',
+    },
+  };
+
   const getProfile = (type: string) =>
     profiles.find((p) => p.wine_type === type)?.profile_data || {};
 
@@ -520,7 +550,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('overallStyle')}
                               subtitle={t('overallStyleExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.overall_style}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.overall_style, userName)}</p>
                           </section>
                         )}
 
@@ -530,7 +560,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('bodyStructure')}
                               subtitle={t('bodyStructureExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.body_structure}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.body_structure, userName)}</p>
                           </section>
                         )}
 
@@ -540,7 +570,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('fruitProfile')}
                               subtitle={t('fruitProfileExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.fruit_profile}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.fruit_profile, userName)}</p>
                           </section>
                         )}
 
@@ -550,7 +580,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('styleNotes')}
                               subtitle={t('styleNotesExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{profile.style_notes}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.style_notes, userName)}</p>
                           </section>
                         )}
 
@@ -565,7 +595,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               {profile.recommended_grapes.map((grape, idx) => (
                                 <span
                                   key={idx}
-                                  className="rounded-full bg-bordeaux-50 px-3 py-1 text-sm text-bordeaux-600 dark:bg-bordeaux-900/20 dark:text-bordeaux-300"
+                                  className={cn('rounded-full px-3 py-1 text-sm', pillColors[type]?.grape || pillColors.red.grape)}
                                 >
                                   {grape}
                                 </span>
@@ -585,7 +615,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               {profile.recommended_regions.map((region, idx) => (
                                 <span
                                   key={idx}
-                                  className="rounded-full bg-copper-50 px-3 py-1 text-sm text-copper-600 dark:bg-copper-700/20 dark:text-copper-300"
+                                  className={cn('rounded-full px-3 py-1 text-sm', pillColors[type]?.region || pillColors.red.region)}
                                 >
                                   {region}
                                 </span>
@@ -620,7 +650,7 @@ export function ProfilePage({ userId, profiles: initialProfiles }: ProfilePagePr
                               title={t('summary')}
                               subtitle={t('summaryExplain')}
                             />
-                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{profile.summary}</p>
+                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.summary, userName)}</p>
                           </section>
                         )}
 

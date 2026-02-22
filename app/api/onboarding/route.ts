@@ -13,22 +13,26 @@ export async function POST(request: Request) {
     }
     const supabase = await createClient();
 
-    // Determine locale from cookie or user profile
+    // Determine locale and user name from user profile
     const cookieStore = await cookies();
     let locale = cookieStore.get('locale')?.value || 'he';
+    let userName: string | undefined;
     try {
       const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('preferred_language')
+        .select('preferred_language, first_name')
         .eq('id', userId)
         .single();
       if (userProfile?.preferred_language) {
         locale = userProfile.preferred_language;
       }
+      if (userProfile?.first_name) {
+        userName = userProfile.first_name;
+      }
     } catch { /* use cookie locale */ }
 
     const { generateTasteProfile } = await import('@/lib/openai');
-    const profiles = await generateTasteProfile(answers, locale);
+    const profiles = await generateTasteProfile(answers, locale, userName);
     if (!profiles) {
       return NextResponse.json({ error: 'Failed to generate taste profile' }, { status: 500 });
     }

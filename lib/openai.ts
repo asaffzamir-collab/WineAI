@@ -382,10 +382,13 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
   }
 }
 
-export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>, language?: string) {
+export async function generateTasteProfile(onboardingAnswers: Record<string, unknown>, language?: string, userName?: string) {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
     ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
+    : '';
+  const nameInstruction = userName
+    ? `\nWhen referring to the user in generated text, use their name "${userName}" instead of "the user", "המשתמש", or any generic reference.`
     : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
@@ -395,16 +398,16 @@ export async function generateTasteProfile(onboardingAnswers: Record<string, unk
           role: 'system',
           content: `You are an experienced wine sommelier and personal wine advisor. Based on the user's onboarding quiz answers, create detailed, insightful taste profiles for red, white, and rosé wines.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${nameInstruction}
 
 Guidelines for each field:
 - overall_style: 2-3 sentences describing their preferred wine style, what makes them tick, and what kind of wine experience they're drawn to.
 - body_structure: Describe their preferred body and structure with context (e.g. "Medium to full body with well-integrated tannins — you enjoy wines that have structure but don't overpower the fruit").
 - fruit_profile: Detailed description of fruit preferences with specific examples of flavors they'd enjoy.
 - style_notes: 2-3 sentences about secondary characteristics they'd appreciate (oak influence, minerality, earthiness, spice, etc.).
-- recommended_grapes: 4-6 specific grape varieties that match their preferences.
-- recommended_regions: 4-6 wine regions worldwide that produce wines matching their taste.
-- what_to_avoid: 3-5 specific wine styles or characteristics they probably won't enjoy, with brief explanations.
+- recommended_grapes: 4-6 specific grape varieties that match their preferences. Each category should only list grapes appropriate for that wine color.
+- recommended_regions: 4-6 wine regions worldwide that produce wines matching their taste for that specific wine color.
+- what_to_avoid: 3-5 specific wine styles or characteristics they probably won't enjoy for THAT specific wine category. Each category's what_to_avoid must ONLY reference characteristics relevant to that wine color — do NOT mention other wine colors or categories.
 - summary: A rich 3-5 sentence personal wine profile summary that reads like advice from a sommelier friend. Include insights about their palate personality, what patterns define their taste, and a specific wine recommendation to try.
 - taste_spectrum: An object with 4 numeric values (0-100) representing where the user's PREFERRED wines typically fall on each spectrum. These represent the characteristics of wines they enjoy, NOT how much they like that characteristic. Use these calibration anchors (match Vivino-style values):
   - body: 0 = Very Light (Vinho Verde, Muscadet). 30 = Light (Pinot Grigio). 50 = Medium (Chianti, Merlot). 70 = Medium-Full (Cabernet Sauvignon). 90-100 = Very Bold (Amarone, Shiraz).
@@ -459,11 +462,16 @@ Return this structure for each wine type:
 export async function updateTasteProfileFromWine(
   wine: WineData,
   currentProfile: Record<string, unknown>,
-  language?: string
+  language?: string,
+  options?: { wineType?: string; userName?: string }
 ): Promise<Record<string, unknown> | null> {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
     ? '\n\nIMPORTANT: Write ALL text values (overall_style, body_structure, fruit_profile, style_notes, summary, what_to_avoid items) in Hebrew. Grape names and region names can stay in their original language.'
+    : '';
+  const categoryLabel = options?.wineType || wine.wine_type || 'red';
+  const nameInstruction = options?.userName
+    ? `\nWhen referring to the user in generated text, use their name "${options.userName}" instead of "the user", "המשתמש", or any generic reference.`
     : '';
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
@@ -473,7 +481,9 @@ export async function updateTasteProfileFromWine(
           role: 'system',
           content: `You are an experienced wine sommelier and personal wine advisor. A user has indicated they like a specific wine. Update their taste profile to incorporate insights from this wine preference.
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
+This profile is specifically for ${categoryLabel} wines.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}${nameInstruction}
 
 The profile should evolve based on the wine they liked. If they currently have no profile, create one based on this wine. If they have an existing profile, refine it to incorporate the characteristics of this wine they enjoyed. Look at patterns across all wines they've liked.
 
@@ -482,9 +492,9 @@ Guidelines for each field:
 - body_structure: Describe their preferred body and structure with context about what they seem drawn to.
 - fruit_profile: Detailed description of fruit preferences, noting patterns across their liked wines.
 - style_notes: 2-3 sentences about secondary characteristics (oak, minerality, earthiness, spice, etc.) that connect their liked wines.
-- recommended_grapes: 4-6 specific grape varieties that match the patterns in their preferences.
-- recommended_regions: 4-6 wine regions that produce wines similar to what they've enjoyed.
-- what_to_avoid: 3-5 wine styles or characteristics that seem opposite to their preferences, with brief explanations.
+- recommended_grapes: 4-6 specific grape varieties that match the patterns in their preferences. Only recommend ${categoryLabel} wine grapes.
+- recommended_regions: 4-6 wine regions that produce ${categoryLabel} wines similar to what they've enjoyed.
+- what_to_avoid: 3-5 ${categoryLabel} wine styles or characteristics that seem opposite to their preferences. ONLY reference ${categoryLabel} wine characteristics — do NOT mention other wine colors or categories.
 - summary: A rich 3-5 sentence personal wine profile summary. Include insights about taste patterns across their liked wines, their palate personality, and a specific recommendation for what to try next.
 - liked_wines: Array of names of all wines they've liked (carry forward from existing profile + add the new one).
 - taste_spectrum: An object with 4 numeric values (0-100) representing where the user's PREFERRED wines typically fall on each spectrum, averaged across ALL their liked wines (weighted towards the latest). These represent the characteristics of wines they enjoy, NOT a preference score. Use these calibration anchors (match Vivino-style values):

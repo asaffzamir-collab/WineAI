@@ -120,7 +120,7 @@ function AnimatedNumber({ value, isLoading }: { value: number; isLoading: boolea
   return <>{displayed}</>;
 }
 
-const CELEBRATION_KEY = 'winejourney_journey_celebrated';
+const CELEBRATION_KEY = 'winejourney_celebration_v2';
 
 export function HomePage({ userId, displayName: initialDisplayName }: HomePageProps) {
   const t = useTranslations('home');

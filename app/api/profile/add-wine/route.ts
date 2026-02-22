@@ -167,17 +167,21 @@ export async function POST(request: Request) {
 
     // Update taste profile based on the liked wine (always create/update when liked)
     if (liked) {
-      // Determine locale from cookie or user profile
+      // Determine locale and user name from user profile
       const cookieStore = await cookies();
       let locale = cookieStore.get('locale')?.value || 'he';
+      let userName: string | undefined;
       try {
         const { data: userProfile } = await supabase
           .from('user_profiles')
-          .select('preferred_language')
+          .select('preferred_language, first_name')
           .eq('id', userId)
           .single();
         if (userProfile?.preferred_language) {
           locale = userProfile.preferred_language;
+        }
+        if (userProfile?.first_name) {
+          userName = userProfile.first_name;
         }
       } catch { /* use cookie locale */ }
 
@@ -188,7 +192,8 @@ export async function POST(request: Request) {
         profileData = await updateTasteProfileFromWine(
           wine as unknown as WineData,
           currentProfile?.profile_data || {},
-          locale
+          locale,
+          { wineType: profileWineType, userName }
         );
       } catch (aiErr) {
         console.error('OpenAI profile update error (using fallback):', aiErr);
