@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2 } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -370,6 +370,24 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                 )}
               </CardContent>
             </Card>
+
+            {/* Plans & Pricing */}
+            <Link href="/plans">
+              <Card className="cursor-pointer card-hover">
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-900/20">
+                      <Crown className="h-4 w-4 text-amber-500" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{t('plansCard')}</p>
+                      <p className="text-xs text-muted-foreground">{t('plansCardDesc')}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                </CardContent>
+              </Card>
+            </Link>
 
             {/* Language Settings */}
             <Card>

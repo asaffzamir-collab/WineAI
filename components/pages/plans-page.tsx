@@ -16,7 +16,6 @@ import {
   BarChart3,
   TrendingUp,
   Compass,
-  Gamepad2,
   Sparkles,
   Package,
   ChevronDown,
@@ -124,13 +123,6 @@ export function PlansPage() {
       plus: false,
       pro: true,
       icon: <Compass className="h-4 w-4" strokeWidth={1.5} />,
-    },
-    {
-      label: t('palateGame'),
-      free: false,
-      plus: false,
-      pro: true,
-      icon: <Gamepad2 className="h-4 w-4" strokeWidth={1.5} />,
     },
     {
       label: t('smartRecs'),

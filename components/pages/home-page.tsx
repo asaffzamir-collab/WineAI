@@ -19,6 +19,7 @@ import {
   Wallet,
   Settings,
   BookOpen,
+  Crown,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -602,21 +603,37 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
         </div>{/* close two-column grid */}
 
-        {/* Guide shortcut */}
-        <Link href="/guide" className="block">
-          <Card className="overflow-hidden border-copper-200/30 bg-gradient-to-r from-copper-50/40 to-ivory-50/60 dark:from-charcoal-700/40 dark:to-charcoal-800/30 dark:border-copper-700/20 card-hover">
-            <CardContent className="flex items-center gap-3.5 p-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-copper-100/80 dark:bg-copper-800/30">
-                <BookOpen className="h-5 w-5 text-copper-600 dark:text-copper-400" strokeWidth={1.5} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">{t('guideCardTitle')}</p>
-                <p className="text-xs text-muted-foreground">{t('guideCardDesc')}</p>
-              </div>
-              <ChevronRight className="h-4 w-4 flex-shrink-0 text-copper-400" strokeWidth={1.5} />
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Guide & Plans shortcuts */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link href="/guide" className="block">
+            <Card className="overflow-hidden border-copper-200/30 bg-gradient-to-r from-copper-50/40 to-ivory-50/60 dark:from-charcoal-700/40 dark:to-charcoal-800/30 dark:border-copper-700/20 card-hover h-full">
+              <CardContent className="flex items-center gap-3.5 p-4">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-copper-100/80 dark:bg-copper-800/30">
+                  <BookOpen className="h-5 w-5 text-copper-600 dark:text-copper-400" strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">{t('guideCardTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('guideCardDesc')}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-copper-400" strokeWidth={1.5} />
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/plans" className="block">
+            <Card className="overflow-hidden border-amber-200/30 bg-gradient-to-r from-amber-50/40 to-ivory-50/60 dark:from-charcoal-700/40 dark:to-charcoal-800/30 dark:border-amber-700/20 card-hover h-full">
+              <CardContent className="flex items-center gap-3.5 p-4">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100/80 dark:bg-amber-800/30">
+                  <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">{t('plansCardTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('plansCardDesc')}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-amber-400" strokeWidth={1.5} />
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
 
       </div>
 

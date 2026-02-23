@@ -25,7 +25,6 @@ const PREMIUM_FEATURES = new Set([
   'taste_evolution',
   'wine_discovery',
   'smart_refinement',
-  'palate_game',
   'unlimited_search',
 ]);
 

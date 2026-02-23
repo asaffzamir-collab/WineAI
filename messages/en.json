@@ -125,6 +125,8 @@
     "settings": "Settings",
     "guideCardTitle": "Tips & Guide",
     "guideCardDesc": "Learn how to get the most out of WineJourney",
+    "plansCardTitle": "Plans & Pricing",
+    "plansCardDesc": "See what's included in each plan",
     "celebrationTitle": "Your Wine Journey is Fully Unlocked!",
     "celebrationPier": "Pier has learned your preferences and is ready to be your personal sommelier. Ask for recommendations, food pairings, or anything wine-related — tailored just for you.",
     "celebrationMatch": "Every wine you search for will now include a detailed match analysis against your taste profile, with a compatibility score and personalized insights.",
@@ -420,6 +422,8 @@
     "english": "English",
     "currency": "Currency",
     "account": "Account",
+    "plansCard": "Plans & Pricing",
+    "plansCardDesc": "View available plans and features",
     "adminPanel": "Admin Panel",
     "adminPanelDesc": "Manage users and app settings",
     "signOut": "Sign out",
@@ -870,6 +874,6 @@
     "faq3Q": "Is my data safe if I downgrade?",
     "faq3A": "Absolutely. Your wine data, taste profile, and cellar are always preserved regardless of your plan.",
     "faq4Q": "Will pricing change after the beta?",
-    "faq4A": "Beta users will receive special pricing and a grace period when paid plans launch."
+    "faq4A": "Beta users will receive 30 days of free access to all features when paid plans launch."
   }
 }
