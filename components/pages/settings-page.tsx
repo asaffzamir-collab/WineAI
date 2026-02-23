@@ -69,6 +69,7 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
     gender: profile?.gender || '',
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const tCommon = useTranslations('common');
   const tGuide = useTranslations('guide');
@@ -91,20 +92,24 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
 
   const handleLanguageChange = async (lang: string) => {
     setCurrentLanguage(lang);
+    setIsTranslating(true);
     document.cookie = `locale=${lang};path=/;max-age=31536000`;
     const supabase = createClient();
     await supabase
       .from('user_profiles')
       .update({ preferred_language: lang })
       .eq('id', userId);
-    router.refresh();
 
-    // Translate profile content to the new language in the background
-    fetch('/api/profile/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, targetLanguage: lang }),
-    }).catch(() => {});
+    try {
+      await fetch('/api/profile/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetLanguage: lang }),
+      });
+    } catch {}
+
+    setIsTranslating(false);
+    router.refresh();
   };
 
   const handleSaveProfile = async () => {
@@ -378,23 +383,29 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleLanguageChange('he')}
+                    disabled={isTranslating}
                     className={`flex-1 rounded-xl border-2 p-3 text-center transition-all duration-200 ${
                       currentLanguage === 'he'
                         ? 'border-bordeaux-500 bg-bordeaux-50 text-bordeaux-600 shadow-soft dark:bg-bordeaux-900/20 dark:text-bordeaux-300 dark:border-bordeaux-400'
                         : 'border-ivory-400 hover:border-bordeaux-300 dark:border-charcoal-700 dark:hover:border-bordeaux-600'
-                    }`}
+                    } ${isTranslating ? 'opacity-60 cursor-wait' : ''}`}
                   >
-                    {t('hebrew')}
+                    {isTranslating && currentLanguage === 'he' ? (
+                      <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{t('hebrew')}</span>
+                    ) : t('hebrew')}
                   </button>
                   <button
                     onClick={() => handleLanguageChange('en')}
+                    disabled={isTranslating}
                     className={`flex-1 rounded-xl border-2 p-3 text-center transition-all duration-200 ${
                       currentLanguage === 'en'
                         ? 'border-bordeaux-500 bg-bordeaux-50 text-bordeaux-600 shadow-soft dark:bg-bordeaux-900/20 dark:text-bordeaux-300 dark:border-bordeaux-400'
                         : 'border-ivory-400 hover:border-bordeaux-300 dark:border-charcoal-700 dark:hover:border-bordeaux-600'
-                    }`}
+                    } ${isTranslating ? 'opacity-60 cursor-wait' : ''}`}
                   >
-                    {t('english')}
+                    {isTranslating && currentLanguage === 'en' ? (
+                      <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{t('english')}</span>
+                    ) : t('english')}
                   </button>
                 </div>
               </CardContent>

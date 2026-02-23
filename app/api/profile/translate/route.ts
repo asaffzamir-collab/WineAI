@@ -12,7 +12,7 @@ const TRANSLATABLE_FIELDS = [
   'summary',
 ] as const;
 
-const TRANSLATABLE_ARRAY_FIELDS = ['what_to_avoid'] as const;
+const TRANSLATABLE_ARRAY_FIELDS = ['what_to_avoid', 'recommended_grapes', 'recommended_regions'] as const;
 
 export async function POST(request: Request) {
   let body: { userId?: string; targetLanguage?: string };

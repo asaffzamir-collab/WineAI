@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useUser } from '@/lib/user-context';
 import { Wine, Grape, MapPin, AlertCircle, Search, ChevronRight, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -233,16 +233,19 @@ function SectionHeading({
   );
 }
 
-function personalizeText(text: string, gender?: string): string {
-  const youHe = gender === 'female' ? 'את' : 'אתה';
+function personalizeText(text: string, gender?: string, locale?: string): string {
+  if (locale === 'he') {
+    const youHe = gender === 'female' ? 'את' : 'אתה';
+    return text.replace(/המשתמש/g, youHe);
+  }
   return text
-    .replace(/המשתמש/g, youHe)
     .replace(/\bThe user\b/gi, 'You')
     .replace(/\bthe user\b/g, 'you');
 }
 
 export function ProfilePage({ userId, profiles: initialProfiles, firstName }: ProfilePageProps) {
   const t = useTranslations('profile');
+  const locale = useLocale();
   const { gender } = useUser();
   const g = { gender };
   const router = useRouter();
@@ -549,7 +552,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                               title={t('overallStyle')}
                               subtitle={t('overallStyleExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.overall_style, gender)}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.overall_style, gender, locale)}</p>
                           </section>
                         )}
 
@@ -559,7 +562,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                               title={t('bodyStructure')}
                               subtitle={t('bodyStructureExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.body_structure, gender)}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.body_structure, gender, locale)}</p>
                           </section>
                         )}
 
@@ -569,7 +572,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                               title={t('fruitProfile')}
                               subtitle={t('fruitProfileExplain', g)}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.fruit_profile, gender)}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.fruit_profile, gender, locale)}</p>
                           </section>
                         )}
 
@@ -579,7 +582,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                               title={t('styleNotes')}
                               subtitle={t('styleNotesExplain')}
                             />
-                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.style_notes, gender)}</p>
+                            <p className="mt-2 leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.style_notes, gender, locale)}</p>
                           </section>
                         )}
 
@@ -649,7 +652,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                               title={t('summary')}
                               subtitle={t('summaryExplain')}
                             />
-                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.summary, gender)}</p>
+                            <p className="mt-2 italic leading-relaxed text-stone-600 dark:text-stone-400">{personalizeText(profile.summary, gender, locale)}</p>
                           </section>
                         )}
 
