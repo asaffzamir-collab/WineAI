@@ -21,6 +21,7 @@ import { FullScreenChat } from './chat/full-screen-chat';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, History } from 'lucide-react';
 import { PierHeadAvatar } from './sommelier-trigger';
+import { UsageLimitModal } from '@/components/usage-limit-modal';
 
 function useVisualViewportHeight() {
   const [height, setHeight] = useState<number | null>(null);
@@ -68,7 +69,7 @@ function useLockBodyScroll(locked: boolean) {
 type ChatView = 'closed' | { conversationId: string | null; showHistory?: boolean };
 
 export function SommelierPanel() {
-  const { isOpen, close, activeFlow, likedWinesCount } = useSommelier();
+  const { isOpen, close, activeFlow, likedWinesCount, usageLimitInfo, setUsageLimitInfo } = useSommelier();
   const hasFullAccess = likedWinesCount >= 2;
   const vpHeight = useVisualViewportHeight();
   const t = useTranslations('sommelier');
@@ -214,6 +215,10 @@ export function SommelierPanel() {
         </div>
         <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
+
+      {usageLimitInfo && (
+        <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
+      )}
     </>
   );
 }

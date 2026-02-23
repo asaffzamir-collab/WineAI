@@ -19,46 +19,41 @@ export function PierCharacter({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* ── Hair (back volume) ── */}
-      <ellipse cx="40" cy="22" rx="14" ry="15" fill="#5C3220" />
-      <path d="M26 18c0-9 6-16 14-16s14 7 14 16c0 1-.2 2.5-.6 3.5C51 15 46 11.5 40 11.5S29 15 26.6 21.5C26.2 20.5 26 19 26 18z" fill="#3D1E10" />
-
-      {/* ── Head / face ── */}
-      <ellipse cx="40" cy="28" rx="11" ry="12.5" fill="#E8C4A0" />
-
-      {/* ── Hair on top (wavy volume) ── */}
-      <path d="M28 20c1-7 6-12 12-12s11 5 12 12c0 0-3-6-12-6S28 20 28 20z" fill="#5C3220" />
-      <path d="M30 17c2-5 5-8 10-8s8 3 10 8c-2-3-5-5-10-5S32 14 30 17z" fill="#6B3A24" />
-      {/* Side hair */}
-      <path d="M28 22c-1 3-1 5 0 8 0-3 1-5 2-7z" fill="#5C3220" />
-      <path d="M52 22c1 3 1 5 0 8 0-3-1-5-2-7z" fill="#5C3220" />
-
-      {/* ── Eyebrows ── */}
-      <path d="M33 24c1-1.2 3-1.5 4.5-0.8" stroke="#3D1E10" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-      <path d="M43 23.2c1.5-0.7 3.5-0.4 4.5 0.8" stroke="#3D1E10" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-
-      {/* ── Eyes ── */}
-      <ellipse cx="36" cy="27" rx="1.5" ry="1.8" fill="#3D1E10" />
-      <ellipse cx="44" cy="27" rx="1.5" ry="1.8" fill="#3D1E10" />
-      <circle cx="36.5" cy="26.5" r="0.5" fill="white" />
-      <circle cx="44.5" cy="26.5" r="0.5" fill="white" />
-
-      {/* ── Nose ── */}
-      <path d="M40 29c0 0-1 2.5-0.2 3.5c0.5 0.6 1.5 0.5 1.8 0C42.2 31.5 40 29 40 29z" fill="#D4A87A" />
-
-      {/* ── Beard ── */}
-      <path d="M31 32c0 0 1 8 9 9s9-9 9-9c-1 3-4 7-9 7S32 35 31 32z" fill="#5C3220" />
-      <path d="M32 31c0 0 0.5 6 8 7s8-7 8-7c-1 2.5-3.5 5.5-8 5.5S33 33.5 32 31z" fill="#6B3A24" />
-
-      {/* ── Smile (under mustache) ── */}
-      <path d="M37 33c0 0 1.5 1.5 3 1.5s3-1.5 3-1.5" stroke="#E8C4A0" strokeWidth="0.6" strokeLinecap="round" fill="none" />
-
-      {/* ── Mustache ── */}
-      <path d="M35 31c0 0 2.5 1.5 5 0" stroke="#3D1E10" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <path d="M40 31c0 0 2.5 1.5 5 0" stroke="#3D1E10" strokeWidth="1" strokeLinecap="round" fill="none" />
+      {/* ── Head group (scaled down ~18% for better body proportions) ── */}
+      <g transform="translate(40, 28) scale(0.82) translate(-40, -28)">
+        {/* Hair (back volume) */}
+        <ellipse cx="40" cy="22" rx="14" ry="15" fill="#5C3220" />
+        <path d="M26 18c0-9 6-16 14-16s14 7 14 16c0 1-.2 2.5-.6 3.5C51 15 46 11.5 40 11.5S29 15 26.6 21.5C26.2 20.5 26 19 26 18z" fill="#3D1E10" />
+        {/* Head / face */}
+        <ellipse cx="40" cy="28" rx="11" ry="12.5" fill="#E8C4A0" />
+        {/* Hair on top (wavy volume) */}
+        <path d="M28 20c1-7 6-12 12-12s11 5 12 12c0 0-3-6-12-6S28 20 28 20z" fill="#5C3220" />
+        <path d="M30 17c2-5 5-8 10-8s8 3 10 8c-2-3-5-5-10-5S32 14 30 17z" fill="#6B3A24" />
+        {/* Side hair */}
+        <path d="M28 22c-1 3-1 5 0 8 0-3 1-5 2-7z" fill="#5C3220" />
+        <path d="M52 22c1 3 1 5 0 8 0-3-1-5-2-7z" fill="#5C3220" />
+        {/* Eyebrows */}
+        <path d="M33 24c1-1.2 3-1.5 4.5-0.8" stroke="#3D1E10" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+        <path d="M43 23.2c1.5-0.7 3.5-0.4 4.5 0.8" stroke="#3D1E10" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+        {/* Eyes */}
+        <ellipse cx="36" cy="27" rx="1.5" ry="1.8" fill="#3D1E10" />
+        <ellipse cx="44" cy="27" rx="1.5" ry="1.8" fill="#3D1E10" />
+        <circle cx="36.5" cy="26.5" r="0.5" fill="white" />
+        <circle cx="44.5" cy="26.5" r="0.5" fill="white" />
+        {/* Nose */}
+        <path d="M40 29c0 0-1 2.5-0.2 3.5c0.5 0.6 1.5 0.5 1.8 0C42.2 31.5 40 29 40 29z" fill="#D4A87A" />
+        {/* Beard */}
+        <path d="M31 32c0 0 1 8 9 9s9-9 9-9c-1 3-4 7-9 7S32 35 31 32z" fill="#5C3220" />
+        <path d="M32 31c0 0 0.5 6 8 7s8-7 8-7c-1 2.5-3.5 5.5-8 5.5S33 33.5 32 31z" fill="#6B3A24" />
+        {/* Smile */}
+        <path d="M37 33c0 0 1.5 1.5 3 1.5s3-1.5 3-1.5" stroke="#E8C4A0" strokeWidth="0.6" strokeLinecap="round" fill="none" />
+        {/* Mustache */}
+        <path d="M35 31c0 0 2.5 1.5 5 0" stroke="#3D1E10" strokeWidth="1" strokeLinecap="round" fill="none" />
+        <path d="M40 31c0 0 2.5 1.5 5 0" stroke="#3D1E10" strokeWidth="1" strokeLinecap="round" fill="none" />
+      </g>
 
       {/* ── Neck ── */}
-      <rect x="37" y="39" width="6" height="6" rx="1" fill="#E8C4A0" />
+      <rect x="37" y="37" width="6" height="7" rx="1" fill="#E8C4A0" />
 
       {/* ── Shirt collar ── */}
       <path d="M34 44l6 4 6-4v3l-6 5-6-5z" fill="#F5F0E8" />

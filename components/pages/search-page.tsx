@@ -16,6 +16,7 @@ import { WineListItem } from '@/components/wine-list-item';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
+import { UsageLimitModal, parseUsageLimitError } from '@/components/usage-limit-modal';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
 interface SearchPageProps {
@@ -61,6 +62,7 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [selectedRecentWine, setSelectedRecentWine] = useState<WineData | null>(null);
   const [displayWine, setDisplayWine] = useState<WineData | null>(null);
   const [displayMatch, setDisplayMatch] = useState<ProfileMatchResult | null>(null);
+  const [usageLimitInfo, setUsageLimitInfo] = useState<{ type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
   const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
@@ -128,6 +130,12 @@ export function SearchPage({ userId }: SearchPageProps) {
       });
 
       const data = await response.json();
+
+      const usageErr = parseUsageLimitError(response.status, data);
+      if (usageErr) {
+        setUsageLimitInfo(usageErr);
+        return;
+      }
 
       if (data.error) {
         setError(data.error);
@@ -299,6 +307,12 @@ export function SearchPage({ userId }: SearchPageProps) {
         let errMsg = 'Search failed. Please try again.';
         try {
           const errData = await response.json();
+          const usageErr = parseUsageLimitError(response.status, errData);
+          if (usageErr) {
+            setUsageLimitInfo(usageErr);
+            setIsSearching(false);
+            return;
+          }
           if (errData?.error) errMsg = errData.error;
         } catch {
           console.error('Server returned non-JSON error, status:', response.status);
@@ -636,6 +650,9 @@ export function SearchPage({ userId }: SearchPageProps) {
       />
         </div>
       </div>
+      {usageLimitInfo && (
+        <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
+      )}
     </AppShell>
   );
 }

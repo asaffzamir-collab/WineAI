@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateDiscoveryProfile } from '@/lib/sommelier-ai';
+import { requireUsage } from '@/lib/require-usage';
+import { incrementUsage } from '@/lib/usage';
+import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +12,9 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
+    const usageBlock = await requireUsage(user.id, 'pier_message');
+    if (usageBlock) return usageBlock;
 
     const body = await request.json();
     const { data: userProfile } = await supabase.from('user_profiles').select('preferred_language').eq('id', user.id).single();
@@ -24,6 +30,9 @@ export async function POST(request: Request) {
       last_interaction: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
+    incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+      if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+    }).catch(() => {});
     return NextResponse.json({ profile });
   } catch (error) {
     console.error('Discovery error:', error);

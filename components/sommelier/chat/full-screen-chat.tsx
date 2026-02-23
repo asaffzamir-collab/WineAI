@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { safeId } from '@/lib/utils';
 import { ChatBubble } from '../panel/chat-message';
 import { PierHeadAvatar } from '../sommelier-trigger';
+import { UsageLimitModal, parseUsageLimitError } from '@/components/usage-limit-modal';
 import type { ChatMessage } from '@/lib/sommelier-types';
 import type { ConversationSummary } from './conversation-list';
 
@@ -60,6 +61,7 @@ export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: F
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleGenerated = useRef(false);
   const { height: vpHeight, offsetTop: vpOffsetTop, keyboardOpen } = useVisualViewport();
+  const [usageLimitInfo, setUsageLimitInfo] = useState<{ type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -199,8 +201,15 @@ export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: F
         body: JSON.stringify({ message: trimmed, history }),
       });
 
-      if (!res.ok) throw new Error('Chat request failed');
       const data = await res.json();
+      const usageErr = parseUsageLimitError(res.status, data);
+      if (usageErr) {
+        setUsageLimitInfo(usageErr);
+        setMessages((prev) => prev.filter((m) => m.id !== streamingId));
+        setIsSending(false);
+        return;
+      }
+      if (!res.ok) throw new Error('Chat request failed');
 
       const updatedMessages = (prev: ChatMessage[]) =>
         prev.map((m) =>
@@ -491,6 +500,9 @@ export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: F
           {!keyboardOpen && <div className="pb-[env(safe-area-inset-bottom)]" />}
         </div>
       </div>
+      {usageLimitInfo && (
+        <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
+      )}
     </>
   );
 }

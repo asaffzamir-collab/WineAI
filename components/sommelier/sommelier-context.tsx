@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import type { SommelierPhase, ConversationItem, SommelierState, ChatMessage, ChatWineCard } from '@/lib/sommelier-types';
 import { createClient } from '@/lib/supabase/client';
 import { safeId } from '@/lib/utils';
+import { parseUsageLimitError } from '@/components/usage-limit-modal';
 
 interface SommelierContextValue {
   isOpen: boolean;
@@ -28,6 +29,8 @@ interface SommelierContextValue {
   sendChatMessage: (text: string) => Promise<void>;
   isChatLoading: boolean;
   clearChat: () => void;
+  usageLimitInfo: { type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null;
+  setUsageLimitInfo: (info: { type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null) => void;
 }
 
 const SommelierContext = createContext<SommelierContextValue | null>(null);
@@ -51,6 +54,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [usageLimitInfo, setUsageLimitInfo] = useState<{ type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null>(null);
   const hasFetched = useRef(false);
 
   const refreshState = useCallback(async () => {
@@ -153,9 +157,15 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ message: trimmed, history }),
       });
 
-      if (!res.ok) throw new Error('Chat request failed');
-
       const data = await res.json();
+      const usageErr = parseUsageLimitError(res.status, data);
+      if (usageErr) {
+        setUsageLimitInfo(usageErr);
+        setChatMessages(prev => prev.filter(m => m.id !== streamingId));
+        setIsChatLoading(false);
+        return;
+      }
+      if (!res.ok) throw new Error('Chat request failed');
 
       setChatMessages(prev =>
         prev.map(m =>
@@ -196,6 +206,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
         activeFlow, setActiveFlow,
         refreshState, isLoading,
         chatMessages, sendChatMessage, isChatLoading, clearChat,
+        usageLimitInfo, setUsageLimitInfo,
       }}
     >
       {children}

@@ -4,6 +4,9 @@ import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
 import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
+import { requireUsage } from '@/lib/require-usage';
+import { incrementUsage } from '@/lib/usage';
+import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,6 +26,11 @@ export async function POST(request: Request) {
 
   try {
     const { query, image, imageMimeType, userId, tasteProfiles: clientProfiles } = body;
+
+    if (userId) {
+      const usageBlock = await requireUsage(userId as string, 'wine_search');
+      if (usageBlock) return usageBlock;
+    }
 
     // Determine locale from cookie
     const cookieStore = await cookies();
@@ -62,6 +70,11 @@ export async function POST(request: Request) {
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
       }
+      if (userId) {
+        incrementUsage(userId as string, 'wine_search').then(({ thresholdHit }) => {
+          if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
+        }).catch(() => {});
+      }
       return NextResponse.json({ wine, match });
     }
 
@@ -100,6 +113,11 @@ export async function POST(request: Request) {
         }
       }
 
+      if (userId) {
+        incrementUsage(userId as string, 'wine_search').then(({ thresholdHit }) => {
+          if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
+        }).catch(() => {});
+      }
       if (wines.length === 1) {
         const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
         return NextResponse.json({ wine: wines[0], match });

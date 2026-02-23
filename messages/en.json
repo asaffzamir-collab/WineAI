@@ -747,6 +747,20 @@
     "comingSoon": "Coming Soon",
     "maybeLater": "Maybe later"
   },
+  "usageLimit": {
+    "title": "Monthly Limit Reached",
+    "searchDesc": "You've used all {limit} wine searches for this month.",
+    "pierDesc": "You've used all {limit} Pier messages for this month.",
+    "upgradePrompt": "Upgrade to {nextTier} for {nextLimit} per month.",
+    "viewPlans": "View Plans",
+    "maybeLater": "Maybe Later",
+    "nextTierFree": "Plus",
+    "nextTierPlus": "Pro",
+    "nextLimitFreeSearch": "40 searches",
+    "nextLimitFreeMessage": "40 messages",
+    "nextLimitPlusSearch": "150 searches",
+    "nextLimitPlusMessage": "150 messages"
+  },
   "guide": {
     "title": "App Guide",
     "subtitle": "Everything you need to get the most out of WineJourney.",

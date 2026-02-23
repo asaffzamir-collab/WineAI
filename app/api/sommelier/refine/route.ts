@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateRefinementChoices, processRefinementChoice } from '@/lib/sommelier-ai';
+import { requireUsage } from '@/lib/require-usage';
+import { incrementUsage } from '@/lib/usage';
+import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -11,6 +14,9 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
+    const usageBlock = await requireUsage(user.id, 'pier_message');
+    if (usageBlock) return usageBlock;
+
     const { action, choice } = await request.json();
     const { data: userProfile } = await supabase.from('user_profiles').select('preferred_language').eq('id', user.id).single();
     const lang = userProfile?.preferred_language || 'he';
@@ -20,6 +26,9 @@ export async function POST(request: Request) {
 
     if (action === 'generate') {
       const result = await generateRefinementChoices(combinedProfile, lang);
+      incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+        if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+      }).catch(() => {});
       return NextResponse.json(result);
     }
 
@@ -55,6 +64,9 @@ export async function POST(request: Request) {
         taste_precision: Math.min((combinedProfile as { taste_precision?: number }).taste_precision ?? 30, 95) + 5,
       }).eq('user_id', user.id);
 
+      incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+        if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+      }).catch(() => {});
       return NextResponse.json(result);
     }
 

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateChatResponse, generateFoodPairing, generateWineDiscovery, type ChatHistoryMessage } from '@/lib/sommelier-ai';
 import { requirePremium } from '@/lib/require-premium';
+import { requireUsage } from '@/lib/require-usage';
+import { incrementUsage } from '@/lib/usage';
+import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 import { fetchWineImagesForMany } from '@/lib/wine-image';
 import { findCachedWines } from '@/lib/wine-cache';
 
@@ -16,6 +19,9 @@ export async function POST(request: Request) {
 
     const premiumBlock = await requirePremium(user.id, 'sommelier_chat');
     if (premiumBlock) return premiumBlock;
+
+    const usageBlock = await requireUsage(user.id, 'pier_message');
+    if (usageBlock) return usageBlock;
 
     const { message, history } = (await request.json()) as {
       message: string;
@@ -331,6 +337,9 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
         ? (finalResult as Record<string, unknown>).message as string || JSON.stringify(finalResult)
         : String(finalResult);
 
+      incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+        if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+      }).catch(() => {});
       return NextResponse.json({
         message: finalMessage,
         wines: allWines,
@@ -338,6 +347,9 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
       });
     }
 
+    incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+      if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+    }).catch(() => {});
     return NextResponse.json({
       message: chatResult.content,
       wines: [],

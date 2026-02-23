@@ -747,6 +747,20 @@
     "comingSoon": "בקרוב",
     "maybeLater": "אולי מאוחר יותר"
   },
+  "usageLimit": {
+    "title": "הגעת למגבלה החודשית",
+    "searchDesc": "השתמשת בכל {limit} חיפושי היין שלך החודש.",
+    "pierDesc": "השתמשת בכל {limit} ההודעות שלך ל-Pier החודש.",
+    "upgradePrompt": "שדרגו ל-{nextTier} ותקבלו {nextLimit} בחודש.",
+    "viewPlans": "צפו במסלולים",
+    "maybeLater": "אולי מאוחר יותר",
+    "nextTierFree": "פלוס",
+    "nextTierPlus": "פרו",
+    "nextLimitFreeSearch": "40 חיפושים",
+    "nextLimitFreeMessage": "40 הודעות",
+    "nextLimitPlusSearch": "150 חיפושים",
+    "nextLimitPlusMessage": "150 הודעות"
+  },
   "guide": {
     "title": "מדריך האפליקציה",
     "subtitle": "כל מה שצריך כדי להפיק את המרב מ-WineJourney.",
