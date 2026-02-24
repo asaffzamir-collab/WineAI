@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Loader2, Wine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +34,7 @@ const COUNTRIES = [
 
 export function ProfileSetupPage({ initialDisplayName }: Props) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations('profileSetup');
 
   const [firstName, setFirstName] = useState('');
@@ -42,7 +43,7 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
   const [country, setCountry] = useState('');
   const [birthday, setBirthday] = useState('');
   const [gender, setGender] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('he');
+  const [preferredLanguage, setPreferredLanguage] = useState(locale);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 

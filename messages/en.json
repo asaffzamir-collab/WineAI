@@ -524,7 +524,8 @@
     "cellar": "Cellar",
     "wishlist": "Wishlist",
     "profile": "Wine Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "guide": "Guide"
   },
   "sommelier": {
     "panelTitle": "Pier — Your Sommelier",
@@ -532,6 +533,7 @@
     "phase_learning": "Learning",
     "phase_personalization": "Personalized",
     "fabLabel": "Ask Pier",
+    "askPierLabel": "Ask Pier",
     "coachMark": "Meet your personal sommelier — tap to discover your wine taste and get tailored recommendations.",
     "pierHoverTooltip": "I'm Pier, your personal smart sommelier. Ask me anything!",
     "bannerBasic": "Chat with Pier — like wines to unlock more",

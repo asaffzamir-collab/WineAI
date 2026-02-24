@@ -17,7 +17,6 @@ import {
   Compass,
   Loader2,
   Wallet,
-  Settings,
   BookOpen,
   Crown,
 } from 'lucide-react';
@@ -383,14 +382,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
             <div className="flex items-center gap-2 mb-1 md:hidden">
               <WineLogo size={28} className="text-copper-400" />
               <span className="text-sm font-medium text-bordeaux-200 tracking-wide">WineJourney</span>
-              <div className="ms-auto flex items-center gap-1">
-                <Link href="/guide" className="p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label="Guide">
-                  <BookOpen className="h-5 w-5" strokeWidth={1.5} />
-                </Link>
-                <Link href="/settings" className="p-1.5 rounded-lg text-bordeaux-200 hover:text-white hover:bg-white/10 transition-colors" aria-label={t('settings')}>
-                  <Settings className="h-5 w-5" strokeWidth={1.5} />
-                </Link>
-              </div>
             </div>
             <h1 className="heading-serif text-2xl text-white mt-3 md:mt-0">
               {greeting}
@@ -403,7 +394,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </div>
         </header>
 
-        <div className="mx-auto mt-2 max-w-5xl px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="mx-auto -mt-14 relative z-10 max-w-5xl px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Interactive Journey Tracker */}
         {showJourney && (
           <Card className="relative overflow-hidden border border-copper-200/40 bg-gradient-to-br from-white to-copper-50/30 dark:from-charcoal-800 dark:to-charcoal-700/30">
@@ -425,7 +416,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                 ))}
               </div>
 
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 sm:gap-3">
                 <JourneyStep
                   done={hasSearchedWine}
                   icon={<Camera className="h-4 w-4" strokeWidth={1.5} />}
@@ -755,13 +746,13 @@ function RecentItemImage({ item }: { item: RecentCellarItem }) {
 
 function JourneyStep({ done, icon, title, desc }: { done: boolean; icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${done ? 'bg-success-muted text-success' : 'bg-muted text-muted-foreground'}`}>
+    <div className="flex items-start gap-2 sm:gap-3">
+      <div className={`flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${done ? 'bg-success-muted text-success' : 'bg-muted text-muted-foreground'}`}>
         {icon}
       </div>
       <div className="min-w-0 pt-0.5">
-        <p className={`text-xs font-semibold ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{title}</p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
+        <p className={`text-[11px] sm:text-xs font-semibold ${done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{title}</p>
+        <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-relaxed hidden sm:block">{desc}</p>
       </div>
     </div>
   );

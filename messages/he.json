@@ -524,7 +524,8 @@
     "cellar": "מרתף",
     "wishlist": "רשימת משאלות",
     "profile": "פרופיל יין",
-    "settings": "הגדרות"
+    "settings": "הגדרות",
+    "guide": "מדריך"
   },
   "sommelier": {
     "panelTitle": "פייר — הסומלייה שלך",
@@ -532,6 +533,7 @@
     "phase_learning": "למידה",
     "phase_personalization": "מותאם אישית",
     "fabLabel": "שאל את פייר",
+    "askPierLabel": "שאל את פייר",
     "coachMark": "הכירו את הסומלייה האישי שלכם — הקישו כדי לגלות את טעם היין שלכם ולקבל המלצות מותאמות.",
     "pierHoverTooltip": "אני פייר, הסומלייה החכם שלך. שאל אותי כל דבר!",
     "bannerBasic": "שוחח עם פייר — {gender, select, female {סמני} other {סמן}} לייק ליינות כדי לפתוח עוד",
