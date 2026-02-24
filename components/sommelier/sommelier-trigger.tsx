@@ -144,7 +144,7 @@ export function SommelierTrigger() {
             <Minus className="h-3 w-3" />
           </button>
 
-          {/* FAB with portrait card and persistent label */}
+          {/* FAB with cartoon avatar and persistent label */}
           <button
             onClick={handleClick}
             aria-label={t('fabLabel')}
@@ -153,9 +153,9 @@ export function SommelierTrigger() {
               'hover:scale-110 active:scale-95 focus:outline-none group',
             )}
           >
-            <div className="relative overflow-hidden rounded-2xl shadow-lift ring-2 ring-bordeaux-500/50 dark:ring-bordeaux-600/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-bordeaux-500/20 to-bordeaux-700/20 animate-pier-glow pointer-events-none z-10" />
-              <PierCharacter className="w-[72px] h-[72px] drop-shadow-xl relative" />
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-bordeaux-500/90 to-bordeaux-700/90 dark:from-bordeaux-600/80 dark:to-bordeaux-800/80 animate-pier-glow scale-[1.2] pointer-events-none" />
+              <PierHeadAvatar className="h-16 w-16 rounded-full drop-shadow-xl relative z-10 ring-2 ring-white/30" />
             </div>
 
             {/* Persistent "Ask Pier" label */}
