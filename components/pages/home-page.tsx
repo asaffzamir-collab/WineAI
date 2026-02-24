@@ -145,7 +145,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
     hasSommelierDiscovery: false,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [guideDismissed, setGuideDismissed] = useState(true);
+  const [guideDismissed, setGuideDismissed] = useState(false);
   const [selectedRecentItem, setSelectedRecentItem] = useState<RecentCellarItem | null>(null);
   const [recentDetailWine, setRecentDetailWine] = useState<WineData | null>(null);
   const [recentDetailMatch, setRecentDetailMatch] = useState<ProfileMatchResult | null>(null);

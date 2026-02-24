@@ -35,6 +35,11 @@ function MobileTopActions() {
   const t = useTranslations('nav');
   const isOnSettings = pathname === '/settings';
   const isOnGuide = pathname === '/guide';
+  const isOnHome = pathname === '/';
+
+  const defaultStyle = isOnHome
+    ? 'text-white/80 hover:text-white hover:bg-white/10'
+    : 'text-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10';
 
   return (
     <div className="fixed top-0 end-0 z-30 flex items-center gap-0.5 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
@@ -44,7 +49,7 @@ function MobileTopActions() {
           'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
           isOnGuide
             ? 'bg-bordeaux-100 text-bordeaux-600 dark:bg-bordeaux-900/30 dark:text-bordeaux-300'
-            : 'text-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10',
+            : defaultStyle,
         )}
         aria-label={t('guide')}
       >
@@ -56,7 +61,7 @@ function MobileTopActions() {
           'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
           isOnSettings
             ? 'bg-bordeaux-100 text-bordeaux-600 dark:bg-bordeaux-900/30 dark:text-bordeaux-300'
-            : 'text-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10',
+            : defaultStyle,
         )}
         aria-label={t('settings')}
       >

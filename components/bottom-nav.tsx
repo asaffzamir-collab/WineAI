@@ -44,10 +44,10 @@ export function BottomNav() {
         onMouseEnter={isCellar ? prefetchCellar3D : undefined}
         onTouchStart={isCellar ? prefetchCellar3D : undefined}
         className={cn(
-          'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 transition-all duration-150',
+          'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-4 py-2.5 transition-all duration-150',
           isActive
-            ? 'text-primary'
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'text-white'
+            : 'text-white/60 hover:text-white'
         )}
       >
         <Icon
@@ -59,7 +59,7 @@ export function BottomNav() {
         />
         <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
         {isActive && (
-          <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-primary transition-all duration-150" />
+          <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-white transition-all duration-150" />
         )}
       </Link>
     );
@@ -68,7 +68,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/50 shadow-[0_-2px_16px_rgb(0,0,0,0.04)] md:hidden pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-bordeaux-600 dark:bg-charcoal-800 shadow-[0_-4px_20px_rgb(0,0,0,0.15)] md:hidden pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-2">
         {leftItems.map(renderNavItem)}
@@ -78,22 +78,22 @@ export function BottomNav() {
           href="/search"
           aria-label={t('search')}
           aria-current={isSearchActive ? 'page' : undefined}
-          className="relative -mt-6 flex flex-col items-center"
+          className="relative -mt-8 flex flex-col items-center"
         >
           <div
             className={cn(
-              'flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200',
-              'bg-white dark:bg-charcoal-800 ring-[3px]',
+              'flex h-16 w-16 items-center justify-center rounded-full shadow-xl transition-all duration-200',
+              'bg-white dark:bg-charcoal-700 ring-[4px]',
               isSearchActive
-                ? 'ring-primary scale-105'
-                : 'ring-primary/80 hover:ring-primary hover:scale-105'
+                ? 'ring-bordeaux-700 dark:ring-bordeaux-500 scale-105'
+                : 'ring-bordeaux-600 dark:ring-charcoal-600 hover:scale-105'
             )}
           >
-            <Camera className="h-6 w-6 text-primary" strokeWidth={1.8} />
+            <Camera className="h-7 w-7 text-bordeaux-600 dark:text-bordeaux-300" strokeWidth={1.8} />
           </div>
           <span className={cn(
-            'mt-0.5 text-[10px] font-medium',
-            isSearchActive ? 'text-primary' : 'text-muted-foreground'
+            'mt-1 text-[10px] font-medium',
+            isSearchActive ? 'text-white' : 'text-white/60'
           )}>
             {t('search')}
           </span>
