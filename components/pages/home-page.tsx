@@ -153,10 +153,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
 
   useEffect(() => {
-    setGuideDismissed(localStorage.getItem(GUIDE_DISMISSED_KEY) === 'true');
-  }, []);
-
-  useEffect(() => {
     if (!recentDetailWine || !selectedRecentItem) {
       setRecentDetailMatch(null);
       setIsFetchingRecentMatch(false);
@@ -299,7 +295,6 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const greeting = name ? t(greetingKey, { name }) : t(greetingKey);
 
   const dismissGuide = () => {
-    localStorage.setItem(GUIDE_DISMISSED_KEY, 'true');
     setGuideDismissed(true);
   };
 
