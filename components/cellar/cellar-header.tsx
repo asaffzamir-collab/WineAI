@@ -19,7 +19,7 @@ export function CellarHeader() {
   const { open: openSommelier } = useSommelier();
 
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 pe-20 md:pe-0">
       <div className="min-w-0">
         <h1 className="text-title text-foreground truncate">{t('title')}</h1>
         {activeRack && activeTab === 'rack' && (
