@@ -16,16 +16,17 @@ export function HeatmapToggle() {
       variant="outline"
       size="sm"
       className={cn(
-        'gap-1.5 text-xs transition-all',
+        'gap-1.5 text-xs transition-all h-9 px-2 sm:px-3',
         heatmapEnabled && 'bg-garnet-500/10 border-garnet-500/30 text-garnet-600 dark:text-garnet-400',
       )}
       onClick={() => {
         setHeatmapEnabled(!heatmapEnabled);
         trackCellar('heatmap_toggled', { enabled: (!heatmapEnabled).toString() });
       }}
+      title={t('heatmapToggle')}
     >
       <Thermometer className="h-3.5 w-3.5" strokeWidth={1.5} />
-      {t('heatmapToggle')}
+      <span className="hidden sm:inline">{t('heatmapToggle')}</span>
     </Button>
   );
 }

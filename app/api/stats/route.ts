@@ -24,7 +24,16 @@ export async function GET(request: Request) {
       supabase.from('sommelier_profiles').select('discovery_data').eq('user_id', userId).single(),
     ]);
 
-    const cellarItems = cellarRes.data ?? [];
+    const rawCellarItems = cellarRes.data ?? [];
+    // Filter out items with broken/missing wine references to match the cellar page,
+    // which skips items where the wine join returns null.
+    const cellarItems = rawCellarItems.filter((item) => {
+      const wine = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+      return wine != null;
+    });
+    if (rawCellarItems.length !== cellarItems.length) {
+      console.warn(`[stats] Filtered out ${rawCellarItems.length - cellarItems.length} cellar items with missing wine data (${rawCellarItems.length} raw → ${cellarItems.length} valid)`);
+    }
     const now = new Date();
     const currentYear = now.getFullYear();
     const sixMonthsFromNow = new Date(now);
