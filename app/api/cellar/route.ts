@@ -8,6 +8,13 @@ function tryAdminClient() {
 
 export const dynamic = 'force-dynamic';
 
+/** Ensure quantity is a positive integer. Defaults to 1 for invalid/missing values. */
+function sanitizeQuantity(raw: unknown): number {
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return n;
+}
+
 const CELLAR_SELECT_FULL = `
   id, quantity, purchase_price, purchase_date, notes,
   drink_from, drink_until, slot_id,
@@ -126,7 +133,7 @@ export async function POST(request: Request) {
     const cellarRow: Record<string, unknown> = {
       user_id: userId,
       wine_id: wineId,
-      quantity: quantity || 1,
+      quantity: sanitizeQuantity(quantity),
       purchase_price: purchasePrice,
       purchase_date: purchaseDate,
       storage_location: storageLocation,
@@ -168,7 +175,7 @@ export async function PATCH(request: Request) {
     const updates: Record<string, unknown> = {};
     if ('bottlePhotoUrl' in body) updates.bottle_photo_url = body.bottlePhotoUrl ?? null;
     if ('purchasePrice' in body) updates.purchase_price = body.purchasePrice ?? null;
-    if ('quantity' in body) updates.quantity = Math.max(1, Math.floor(Number(body.quantity)) || 1);
+    if ('quantity' in body) updates.quantity = sanitizeQuantity(body.quantity);
     if ('notes' in body) updates.notes = body.notes ?? null;
     if ('storageLocation' in body) updates.storage_location = body.storageLocation ?? null;
     if ('purchaseDate' in body) updates.purchase_date = body.purchaseDate ?? null;
