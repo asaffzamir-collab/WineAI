@@ -17,7 +17,7 @@ import { InsightsView } from './views/insights-view';
 import { SlotDetailPanel } from './slot-detail-panel';
 import { SlotDetailSheet } from './slot-detail-sheet';
 import { RackBuilderModal } from './rack-builder/rack-builder-modal';
-import { MobileFilterSheet, CellarFiltersPanel } from './filters/cellar-filters';
+import { MobileFilterSheet } from './filters/cellar-filters';
 import { CellarErrorBoundary } from './cellar-error-boundary';
 import { trackCellar } from '@/lib/cellar/analytics';
 import type { CellarItem } from '@/components/pages/cellar-page';
@@ -33,18 +33,16 @@ interface NewCellarPageProps {
   placeItemId?: string | null;
 }
 
-function MobileInlineFilters() {
+function MobileUnassignedBanner() {
   const { unassignedPlacements } = useCellarRack();
   const t = useTranslations('cellar');
 
+  if (unassignedPlacements.length === 0) return null;
+
   return (
-    <div className="rounded-2xl bg-card shadow-soft p-3 space-y-3">
-      {unassignedPlacements.length > 0 && (
-        <div className="rounded-lg bg-warning-muted/50 px-3 py-2 text-xs text-warning">
-          {t('unassignedCount', { count: unassignedPlacements.length })}
-        </div>
-      )}
-      <CellarFiltersPanel />
+    <div className="lg:hidden rounded-xl bg-warning-muted/30 border border-warning/20 px-3 py-2 text-xs text-warning font-medium flex items-center gap-2">
+      <Wine className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+      {t('unassignedCount', { count: unassignedPlacements.length })}
     </div>
   );
 }
@@ -201,10 +199,10 @@ function CellarContent() {
           <CellarTabs />
         </div>
 
-        {/* Mobile rack selector + inline filters */}
-        <div className="mt-3 lg:hidden space-y-3">
+        {/* Mobile rack selector + unassigned banner */}
+        <div className="mt-3 lg:hidden space-y-2">
           <MobileRackSelector />
-          <MobileInlineFilters />
+          <MobileUnassignedBanner />
         </div>
 
         {/* Desktop layout with sidebar */}
@@ -235,6 +233,7 @@ function CellarContent() {
       </div>
 
       {/* Mobile bottom sheets */}
+      <MobileFilterSheet />
       <SlotDetailSheet />
       <RackBuilderModal />
 

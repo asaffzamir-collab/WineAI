@@ -144,7 +144,7 @@ export function SommelierPanel() {
           onClick={() => setChatView({ conversationId: null })}
           className="w-full flex items-center gap-3 rounded-xl border border-bordeaux-200 dark:border-bordeaux-800 bg-gradient-to-r from-bordeaux-50 to-transparent dark:from-bordeaux-900/20 dark:to-transparent p-3.5 transition-all hover:shadow-soft hover:border-bordeaux-300 dark:hover:border-bordeaux-700 active:scale-[0.98]"
         >
-          <PierHeadAvatar className="h-9 w-9 flex-shrink-0 rounded-full" />
+          <PierHeadAvatar className="h-10 w-10 flex-shrink-0 rounded-full" />
           <div className="text-start flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground">{t('pierGreeting')}</p>
             <p className="text-xs text-muted-foreground">{t('chatPlaceholder')}</p>

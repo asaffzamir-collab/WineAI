@@ -231,25 +231,9 @@ export function AuthPage() {
               variant="outline"
               className="w-full"
               disabled={isLoading}
-              onClick={async () => {
+              onClick={() => {
                 setError(null);
-                setIsLoading(true);
-                try {
-                  const supabase = createClient();
-                  const { error: oauthError } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                      redirectTo: `${window.location.origin}/auth/callback`,
-                    },
-                  });
-                  if (oauthError) {
-                    setError(oauthError.message);
-                    setIsLoading(false);
-                  }
-                } catch {
-                  setError(t('genericError'));
-                  setIsLoading(false);
-                }
+                window.location.href = '/auth/signin?provider=google';
               }}
             >
               <svg className="h-5 w-5 me-2" viewBox="0 0 24 24" aria-hidden="true">

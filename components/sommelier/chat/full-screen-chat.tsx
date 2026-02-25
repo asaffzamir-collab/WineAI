@@ -407,7 +407,7 @@ export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: F
           </button>
 
           <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
-          <PierHeadAvatar className="h-7 w-7 flex-shrink-0 rounded-full" />
+          <PierHeadAvatar className="h-8 w-8 flex-shrink-0 rounded-full" />
             <h2 className="text-sm font-semibold text-foreground truncate">
               {title || t('pierGreeting')}
             </h2>

@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     await supabase.from('user_profiles').insert({
       id: user.id,
       display_name: displayName,
-      preferred_language: 'he',
+      preferred_language: 'en',
       preferred_currency: 'ILS',
       profile_completed: false,
       onboarding_completed: false,

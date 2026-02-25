@@ -233,7 +233,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   if (message.isStreaming && !message.content) {
     return (
       <div className="flex justify-start items-start gap-2.5">
-        <PierHeadAvatar className="h-7 w-7 flex-shrink-0 mt-0.5 rounded-full" />
+        <PierHeadAvatar className="h-8 w-8 flex-shrink-0 mt-0.5 rounded-full" />
         <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-card border border-border/50 px-4 py-3 shadow-soft">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-bordeaux-500" />
@@ -247,7 +247,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start items-start gap-2.5')}>
       {!isUser && (
-        <PierHeadAvatar className="h-7 w-7 flex-shrink-0 mt-0.5 rounded-full" />
+        <PierHeadAvatar className="h-8 w-8 flex-shrink-0 mt-0.5 rounded-full" />
       )}
       <div
         className={cn(

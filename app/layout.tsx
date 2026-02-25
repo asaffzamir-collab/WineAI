@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
     url: 'https://winejourney.co',
     siteName: 'WineJourney',
-    locale: 'he_IL',
+    locale: 'en_US',
     type: 'website',
   },
   twitter: {
@@ -57,7 +57,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let locale = 'he';
+  let locale = 'en';
   let messages: Record<string, unknown> = {};
   try {
     locale = await getLocale();
@@ -65,7 +65,7 @@ export default async function RootLayout({
   } catch (e) {
     console.error('RootLayout: getLocale/getMessages failed', e);
     try {
-      messages = (await import('@/messages/he.json')).default;
+      messages = (await import('@/messages/en.json')).default;
     } catch {
       // leave messages empty so app still renders
     }

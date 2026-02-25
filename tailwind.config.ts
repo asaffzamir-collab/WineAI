@@ -246,6 +246,19 @@ const config: Config = {
           '0%': { transform: 'translateY(100%)' },
           '100%': { transform: 'translateY(0)' },
         },
+        pierEntrance: {
+          '0%': { opacity: '0', transform: 'translateY(40px) scale(0.8)' },
+          '60%': { opacity: '1', transform: 'translateY(-4px) scale(1.03)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        pierGlow: {
+          '0%, 100%': { boxShadow: '0 0 8px 2px rgba(122, 45, 74, 0.25)' },
+          '50%': { boxShadow: '0 0 18px 6px rgba(122, 45, 74, 0.45)' },
+        },
+        pierFloat: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
@@ -254,6 +267,9 @@ const config: Config = {
         'shimmer': 'shimmer 2s linear infinite',
         'slide-in-right': 'slideInFromRight 0.2s ease-out',
         'slide-in-bottom': 'slideInFromBottom 0.25s ease-out',
+        'pier-entrance': 'pierEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        'pier-glow': 'pierGlow 2.5s ease-in-out infinite',
+        'pier-float': 'pierFloat 3s ease-in-out infinite',
       },
       transitionTimingFunction: {
         'premium': 'cubic-bezier(0.4, 0, 0.2, 1)',

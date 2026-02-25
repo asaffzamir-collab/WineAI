@@ -159,7 +159,15 @@ export function CellarFiltersPanel() {
 
 export function MobileFilterSheet() {
   const t = useTranslations('cellar');
+  const { filters } = useCellarRack();
   const [open, setOpen] = useState(false);
+
+  const activeCount =
+    (filters.search ? 1 : 0) +
+    filters.types.length +
+    filters.readiness.length +
+    (filters.minRating > 0 ? 1 : 0) +
+    filters.regions.length;
 
   return (
     <>
@@ -168,9 +176,15 @@ export function MobileFilterSheet() {
         type="button"
         aria-label={t('filterTitle')}
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 start-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-lift border border-border/50 lg:hidden md:bottom-6"
+        className="fixed bottom-[100px] start-4 z-40 flex h-11 items-center gap-1.5 rounded-full bg-card shadow-lift border border-border/50 px-3 lg:hidden md:bottom-6"
       >
         <SlidersHorizontal className="h-4 w-4 text-foreground" strokeWidth={1.5} />
+        <span className="text-xs font-medium text-foreground">{t('filterTitle')}</span>
+        {activeCount > 0 && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-garnet-500 text-white text-[10px] font-bold px-1">
+            {activeCount}
+          </span>
+        )}
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   country TEXT,
   birthday DATE,
   gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say')),
-  preferred_language TEXT DEFAULT 'he' CHECK (preferred_language IN ('he', 'en')),
+  preferred_language TEXT DEFAULT 'en' CHECK (preferred_language IN ('he', 'en')),
   preferred_currency TEXT DEFAULT 'ILS',
   profile_completed BOOLEAN DEFAULT FALSE,
   onboarding_completed BOOLEAN DEFAULT FALSE,
