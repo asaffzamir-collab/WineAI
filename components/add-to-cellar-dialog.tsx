@@ -47,7 +47,7 @@ export function AddToCellarDialog({
     setError('');
     setIsSubmitting(true);
     try {
-      const qty = Math.max(1, Math.floor(Number(quantity)) || 1);
+      const qty = Math.min(99, Math.max(1, Math.floor(Number(quantity)) || 1));
       const priceStr = priceNis.trim().replace(/,/g, '.');
       const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
       const body: Record<string, unknown> = { userId, wine, quantity: qty };
@@ -103,8 +103,9 @@ export function AddToCellarDialog({
                 <Input
                   type="number"
                   min={1}
+                  max={99}
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)}
+                  onChange={(e) => setQuantity(Math.min(99, parseInt(e.target.value, 10) || 1))}
                   className="w-full"
                 />
               </div>

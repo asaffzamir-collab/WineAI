@@ -19,15 +19,17 @@ export function CellarHeader() {
   const { open: openSommelier } = useSommelier();
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0 flex-1">
+    <div className="space-y-2">
+      {/* Title row — right padding on mobile to clear the fixed guide/settings icons */}
+      <div className="pe-20 md:pe-0">
         <h1 className="text-title text-foreground truncate">{t('title')}</h1>
         {activeRack && activeTab === 'rack' && (
           <p className="text-small text-muted-foreground truncate">{activeRack.name}</p>
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* Action buttons — separate row on mobile, inline on desktop */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         {activeTab === 'rack' && (
           <>
             <HeatmapToggle />
