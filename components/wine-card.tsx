@@ -24,7 +24,7 @@ function ComparisonSpectrumBar({
   const clamp = (v: number) => Math.max(3, Math.min(97, v));
   const pLeft = clamp(profileValue);
   const wLeft = clamp(wineValue);
-  const isClose = Math.abs(profileValue - wineValue) <= 7;
+  const isClose = Math.abs(profileValue - wineValue) <= 3;
 
   return (
     <div className="py-1">
@@ -245,11 +245,7 @@ export function WineCard({
                 <span className="text-sm font-semibold">{rangeText}</span>
               </div>
               <span className="text-sm text-stone-600 dark:text-stone-400">
-                {wine.vivino_reviews != null ? (
-                  <>{wine.vivino_reviews.toLocaleString()} {t('reviews')}</>
-                ) : (
-                  t('ratingEstimate')
-                )}
+                {t('ratingEstimate')}
               </span>
               <a
                 href={`https://www.vivino.com/search/wines?q=${encodeURIComponent(`${wine.winery} ${wine.name}`)}`}

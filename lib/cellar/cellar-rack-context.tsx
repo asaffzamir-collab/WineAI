@@ -5,7 +5,7 @@ import React, {
 } from 'react';
 import type { CellarItem } from '@/components/pages/cellar-page';
 import type {
-  Rack, Placement, SlotId, CellarFilters,
+  Rack, Placement, SlotId, CellarFilters, ReadinessTag,
 } from './types';
 import { DEFAULT_FILTERS, createDefaultRack, computeAllSlots } from './types';
 import { cellarItemToPlacement, matchesFilters, sortPlacements } from './utils';
@@ -188,10 +188,12 @@ interface CellarRackProviderProps {
   userId: string;
   initialItems: CellarItem[];
   placeItemId?: string | null;
+  initialFilter?: string | null;
+  initialTab?: string | null;
 }
 
 export function CellarRackProvider({
-  children, userId, initialItems, placeItemId,
+  children, userId, initialItems, placeItemId, initialFilter, initialTab,
 }: CellarRackProviderProps) {
   const [racks, setRacks] = useState<Rack[]>([]);
   const [activeRackId, setActiveRackIdState] = useState<string | null>(null);
@@ -205,9 +207,16 @@ export function CellarRackProvider({
     }
   });
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
-  const [filters, setFilters] = useState<CellarFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<CellarFilters>(() => {
+    if (initialFilter === 'ready') return { ...DEFAULT_FILTERS, readiness: ['ready'] as ReadinessTag[] };
+    return DEFAULT_FILTERS;
+  });
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
-  const [activeTab, setActiveTab] = useState<TabId>('rack');
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (initialTab === 'list' || initialTab === 'insights') return initialTab;
+    if (initialFilter) return 'list';
+    return 'rack';
+  });
   const [heatmapEnabled, setHeatmapEnabled] = useState(false);
   const [isRackBuilderOpen, setIsRackBuilderOpen] = useState(false);
   const [editingRack, setEditingRack] = useState<Rack | null>(null);

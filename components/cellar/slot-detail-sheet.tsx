@@ -43,9 +43,14 @@ export function SlotDetailSheet() {
     if (!placement) return;
     setIsSaving(true);
     try {
+      const now = new Date().toISOString();
       if (placement.quantity <= 1) {
-        await fetch(`/api/cellar?id=${placement.cellarItemId}`, { method: 'DELETE' });
-        unassignSlot(selectedSlotId!);
+        await fetch('/api/cellar', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: placement.cellarItemId, quantity: 0, consumedAt: now }),
+        });
+        if (selectedSlotId) unassignSlot(selectedSlotId);
         setSelectedSlotId(null);
       } else {
         await fetch('/api/cellar', {

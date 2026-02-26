@@ -223,3 +223,35 @@ export async function cacheTasteSpectrum(
     // best-effort
   }
 }
+
+/**
+ * Force-update a wine's Vivino-sourced data (taste_spectrum, alcohol, rating).
+ * Unlike cacheTasteSpectrum, this always overwrites existing values so that
+ * stale AI-generated data is replaced by real Vivino data.
+ */
+export async function cacheEnrichmentData(
+  name: string,
+  winery: string,
+  data: {
+    taste_spectrum: { body: number; tannin: number; sweetness: number; acidity: number };
+    alcohol?: number;
+    vivino_rating?: number;
+  },
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const update: Record<string, unknown> = {
+      taste_spectrum: data.taste_spectrum,
+    };
+    if (data.alcohol != null) update.alcohol = data.alcohol;
+    if (data.vivino_rating != null) update.vivino_rating = data.vivino_rating;
+
+    await supabase
+      .from('wines')
+      .update(update)
+      .eq('name', name)
+      .eq('winery', winery);
+  } catch {
+    // best-effort
+  }
+}

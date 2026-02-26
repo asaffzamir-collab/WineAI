@@ -55,28 +55,46 @@ export function SlotDetailPanel() {
 
   const loadOpenedState = useCallback(() => {
     if (!userId || !selectedSlotId) return;
-    const data = getOpenedData(userId);
     const cellarId = selectedPlacement?.cellarItemId;
+    // Prefer DB value (from placement), fall back to localStorage
+    if (selectedPlacement?.openedAt) {
+      setOpenedAt(selectedPlacement.openedAt);
+      return;
+    }
+    const data = getOpenedData(userId);
     setOpenedAt(cellarId ? data[cellarId] ?? null : null);
-  }, [userId, selectedSlotId, selectedPlacement?.cellarItemId]);
+  }, [userId, selectedSlotId, selectedPlacement?.cellarItemId, selectedPlacement?.openedAt]);
 
   useEffect(() => { loadOpenedState(); }, [loadOpenedState]);
 
-  const handleMarkOpened = () => {
+  const handleMarkOpened = async () => {
     if (!userId || !selectedPlacement) return;
-    const data = getOpenedData(userId);
     const now = new Date().toISOString();
+    // Persist to localStorage for fast 3D view access
+    const data = getOpenedData(userId);
     data[selectedPlacement.cellarItemId] = now;
     setOpenedData(userId, data);
     setOpenedAt(now);
+    // Persist to DB
+    await fetch('/api/cellar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selectedPlacement.cellarItemId, openedAt: now }),
+    }).catch(() => {});
   };
 
-  const handleUnmarkOpened = () => {
+  const handleUnmarkOpened = async () => {
     if (!userId || !selectedPlacement) return;
     const data = getOpenedData(userId);
     delete data[selectedPlacement.cellarItemId];
     setOpenedData(userId, data);
     setOpenedAt(null);
+    // Persist to DB
+    await fetch('/api/cellar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selectedPlacement.cellarItemId, openedAt: null }),
+    }).catch(() => {});
   };
 
   if (!selectedSlotId) return null;
@@ -89,8 +107,13 @@ export function SlotDetailPanel() {
     if (!placement) return;
     setIsSaving(true);
     try {
+      const now = new Date().toISOString();
       if (placement.quantity <= 1) {
-        await fetch(`/api/cellar?id=${placement.cellarItemId}`, { method: 'DELETE' });
+        await fetch('/api/cellar', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: placement.cellarItemId, quantity: 0, consumedAt: now }),
+        });
         unassignSlot(selectedSlotId);
         setSelectedSlotId(null);
       } else {

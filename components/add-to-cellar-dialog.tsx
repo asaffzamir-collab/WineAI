@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Gift, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -31,6 +31,7 @@ export function AddToCellarDialog({
 
   const [quantity, setQuantity] = useState(1);
   const [priceNis, setPriceNis] = useState('');
+  const [isGift, setIsGift] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,6 +39,7 @@ export function AddToCellarDialog({
     if (wine) {
       setQuantity(1);
       setPriceNis('');
+      setIsGift(false);
       setError('');
     }
   }, [wine]);
@@ -48,12 +50,16 @@ export function AddToCellarDialog({
     setIsSubmitting(true);
     try {
       const qty = Math.max(1, Math.floor(Number(quantity)) || 1);
-      const priceStr = priceNis.trim().replace(/,/g, '.');
-      const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
       const body: Record<string, unknown> = { userId, wine, quantity: qty };
 
-      if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
-        body.purchasePrice = purchasePrice;
+      if (isGift) {
+        body.isGift = true;
+      } else {
+        const priceStr = priceNis.trim().replace(/,/g, '.');
+        const purchasePrice = priceStr === '' ? undefined : parseFloat(priceStr);
+        if (purchasePrice != null && !Number.isNaN(purchasePrice) && purchasePrice >= 0) {
+          body.purchasePrice = purchasePrice;
+        }
       }
       if (bottlePhotoUrl) {
         body.bottlePhotoUrl = bottlePhotoUrl;
@@ -108,20 +114,34 @@ export function AddToCellarDialog({
                   className="w-full"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
-                  {tCellar('purchasePriceNis')}
-                </label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0"
-                  value={priceNis}
-                  onChange={(e) => setPriceNis(e.target.value)}
-                  className="w-full"
+              <label className="flex items-center gap-2.5 cursor-pointer select-none rounded-lg border border-border px-3 py-2.5 transition-colors hover:bg-muted/40">
+                <input
+                  type="checkbox"
+                  checked={isGift}
+                  onChange={(e) => setIsGift(e.target.checked)}
+                  className="h-4 w-4 rounded border-stone-300 text-bordeaux-500 focus:ring-bordeaux-500"
                 />
-                <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
-              </div>
+                <Gift className="h-4 w-4 text-bordeaux-400 flex-shrink-0" strokeWidth={1.5} />
+                <span className="text-sm font-medium text-stone-600 dark:text-stone-400">
+                  {tCellar('markAsGift')}
+                </span>
+              </label>
+              {!isGift && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-stone-400">
+                    {tCellar('purchasePriceNis')}
+                  </label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={priceNis}
+                    onChange={(e) => setPriceNis(e.target.value)}
+                    className="w-full"
+                  />
+                  <p className="mt-1 text-xs text-stone-600/70 dark:text-stone-400/70">{tCellar('priceOptional')}</p>
+                </div>
+              )}
             </div>
             {error && (
               <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">

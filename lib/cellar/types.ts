@@ -48,6 +48,9 @@ export interface Placement {
   readinessTag?: ReadinessTag;
   drinkFrom?: string | null;
   drinkUntil?: string | null;
+  openedAt?: string | null;
+  consumedAt?: string | null;
+  isGift?: boolean;
   imageUrl?: string;
   rating?: number;
   region?: string;

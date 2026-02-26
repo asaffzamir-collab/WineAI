@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ place?: string }>;
+  searchParams: Promise<{ place?: string; filter?: string; tab?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -20,6 +20,8 @@ export default async function Page({
   const userId = session.user.id;
   const params = await searchParams;
   const placeItemId = params.place || null;
+  const initialFilter = params.filter || null;
+  const initialTab = params.tab || null;
 
   let cellarItems: CellarItem[] = [];
   try {
@@ -27,7 +29,7 @@ export default async function Page({
       .from('cellar_items')
       .select(`
         id, quantity, purchase_price, purchase_date, notes,
-        drink_from, drink_until, slot_id,
+        drink_from, drink_until, slot_id, opened_at, consumed_at, is_gift,
         wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
       `)
       .eq('user_id', userId)
@@ -38,7 +40,7 @@ export default async function Page({
         .from('cellar_items')
         .select(`
           id, quantity, purchase_price, purchase_date, notes,
-          drink_from, drink_until,
+          drink_from, drink_until, opened_at, consumed_at, is_gift,
           wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
         `)
         .eq('user_id', userId)
@@ -51,5 +53,5 @@ export default async function Page({
     console.error('Cellar page error:', e);
   }
 
-  return <NewCellarPage userId={userId} initialItems={cellarItems} placeItemId={placeItemId} />;
+  return <NewCellarPage userId={userId} initialItems={cellarItems} placeItemId={placeItemId} initialFilter={initialFilter} initialTab={initialTab} />;
 }

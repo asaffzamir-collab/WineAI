@@ -59,6 +59,9 @@ export interface CellarItem {
   drink_from?: string | null;
   drink_until?: string | null;
   slot_id?: string | null;
+  opened_at?: string | null;
+  consumed_at?: string | null;
+  is_gift?: boolean;
   wines: CellarWineData | CellarWineData[] | null;
 }
 

@@ -14,7 +14,7 @@ export function CellarSidebar() {
   const {
     racks, activeRackId, setActiveRackId,
     setIsRackBuilderOpen, setEditingRack, deleteRack,
-    allPlacements, unassignedPlacements,
+    allPlacements,
   } = useCellarRack();
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -124,13 +124,6 @@ export function CellarSidebar() {
           ))}
         </div>
       </div>
-
-      {/* Unassigned count */}
-      {unassignedPlacements.length > 0 && (
-        <div className="rounded-lg bg-warning-muted/50 px-3 py-2 text-xs text-warning">
-          {t('unassignedCount', { count: unassignedPlacements.length })}
-        </div>
-      )}
 
       <Separator />
 

@@ -68,6 +68,7 @@ interface TopCountry {
 
 interface Stats {
   winesTasted: number;
+  winesOpenedOrConsumed: number;
   bottlesInCellar: number;
   wishlistCount: number;
   readyToDrink: number;
@@ -129,6 +130,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const [showCelebration, setShowCelebration] = useState(false);
   const [stats, setStats] = useState<Stats>({
     winesTasted: 0,
+    winesOpenedOrConsumed: 0,
     bottlesInCellar: 0,
     wishlistCount: 0,
     readyToDrink: 0,
@@ -240,6 +242,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       setStats({
         displayName: data.displayName ?? initialDisplayName ?? undefined,
         winesTasted: data.winesTasted ?? 0,
+        winesOpenedOrConsumed: data.winesOpenedOrConsumed ?? 0,
         bottlesInCellar: data.bottlesInCellar ?? 0,
         wishlistCount: data.wishlistCount ?? 0,
         readyToDrink: data.readyToDrink ?? 0,
@@ -335,12 +338,12 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
   const statCards = [
     {
-      label: t('winesTasted'),
-      value: stats.winesTasted,
+      label: t('winesOpenedOrConsumed'),
+      value: stats.winesOpenedOrConsumed,
       icon: Sparkles,
       color: 'text-bordeaux-500',
       bg: 'bg-bordeaux-50',
-      href: '/cellar',
+      href: null,
     },
     {
       label: t('bottlesInCellar'),
@@ -356,7 +359,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       icon: Clock,
       color: 'text-success',
       bg: 'bg-success-muted',
-      href: '/cellar?filter=ready',
+      href: '/cellar?filter=ready&tab=list',
     },
     {
       label: t('wishlistCount'),
@@ -452,9 +455,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {statCards.map((stat, idx) => (
-            <Link key={idx} href={stat.href}>
-              <Card className="overflow-hidden cursor-pointer card-hover">
+          {statCards.map((stat, idx) => {
+            const card = (
+              <Card className={`overflow-hidden ${stat.href ? 'cursor-pointer card-hover' : ''}`}>
                 <CardContent className="p-4">
                   <div className={`mb-2 inline-flex rounded-xl p-2.5 ${stat.bg}`}>
                     <stat.icon className={`h-5 w-5 ${stat.color}`} strokeWidth={1.5} />
@@ -465,8 +468,13 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                   <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
                 </CardContent>
               </Card>
-            </Link>
-          ))}
+            );
+            return stat.href ? (
+              <Link key={idx} href={stat.href}>{card}</Link>
+            ) : (
+              <div key={idx}>{card}</div>
+            );
+          })}
         </div>
 
         {/* Spend Cards */}

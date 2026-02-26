@@ -8,22 +8,22 @@ function tryAdminClient() {
 
 export const dynamic = 'force-dynamic';
 
-/** Ensure quantity is a positive integer. Defaults to 1 for invalid/missing values. */
+/** Ensure quantity is a non-negative integer. Defaults to 1 for invalid/missing values. Allows 0 for consumed wines. */
 function sanitizeQuantity(raw: unknown): number {
   const n = Math.floor(Number(raw));
-  if (!Number.isFinite(n) || n < 1) return 1;
+  if (!Number.isFinite(n) || n < 0) return 1;
   return n;
 }
 
 const CELLAR_SELECT_FULL = `
   id, quantity, purchase_price, purchase_date, notes,
-  drink_from, drink_until, slot_id,
+  drink_from, drink_until, slot_id, opened_at, consumed_at, is_gift,
   wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
 `;
 
 const CELLAR_SELECT_NO_SLOT = `
   id, quantity, purchase_price, purchase_date, notes,
-  drink_from, drink_until,
+  drink_from, drink_until, opened_at, consumed_at, is_gift,
   wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
 `;
 
@@ -66,12 +66,12 @@ export async function GET(request: Request) {
 
 function normalizeWineForDb(wine: Record<string, unknown>) {
   const wineType = wine.wine_type;
-  const normalizedType =
-    typeof wineType === 'string'
-      ? (wineType.toLowerCase() as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert')
-      : undefined;
+  let normalizedType =
+    typeof wineType === 'string' ? wineType.toLowerCase() : '';
+  // Handle accented rosé → rose
+  normalizedType = normalizedType.replace(/é/g, 'e');
   const validTypes = ['red', 'white', 'rose', 'sparkling', 'dessert'];
-  const safeWineType = normalizedType && validTypes.includes(normalizedType) ? normalizedType : 'red';
+  const safeWineType = validTypes.includes(normalizedType) ? normalizedType : 'red';
   const grapes = wine.grapes;
   const grapesArray = Array.isArray(grapes)
     ? grapes.map((g) => (typeof g === 'string' ? g : String(g)))
@@ -97,7 +97,7 @@ function normalizeWineForDb(wine: Record<string, unknown>) {
 
 export async function POST(request: Request) {
   try {
-    const { userId, wine, quantity, purchasePrice, purchaseDate, storageLocation, notes, bottlePhotoUrl, slotId } = await request.json();
+    const { userId, wine, quantity, purchasePrice, purchaseDate, storageLocation, notes, bottlePhotoUrl, slotId, isGift } = await request.json();
     if (!userId || !wine?.name || !wine?.winery) {
       return NextResponse.json({ error: 'Missing userId or wine name and winery' }, { status: 400 });
     }
@@ -141,6 +141,7 @@ export async function POST(request: Request) {
     };
     if (bottlePhotoUrl) cellarRow.bottle_photo_url = bottlePhotoUrl;
     if (slotId) cellarRow.slot_id = slotId;
+    if (isGift) cellarRow.is_gift = true;
 
     let cellarResult = await supabase.from('cellar_items').insert(cellarRow).select('id').single();
     if (cellarResult.error) {
@@ -180,6 +181,9 @@ export async function PATCH(request: Request) {
     if ('storageLocation' in body) updates.storage_location = body.storageLocation ?? null;
     if ('purchaseDate' in body) updates.purchase_date = body.purchaseDate ?? null;
     if ('slotId' in body) updates.slot_id = body.slotId ?? null;
+    if ('openedAt' in body) updates.opened_at = body.openedAt ?? null;
+    if ('consumedAt' in body) updates.consumed_at = body.consumedAt ?? null;
+    if ('isGift' in body) updates.is_gift = body.isGift ?? false;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });

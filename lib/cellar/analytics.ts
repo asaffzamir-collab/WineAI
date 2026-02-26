@@ -12,7 +12,9 @@ type CellarEvent =
   | 'tonight_mode_from_cellar'
   | 'heatmap_toggled'
   | 'view_switched'
-  | 'rack_builder_opened';
+  | 'rack_builder_opened'
+  | 'list_drink'
+  | 'list_mark_opened';
 
 export function trackCellar(
   event: CellarEvent,

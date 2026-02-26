@@ -26,6 +26,8 @@ export function cellarItemToPlacement(
 ): Placement | null {
   const wine = getWineFromItem(item);
   if (!wine) return null;
+  // Skip fully consumed items from active cellar views
+  if (item.consumed_at && item.quantity <= 0) return null;
   return {
     slotId: slotId || '',
     cellarItemId: item.id,
@@ -40,6 +42,9 @@ export function cellarItemToPlacement(
     readinessTag: computeReadiness(item.drink_from, item.drink_until),
     drinkFrom: item.drink_from,
     drinkUntil: item.drink_until,
+    openedAt: item.opened_at,
+    consumedAt: item.consumed_at,
+    isGift: item.is_gift,
     imageUrl: wine.image_url,
     rating: wine.vivino_rating,
     region: wine.region,

@@ -31,20 +31,8 @@ interface NewCellarPageProps {
   userId: string;
   initialItems: CellarItem[];
   placeItemId?: string | null;
-}
-
-function MobileUnassignedBanner() {
-  const { unassignedPlacements } = useCellarRack();
-  const t = useTranslations('cellar');
-
-  if (unassignedPlacements.length === 0) return null;
-
-  return (
-    <div className="lg:hidden rounded-xl bg-warning-muted/30 border border-warning/20 px-3 py-2 text-xs text-warning font-medium flex items-center gap-2">
-      <Wine className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
-      {t('unassignedCount', { count: unassignedPlacements.length })}
-    </div>
-  );
+  initialFilter?: string | null;
+  initialTab?: string | null;
 }
 
 function MobileRackSelector() {
@@ -199,10 +187,9 @@ function CellarContent() {
           <CellarTabs />
         </div>
 
-        {/* Mobile rack selector + unassigned banner */}
+        {/* Mobile rack selector */}
         <div className="mt-3 lg:hidden space-y-2">
           <MobileRackSelector />
-          <MobileUnassignedBanner />
         </div>
 
         {/* Desktop layout with sidebar */}
@@ -263,7 +250,7 @@ function CellarContent() {
   );
 }
 
-export function NewCellarPage({ userId, initialItems, placeItemId }: NewCellarPageProps) {
+export function NewCellarPage({ userId, initialItems, placeItemId, initialFilter, initialTab }: NewCellarPageProps) {
   const t = useTranslations('cellar');
   const { gender } = useUser();
   const g = { gender };
@@ -274,7 +261,7 @@ export function NewCellarPage({ userId, initialItems, placeItemId }: NewCellarPa
         fallbackMessage={t('errorDesc', g)}
         retryLabel={t('errorRetry', g)}
       >
-        <CellarRackProvider userId={userId} initialItems={initialItems} placeItemId={placeItemId}>
+        <CellarRackProvider userId={userId} initialItems={initialItems} placeItemId={placeItemId} initialFilter={initialFilter} initialTab={initialTab}>
           <CellarContent />
         </CellarRackProvider>
       </CellarErrorBoundary>
