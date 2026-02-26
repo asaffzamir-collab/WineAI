@@ -499,6 +499,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {statCards.map((stat, idx) => {
+            const isLastOdd = idx === statCards.length - 1 && statCards.length % 2 !== 0;
             const card = (
               <Card className={`overflow-hidden ${stat.href ? 'cursor-pointer card-hover' : ''}`}>
                 <CardContent className="p-4">
@@ -512,10 +513,11 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
                 </CardContent>
               </Card>
             );
+            const wrapper = isLastOdd ? 'col-span-2 md:col-span-1' : '';
             return stat.href ? (
-              <Link key={idx} href={stat.href}>{card}</Link>
+              <Link key={idx} href={stat.href} className={wrapper}>{card}</Link>
             ) : (
-              <div key={idx}>{card}</div>
+              <div key={idx} className={wrapper}>{card}</div>
             );
           })}
         </div>
