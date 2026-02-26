@@ -39,36 +39,42 @@ export async function GET(request: Request) {
     const sixMonthsFromNow = new Date(now);
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
 
-    const bottlesInCellar = cellarItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    const totalSpent = cellarItems.reduce(
-      (sum, item) => sum + (item.purchase_price || 0) * (item.quantity || 0),
-      0
+    // Separate consumed wines from active ones (untouched + opened)
+    const activeItems = cellarItems.filter(
+      (item) => !(item as Record<string, unknown>).consumed_at || item.quantity > 0
     );
-
-    const cellarItemValues: { id: string; value: number }[] = cellarItems.map((item) => ({
-      id: item.id,
-      value: (item.purchase_price || 0) * (item.quantity || 0),
-    }));
 
     const winesOpenedOrConsumed = cellarItems.filter(
       (item) => (item as Record<string, unknown>).opened_at || (item as Record<string, unknown>).consumed_at
     ).length;
 
-    const readyToDrink = cellarItems.filter((item) => {
+    // All counts/insights below use activeItems only
+    const bottlesInCellar = activeItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const totalSpent = activeItems.reduce(
+      (sum, item) => sum + (item.purchase_price || 0) * (item.quantity || 0),
+      0
+    );
+
+    const cellarItemValues: { id: string; value: number }[] = activeItems.map((item) => ({
+      id: item.id,
+      value: (item.purchase_price || 0) * (item.quantity || 0),
+    }));
+
+    const readyToDrink = activeItems.filter((item) => {
       const drinkFrom = item.drink_from ? new Date(item.drink_from).getFullYear() : 0;
       const drinkUntil = item.drink_until ? new Date(item.drink_until).getFullYear() : 9999;
       return currentYear >= drinkFrom && currentYear <= drinkUntil;
     }).length;
 
     // Expiring wines: drink_until is within the next 6 months
-    const expiringWines = cellarItems.filter((item) => {
+    const expiringWines = activeItems.filter((item) => {
       if (!item.drink_until) return false;
       const drinkUntilDate = new Date(item.drink_until);
       return drinkUntilDate >= now && drinkUntilDate <= sixMonthsFromNow;
     }).length;
 
-    // Recent cellar additions (last 3) — include full wine data to avoid extra API calls
-    const recentCellarItems = cellarItems.slice(0, 3).map((item) => {
+    // Recent cellar additions (last 3, active only)
+    const recentCellarItems = activeItems.slice(0, 3).map((item) => {
       const wine = item.wines as unknown as Record<string, unknown> | null;
       return {
         id: item.id,
@@ -92,17 +98,17 @@ export async function GET(request: Request) {
       };
     });
 
-    // Wine type distribution from cellar
+    // Wine type distribution (active only)
     const typeCount: Record<string, number> = {};
-    for (const item of cellarItems) {
+    for (const item of activeItems) {
       const wine = item.wines as unknown as Record<string, unknown> | null;
       const wineType = (wine?.wine_type as string) || 'unknown';
       typeCount[wineType] = (typeCount[wineType] || 0) + (item.quantity || 1);
     }
 
-    // Top countries from cellar
+    // Top countries (active only)
     const countryCount: Record<string, number> = {};
-    for (const item of cellarItems) {
+    for (const item of activeItems) {
       const wine = item.wines as unknown as Record<string, unknown> | null;
       const country = wine?.country as string | undefined;
       if (country) {
