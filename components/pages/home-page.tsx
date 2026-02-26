@@ -19,6 +19,9 @@ import {
   Wallet,
   BookOpen,
   Crown,
+  GlassWater,
+  CircleCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -66,9 +69,18 @@ interface TopCountry {
   count: number;
 }
 
+interface OpenWineAlert {
+  wineName: string;
+  winery: string;
+  remaining: number;
+  isExpired: boolean;
+}
+
 interface Stats {
   winesTasted: number;
-  winesOpenedOrConsumed: number;
+  winesOpened: number;
+  winesConsumed: number;
+  openWineAlerts: OpenWineAlert[];
   bottlesInCellar: number;
   wishlistCount: number;
   readyToDrink: number;
@@ -130,7 +142,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
   const [showCelebration, setShowCelebration] = useState(false);
   const [stats, setStats] = useState<Stats>({
     winesTasted: 0,
-    winesOpenedOrConsumed: 0,
+    winesOpened: 0,
+    winesConsumed: 0,
+    openWineAlerts: [],
     bottlesInCellar: 0,
     wishlistCount: 0,
     readyToDrink: 0,
@@ -242,7 +256,9 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       setStats({
         displayName: data.displayName ?? initialDisplayName ?? undefined,
         winesTasted: data.winesTasted ?? 0,
-        winesOpenedOrConsumed: data.winesOpenedOrConsumed ?? 0,
+        winesOpened: data.winesOpened ?? 0,
+        winesConsumed: data.winesConsumed ?? 0,
+        openWineAlerts: data.openWineAlerts ?? [],
         bottlesInCellar: data.bottlesInCellar ?? 0,
         wishlistCount: data.wishlistCount ?? 0,
         readyToDrink: data.readyToDrink ?? 0,
@@ -338,12 +354,20 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
   const statCards = [
     {
-      label: t('winesOpenedOrConsumed'),
-      value: stats.winesOpenedOrConsumed,
-      icon: Sparkles,
+      label: t('winesOpened'),
+      value: stats.winesOpened,
+      icon: GlassWater,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50',
+      href: '/cellar?filter=opened&tab=list',
+    },
+    {
+      label: t('winesConsumed'),
+      value: stats.winesConsumed,
+      icon: CircleCheck,
       color: 'text-bordeaux-500',
       bg: 'bg-bordeaux-50',
-      href: null,
+      href: '/consumed',
     },
     {
       label: t('bottlesInCellar'),
@@ -451,10 +475,29 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
           </Card>
         )}
 
-        {/* Notifications removed — stats grid provides same info */}
+        {/* Open Wine Alerts */}
+        {!isLoading && stats.openWineAlerts.length > 0 && (
+          <div className="space-y-2">
+            {stats.openWineAlerts.map((alert, idx) => (
+              <Card key={idx} className={`overflow-hidden border ${alert.isExpired ? 'border-destructive/40 bg-destructive/5' : 'border-amber-300/40 bg-amber-50/50 dark:bg-amber-900/10'}`}>
+                <CardContent className="flex items-center gap-3 p-3">
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${alert.isExpired ? 'bg-destructive/10' : 'bg-amber-100 dark:bg-amber-800/20'}`}>
+                    <AlertTriangle className={`h-4 w-4 ${alert.isExpired ? 'text-destructive' : 'text-amber-600 dark:text-amber-400'}`} strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{alert.wineName}</p>
+                    <p className={`text-xs ${alert.isExpired ? 'text-destructive' : 'text-amber-700 dark:text-amber-300'}`}>
+                      {alert.isExpired ? t('openWineExpired') : t('openWineAlert', { days: Math.abs(alert.remaining) })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {statCards.map((stat, idx) => {
             const card = (
               <Card className={`overflow-hidden ${stat.href ? 'cursor-pointer card-hover' : ''}`}>

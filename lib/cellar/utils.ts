@@ -90,6 +90,10 @@ export function matchesFilters(
     if (!filters.regions.some((r) => region.includes(r.toLowerCase()))) return false;
   }
 
+  if (filters.openedOnly) {
+    if (!placement.openedAt || placement.consumedAt) return false;
+  }
+
   return true;
 }
 

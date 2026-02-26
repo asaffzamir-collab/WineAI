@@ -75,7 +75,10 @@
     "greetingAfternoonGuest": "Good afternoon!",
     "greetingEveningGuest": "Good evening!",
     "winesTasted": "Wines tasted",
-    "winesOpenedOrConsumed": "Wines consumed",
+    "winesOpened": "Wines opened",
+    "winesConsumed": "Consumed",
+    "openWineAlert": "Drink soon — only {days} day left",
+    "openWineExpired": "Past recommended drinking window",
     "bottlesInCellar": "Bottles in cellar",
     "wishlistCount": "In wishlist",
     "readyToDrink": "Ready to drink",
@@ -378,6 +381,11 @@
     "chooseLocation": "Choose spot in rack",
     "drinkingWindow": "Drinking window",
     "placeFromUnassigned": "Place a bottle from your collection"
+  },
+  "consumed": {
+    "title": "Consumed Wines",
+    "empty": "No consumed wines yet",
+    "emptyDescription": "Wines you mark as consumed will appear here as your tasting history"
   },
   "wishlist": {
     "title": "My Wishlist",

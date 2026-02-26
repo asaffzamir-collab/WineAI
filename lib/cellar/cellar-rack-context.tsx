@@ -209,6 +209,7 @@ export function CellarRackProvider({
   const [selectedSlotId, setSelectedSlotId] = useState<SlotId | null>(null);
   const [filters, setFilters] = useState<CellarFilters>(() => {
     if (initialFilter === 'ready') return { ...DEFAULT_FILTERS, readiness: ['ready'] as ReadinessTag[] };
+    if (initialFilter === 'opened') return { ...DEFAULT_FILTERS, openedOnly: true };
     return DEFAULT_FILTERS;
   });
   const [viewMode, setViewMode] = useState<ViewMode>('3d');

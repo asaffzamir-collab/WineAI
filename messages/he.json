@@ -75,7 +75,10 @@
     "greetingAfternoonGuest": "צהריים טובים!",
     "greetingEveningGuest": "ערב טוב!",
     "winesTasted": "יינות שנטעמו",
-    "winesOpenedOrConsumed": "יינות שנפתחו",
+    "winesOpened": "יינות פתוחים",
+    "winesConsumed": "נצרכו",
+    "openWineAlert": "שתו בקרוב — נותר {days} יום",
+    "openWineExpired": "חלון השתייה המומלץ חלף",
     "bottlesInCellar": "בקבוקים במרתף",
     "wishlistCount": "ברשימת המשאלות",
     "readyToDrink": "מוכנים לשתייה",
@@ -378,6 +381,11 @@
     "chooseLocation": "{gender, select, female {בחרי} other {בחר}} מקום במקרר",
     "drinkingWindow": "חלון שתייה",
     "placeFromUnassigned": "{gender, select, female {הניחי} other {הנח}} בקבוק מהאוסף שלך"
+  },
+  "consumed": {
+    "title": "יינות שנצרכו",
+    "empty": "אין עדיין יינות שנצרכו",
+    "emptyDescription": "יינות שתסמנו כנצרכו יופיעו כאן כהיסטוריית הטעימות שלכם"
   },
   "wishlist": {
     "title": "רשימת המשאלות שלי",

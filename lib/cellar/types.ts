@@ -65,6 +65,7 @@ export interface CellarFilters {
   minRating: number;
   regions: string[];
   sort: SortOption;
+  openedOnly?: boolean;
 }
 
 export type SortOption = 'name' | 'date-added' | 'price' | 'rating' | 'readiness';

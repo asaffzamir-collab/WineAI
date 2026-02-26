@@ -44,9 +44,29 @@ export async function GET(request: Request) {
       (item) => !(item as Record<string, unknown>).consumed_at || item.quantity > 0
     );
 
-    const winesOpenedOrConsumed = cellarItems.filter(
-      (item) => (item as Record<string, unknown>).opened_at || (item as Record<string, unknown>).consumed_at
+    const winesOpened = cellarItems.filter(
+      (item) => (item as Record<string, unknown>).opened_at && !(item as Record<string, unknown>).consumed_at && item.quantity > 0
     ).length;
+
+    const winesConsumed = cellarItems.filter(
+      (item) => !!(item as Record<string, unknown>).consumed_at
+    ).length;
+
+    const OPEN_WINE_DAYS: Record<string, number> = {
+      red: 5, white: 3, rose: 3, sparkling: 1, dessert: 14,
+    };
+    const openWineAlerts = cellarItems
+      .filter((item) => (item as Record<string, unknown>).opened_at && !(item as Record<string, unknown>).consumed_at && item.quantity > 0)
+      .map((item) => {
+        const wine = Array.isArray(item.wines) ? item.wines[0] : item.wines;
+        const w = wine as Record<string, unknown> | null;
+        const wineType = ((w?.wine_type as string) || '').toLowerCase();
+        const maxDays = OPEN_WINE_DAYS[wineType] ?? 5;
+        const elapsed = Math.floor((Date.now() - new Date((item as Record<string, unknown>).opened_at as string).getTime()) / 86400000);
+        const remaining = maxDays - elapsed;
+        return { wineName: w?.name as string, winery: w?.winery as string, remaining, isExpired: remaining <= 0 };
+      })
+      .filter((a) => a.remaining <= 1);
 
     // All counts/insights below use activeItems only
     const bottlesInCellar = activeItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -136,7 +156,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       displayName: profileRes.data?.display_name ?? null,
       winesTasted: tastingsRes.count ?? 0,
-      winesOpenedOrConsumed,
+      winesOpened,
+      winesConsumed,
+      openWineAlerts,
       bottlesInCellar,
       wishlistCount: wishlistRes.count ?? 0,
       readyToDrink,
