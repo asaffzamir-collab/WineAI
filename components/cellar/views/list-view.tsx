@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@/lib/user-context';
 import {
-  Wine, MapPin, Star, MoreHorizontal, GlassWater, WineOff,
+  Wine, MapPin, Star, MoreHorizontal, CircleCheck, WineOff,
   StickyNote, Sparkles, Eye, Loader2, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -160,7 +160,7 @@ function ListItem({
           >
             {isDrinking
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <GlassWater className="h-3.5 w-3.5" strokeWidth={1.5} />}
+              : <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.5} />}
             {t('actionDrink')}
           </Button>
           {!placement.openedAt && (

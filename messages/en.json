@@ -348,7 +348,7 @@
     "slotLayer": "Layer {layer}",
     "slotEmptyHint": "Place a bottle here to start tracking it",
     "slotPlaceBottle": "Place a bottle",
-    "actionDrink": "Drink",
+    "actionDrink": "Consumed",
     "actionMove": "Move",
     "actionNote": "Note",
     "actionAskSommelier": "Sommelier",

@@ -348,7 +348,7 @@
     "slotLayer": "שכבה {layer}",
     "slotEmptyHint": "{gender, select, female {הניחי} other {הנח}} בקבוק כאן כדי להתחיל לעקוב אחריו",
     "slotPlaceBottle": "{gender, select, female {הניחי} other {הנח}} בקבוק",
-    "actionDrink": "שתה",
+    "actionDrink": "נצרך",
     "actionMove": "הזז",
     "actionNote": "הערה",
     "actionAskSommelier": "סומלייה",

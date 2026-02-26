@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
+import { Wine, CircleCheck, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -245,7 +245,7 @@ export function SlotDetailSheet() {
               {/* Horizontal quick actions — all wired */}
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-shrink-0" onClick={handleDrink} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GlassWater className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.5} />}
                   {t('actionDrink')}
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-shrink-0" onClick={() => setShowMovePicker(true)}>

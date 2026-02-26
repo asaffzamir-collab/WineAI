@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { X, Wine, GlassWater, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye, WineOff } from 'lucide-react';
+import { X, Wine, CircleCheck, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye, WineOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -376,7 +376,7 @@ export function SlotDetailPanel() {
                 onClick={handleDrink}
                 disabled={isSaving}
               >
-                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GlassWater className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.5} />}
                 {t('actionDrink')}
               </Button>
               {!openedAt && (
