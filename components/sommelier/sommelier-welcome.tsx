@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@/lib/user-context';
 import { Search, ArrowRight } from 'lucide-react';
-import { PierHeadAvatar } from './sommelier-trigger';
+import { PierCharacter } from './sommelier-trigger';
 
 interface Props {
   displayName: string | null;
@@ -25,7 +25,7 @@ export function SommelierWelcome({ displayName }: Props) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-bordeaux-600 via-bordeaux-700 to-bordeaux-900 px-6 text-center">
       <div className="mb-8">
-        <PierHeadAvatar className="h-20 w-20 rounded-full ring-2 ring-white/20" />
+        <PierCharacter className="h-28 w-28 rounded-2xl ring-2 ring-white/20 drop-shadow-lift" />
       </div>
 
       <h1 className="font-serif text-3xl font-bold text-white mb-3">
