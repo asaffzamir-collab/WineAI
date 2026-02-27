@@ -80,6 +80,7 @@ export interface ProfileMatchResult {
   explanation?: string;
   positive_matches: string[];
   mismatches: string[];
+  why_drink_it?: string;
   similar_wines_note?: string;
   wine_spectrum?: TasteSpectrum;
   profile_spectrum?: TasteSpectrum;
@@ -302,7 +303,7 @@ export async function matchWineToProfile(
 ): Promise<ProfileMatchResult> {
   const lang = language || 'he';
   const langInstruction = lang === 'he'
-    ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, similar_wines_note) in Hebrew.'
+    ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, why_drink_it, similar_wines_note) in Hebrew.'
     : '';
 
   // If wine already has taste_spectrum from search, include it; otherwise ask AI to estimate.
@@ -336,7 +337,7 @@ Compare these numbers to the wine's spectrum. Large gaps (>20 points) on any axi
       messages: [
         {
           role: 'system',
-          content: `You are a critical, honest wine sommelier. Compare the wine to the user's taste profile and provide an accurate match analysis. Your job is to PROTECT the user from buying wines they won't enjoy — do NOT inflate scores.
+          content: `You are a critical, honest wine sommelier and educator. Compare the wine to the user's taste profile and provide a RICH, INSIGHTFUL match analysis. Your job is to PROTECT the user from buying wines they won't enjoy — do NOT inflate scores. But also EDUCATE them about the wine and their own palate.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
@@ -376,14 +377,28 @@ CRITICAL RULES:
 - Use the FULL range 0-100. A semi-dry wine for a dry-wine lover should score 30-45, not 75+.
 - Be honest about mismatches. List every significant gap in the "mismatches" array.
 
+=== OUTPUT QUALITY GUIDELINES ===
+Write like a knowledgeable sommelier friend giving personal advice — not like a database comparison.
+
+- "explanation": A rich 3-5 sentence bottom-line summary. Describe the wine's character, the user's palate personality, and how they relate. End with a clear verdict. Example: "Edizione Cinque Autoctoni is a bold, complex Italian blend with rich fruit, spice, and a powerful structure. Your palate gravitates toward restrained, elegant wines with bright acidity — think Burgundy and classic Sangiovese. While this wine shares your love of Italian character and complexity, its full body and ripe-fruit sweetness push it beyond your comfort zone. A fascinating wine, but not your natural sweet spot."
+
+- "positive_matches": Each item should be 1-2 sentences with CONTEXT. Don't just state a fact — explain why it matters for this user. Example: "This blend includes Sangiovese, which you love for its bright cherry notes and firm acidity — it anchors the blend with some of the elegance you prefer."
+
+- "mismatches": Each item should be 1-2 sentences explaining the IMPACT. Don't just say "body doesn't match" — explain what it means. Example: "The full, extracted body with rich oak leans toward a powerful style rather than the restrained, medium-bodied elegance you typically gravitate toward in wines like Chianti or Burgundy."
+
+- "why_drink_it": 2-3 sentences about when/why the user might still enjoy this wine despite mismatches — suggest food pairings, occasions, or what to appreciate about it. For high-match wines, explain what makes it special for them. Example: "Pair it with a rich beef stew or aged hard cheeses and this wine comes alive. If you're in the mood to explore beyond your usual elegant style, this is a quality introduction to bold Italian blends."
+
+- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile, with a brief reason why. Example: "Try Sassoalloro from Jacopo Biondi Santi — it offers Italian complexity with the medium body and bright acidity you prefer. Chianti Classico Riserva from Fontodi is another excellent match."
+
 Return this EXACT structure — NO extra keys:
 {
   "match_percentage": 50,
-  "explanation": "A concise 1-2 sentence explanation of why this wine matches or doesn't match the user's profile.",
+  "explanation": "Rich 3-5 sentence summary...",
   "wine_spectrum": { "body": 55, "tannin": 40, "sweetness": 25, "acidity": 35 },
-  "positive_matches": ["Medium body aligns with your preference", "..."],
-  "mismatches": ["Semi-dry sweetness conflicts with your preference for dry wines", "..."],
-  "similar_wines_note": "Optional note about similar wines the user has enjoyed or would prefer instead"
+  "positive_matches": ["1-2 sentence insight with context...", "..."],
+  "mismatches": ["1-2 sentence insight explaining impact...", "..."],
+  "why_drink_it": "2-3 sentences about when/why to enjoy it...",
+  "similar_wines_note": "1-2 specific alternative wine recommendations with reasons..."
 }
 ${spectrumInstruction}${spectrumComparisonHint}
 
@@ -397,7 +412,7 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
         },
       ],
       temperature: 0.3,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     const content = response.choices?.[0]?.message?.content;

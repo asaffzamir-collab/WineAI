@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@/lib/user-context';
-import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart } from 'lucide-react';
+import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart, Lightbulb } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -451,6 +451,16 @@ export function WineCard({
                   </li>
                 ))}
               </ul>
+            )}
+
+            {matchResult.why_drink_it && (
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-copper-50 dark:bg-copper-900/20 p-3">
+                <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
+                <div>
+                  <p className="text-xs font-semibold text-copper-600 dark:text-copper-400 mb-1">{t('whyDrinkIt')}</p>
+                  <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-400">{matchResult.why_drink_it}</p>
+                </div>
+              </div>
             )}
 
             {matchResult.similar_wines_note && (

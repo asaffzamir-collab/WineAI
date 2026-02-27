@@ -198,7 +198,8 @@
     "spectrumSweetnessRight": "Sweet",
     "spectrumAcidityLeft": "Soft",
     "spectrumAcidityRight": "Acidic",
-    "spectrumMatch": "Match"
+    "spectrumMatch": "Match",
+    "whyDrinkIt": "Why drink it anyway?"
   },
   "profile": {
     "title": "My Taste Profile",
