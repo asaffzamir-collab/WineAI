@@ -439,6 +439,8 @@
     "signOut": "Sign out",
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
+    "notifications": "Notifications",
+    "notificationsDesc": "Get alerts about cellar updates and recommendations",
     "guideCard": "App Guide & What's New",
     "guideCardDesc": "Learn about features and see recent updates",
     "legal": "Legal",
@@ -901,5 +903,14 @@
     "faq3A": "Absolutely. Your wine data, taste profile, and cellar are always preserved regardless of your plan.",
     "faq4Q": "Will pricing change after the beta?",
     "faq4A": "Beta users will receive 30 days of free access to all features when paid plans launch."
+  },
+  "pwa": {
+    "title": "Install WineJourney",
+    "body": "Add WineJourney to your home screen for a faster, app-like experience.",
+    "iosBody": "Add WineJourney to your home screen for a faster, app-like experience with notifications.",
+    "iosTap": "Tap",
+    "iosThen": "then \"Add to Home Screen\"",
+    "install": "Install",
+    "dismiss": "Dismiss"
   }
 }

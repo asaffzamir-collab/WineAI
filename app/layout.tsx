@@ -74,6 +74,16 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={locale === 'he' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="WineJourney" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* iPhone 15 Pro Max, 15 Plus, 14 Pro Max (430x932 @3x) */}
+        <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="/icon-512.png" />
+        {/* iPhone 15 Pro, 15, 14 Pro, 14 (393x852 @3x) */}
+        <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="/icon-512.png" />
+        {/* iPhone SE 3rd gen, 8 (375x667 @2x) */}
+        <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/icon-512.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.theme==='dark'||(!('theme' in localStorage)&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}`,

@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2, Crown } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2, Crown, Bell, BellOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { isPushSupported, isNotificationGranted, subscribeToPush, unsubscribeFromPush } from '@/lib/push-notifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,11 +72,16 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const tCommon = useTranslations('common');
   const tGuide = useTranslations('guide');
 
   useEffect(() => {
     setIsDarkMode(document.documentElement.classList.contains('dark'));
+    setPushSupported(isPushSupported());
+    setPushEnabled(isNotificationGranted());
   }, []);
 
   const toggleDarkMode = () => {
@@ -140,6 +146,21 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
       setProfileMessage({ type: 'error', text: t('profileSaveError') });
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const togglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        const ok = await subscribeToPush(userId);
+        setPushEnabled(ok);
+      }
+    } finally {
+      setPushLoading(false);
     }
   };
 
@@ -454,6 +475,38 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                 </button>
               </CardContent>
             </Card>
+
+            {/* Push Notifications */}
+            {pushSupported && (
+              <Card>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-2">
+                    {pushEnabled ? <Bell className="h-4 w-4" strokeWidth={1.5} /> : <BellOff className="h-4 w-4" strokeWidth={1.5} />}
+                    <div>
+                      <span className="text-sm font-semibold">{t('notifications')}</span>
+                      <p className="text-xs text-muted-foreground">{t('notificationsDesc')}</p>
+                    </div>
+                  </div>
+                  <button
+                    dir="ltr"
+                    onClick={togglePush}
+                    disabled={pushLoading}
+                    className={`relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full transition-colors duration-200 ${
+                      pushEnabled ? 'bg-bordeaux-500' : 'bg-ivory-400 dark:bg-charcoal-600'
+                    } ${pushLoading ? 'opacity-60 cursor-wait' : ''}`}
+                    role="switch"
+                    aria-checked={pushEnabled}
+                    aria-label={t('notifications')}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-[20px] w-[20px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                        pushEnabled ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                      }`}
+                    />
+                  </button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Admin Panel */}
             {isAdmin && (

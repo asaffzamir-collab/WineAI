@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { BookOpen, Settings } from 'lucide-react';
 import { Sidebar } from '@/components/sidebar';
 import { BottomNav } from '@/components/bottom-nav';
+import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { SommelierProvider, useSommelier } from '@/components/sommelier/sommelier-context';
 import { SommelierTrigger } from '@/components/sommelier/sommelier-trigger';
 import { SommelierPanel } from '@/components/sommelier/sommelier-panel';
@@ -84,6 +85,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
 
         <MobileTopActions />
+        <PwaInstallBanner />
         <BottomNav />
         <SommelierTrigger />
         <SommelierPanel />
