@@ -16,9 +16,8 @@
 import { execSync } from 'child_process';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const BASE_URL = process.env.CHANGELOG_API_URL || process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'http://localhost:3000';
+const BASE_URL = process.env.CHANGELOG_API_URL
+  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
 if (!OPENAI_API_KEY) {
   console.warn('[changelog] OPENAI_API_KEY not set, skipping changelog generation.');
@@ -103,28 +102,38 @@ Return ONLY valid JSON, no markdown.`,
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function postChangelog(entry) {
   const url = `${BASE_URL}/api/admin/changelog`;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  try {
-    const headers = { 'Content-Type': 'application/json' };
-    if (serviceKey) {
-      headers['x-service-key'] = serviceKey;
-    }
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(entry),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.warn('[changelog] Failed to post changelog entry:', res.status, text);
-    } else {
-      console.log('[changelog] Changelog entry posted successfully.');
-    }
-  } catch (e) {
-    console.warn('[changelog] Could not reach API:', e.message);
+  const headers = { 'Content-Type': 'application/json' };
+  if (serviceKey) {
+    headers['x-service-key'] = serviceKey;
   }
+  const body = JSON.stringify(entry);
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`[changelog] POST attempt ${attempt} to ${url}`);
+      const res = await fetch(url, { method: 'POST', headers, body });
+      if (res.ok) {
+        console.log('[changelog] Changelog entry posted successfully.');
+        return;
+      }
+      const text = await res.text().catch(() => '');
+      console.warn(`[changelog] Attempt ${attempt} failed:`, res.status, text);
+    } catch (e) {
+      console.warn(`[changelog] Attempt ${attempt} error:`, e.message);
+    }
+    if (attempt < 3) {
+      console.log(`[changelog] Waiting 60s before retry...`);
+      await sleep(60_000);
+    }
+  }
+  console.warn('[changelog] All attempts failed.');
 }
 
 async function main() {
