@@ -1,19 +1,33 @@
 import { NextResponse } from 'next/server';
-import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:support@winejourney.co';
+let vapidConfigured = false;
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+async function getWebPush() {
+  const wp = (await import('web-push')).default;
+
+  if (!vapidConfigured) {
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const subject = process.env.VAPID_SUBJECT || 'mailto:support@winejourney.co';
+
+    if (publicKey && privateKey) {
+      wp.setVapidDetails(subject, publicKey, privateKey);
+      vapidConfigured = true;
+    }
+  }
+
+  return wp;
 }
 
 export async function POST(request: Request) {
   try {
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
     if (!vapidPublicKey || !vapidPrivateKey) {
       return NextResponse.json({ error: 'Push not configured' }, { status: 503 });
     }
@@ -28,6 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'userId and title required' }, { status: 400 });
     }
 
+    const webpush = await getWebPush();
     const supabase = createAdminClient();
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')
