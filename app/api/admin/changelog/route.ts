@@ -26,11 +26,16 @@ export async function GET() {
 }
 
 /**
- * POST /api/admin/changelog — admin-only: create a new changelog entry
+ * POST /api/admin/changelog — admin or build-time service key: create a new changelog entry
  */
 export async function POST(request: Request) {
-  const { error } = await verifyAdmin();
-  if (error) return error;
+  const serviceKey = request.headers.get('x-service-key');
+  const isServiceAuth = serviceKey && serviceKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!isServiceAuth) {
+    const { error } = await verifyAdmin();
+    if (error) return error;
+  }
 
   try {
     const body = await request.json();

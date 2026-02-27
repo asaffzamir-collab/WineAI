@@ -105,14 +105,20 @@ Return ONLY valid JSON, no markdown.`,
 
 async function postChangelog(entry) {
   const url = `${BASE_URL}/api/admin/changelog`;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (serviceKey) {
+      headers['x-service-key'] = serviceKey;
+    }
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(entry),
     });
     if (!res.ok) {
-      console.warn('[changelog] Failed to post changelog entry:', res.status);
+      const text = await res.text().catch(() => '');
+      console.warn('[changelog] Failed to post changelog entry:', res.status, text);
     } else {
       console.log('[changelog] Changelog entry posted successfully.');
     }

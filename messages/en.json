@@ -906,11 +906,12 @@
   },
   "pwa": {
     "title": "Install WineJourney",
-    "body": "Add WineJourney to your home screen for a faster, app-like experience.",
-    "iosBody": "Add WineJourney to your home screen for a faster, app-like experience with notifications.",
-    "iosTap": "Tap",
-    "iosThen": "then \"Add to Home Screen\"",
-    "install": "Install",
-    "dismiss": "Dismiss"
+    "body": "Get the full app experience with faster loading and push notifications.",
+    "iosStep1": "Tap the menu button",
+    "iosStep2": "Tap Share",
+    "iosStep3": "Tap \"Add to Home Screen\"",
+    "notificationTip": "After installing, open the app and go to Settings to enable notifications for cellar alerts and wine recommendations.",
+    "install": "Install App",
+    "dismiss": "Not now"
   }
 }

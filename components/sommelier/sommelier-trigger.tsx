@@ -95,9 +95,9 @@ export function SommelierTrigger() {
     >
       {/* Coach mark tooltip (first-visit, expanded only) */}
       {showCoachMark && !isOpen && !isMinimized && (
-        <div className="absolute bottom-full mb-3 end-0 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 z-20">
-          <div className="flex items-start gap-2 rounded-xl bg-charcoal-800 dark:bg-charcoal-700 px-4 py-3 text-white shadow-lift max-w-[240px]">
-            <p className="text-xs leading-relaxed">{t('coachMark')}</p>
+        <div className="absolute bottom-full mb-3 end-0 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 z-20 w-[min(220px,calc(100vw-6rem))]">
+          <div className="flex items-start gap-2 rounded-xl bg-charcoal-800 dark:bg-charcoal-700 px-3 py-2.5 text-white shadow-lift">
+            <p className="text-xs leading-relaxed flex-1">{t('coachMark')}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -123,15 +123,14 @@ export function SommelierTrigger() {
         </div>
       )}
 
-      {/* Minimized state: small circular avatar (mobile only) */}
+      {/* Minimized state: small cartoon Pier (mobile only) */}
       {isMinimized ? (
         <button
           onClick={handleClick}
           aria-label={t('fabLabel')}
           className="relative flex items-center justify-center transition-all duration-200 ease-premium hover:scale-110 active:scale-95 focus:outline-none"
         >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-bordeaux-500/90 to-bordeaux-700/90 dark:from-bordeaux-600/80 dark:to-bordeaux-800/80 animate-pier-glow scale-[1.15]" />
-          <PierHeadAvatar className="h-12 w-12 rounded-full drop-shadow-lg relative z-10" />
+          <PierCharacter className="h-14 w-14 rounded-2xl drop-shadow-lg relative z-10" />
         </button>
       ) : (
         <div className="relative">
