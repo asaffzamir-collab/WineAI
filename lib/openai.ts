@@ -305,10 +305,6 @@ export async function matchWineToProfile(
     ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, similar_wines_note) in Hebrew.'
     : '';
 
-  // Build a sanitised copy of profile for the prompt — remove taste_spectrum
-  // so the AI doesn't confuse it with the wine's spectrum or hallucinate profile_spectrum.
-  const { taste_spectrum: _strip, ...profileForPrompt } = profile;
-
   // If wine already has taste_spectrum from search, include it; otherwise ask AI to estimate.
   const hasWineSpectrum = wine.taste_spectrum &&
     typeof wine.taste_spectrum.body === 'number' &&
@@ -323,26 +319,73 @@ export async function matchWineToProfile(
 - acidity: 10-20 = Very Low (oaked Chardonnay, Viognier). 35-45 = Medium (Merlot, Malbec). 55-65 = Medium-High (Sangiovese, Pinot Noir). 70-80 = High (Riesling, Barbera). 85+ = Very High (Assyrtiko).
 Bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) typically show 15-25 sweetness from dried/ripe grapes.`;
 
+  // Build spectrum comparison hint when both sides have numeric spectrums
+  const profileSpectrum = profile.taste_spectrum as { body?: number; tannin?: number; sweetness?: number; acidity?: number } | undefined;
+  let spectrumComparisonHint = '';
+  if (profileSpectrum && typeof profileSpectrum.body === 'number') {
+    spectrumComparisonHint = `\n\nUser's preferred taste_spectrum (numerical): body=${profileSpectrum.body}, tannin=${profileSpectrum.tannin}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}.
+Compare these numbers to the wine's spectrum. Large gaps (>20 points) on any axis indicate a meaningful mismatch that MUST reduce the score. Sweetness mismatches are especially important — a user with sweetness preference of 5-15 (dry) getting a wine at 30+ (semi-dry/sweet) is a MAJOR mismatch.`;
+  }
+
+  // Strip taste_spectrum from the profile blob sent as JSON to avoid duplication
+  const { taste_spectrum: _strip, ...profileForPrompt } = profile;
+
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: `You are a wine sommelier. Compare the wine to the user's taste profile and provide a match analysis.
-          
+          content: `You are a critical, honest wine sommelier. Compare the wine to the user's taste profile and provide an accurate match analysis. Your job is to PROTECT the user from buying wines they won't enjoy — do NOT inflate scores.
+
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
+
+=== SCORING METHODOLOGY ===
+Start from 50 (neutral baseline). Add or subtract based on alignment with the user's profile:
+
+HEAVY PENALTY (-20 to -30 each):
+- Wine matches characteristics listed in the user's "what_to_avoid" — this alone should push the score well below 50
+- Sweetness level mismatch: user prefers dry (sweetness 5-15) but wine is semi-dry/sweet (sweetness 25+), or vice versa
+
+MODERATE PENALTY (-10 to -15 each):
+- Body/structure mismatch (e.g., user prefers medium-bodied elegant wines, wine is heavy/extracted)
+- Acidity preference mismatch (e.g., user loves high-acidity wines, wine has low acidity)
+- Style mismatch (e.g., user prefers complex/mineral wines, wine is simple/fruit-forward)
+
+LIGHT PENALTY (-5 to -10 each):
+- Grape variety not in recommended list but wine style is somewhat compatible
+- Region not in recommended regions
+
+BONUS (+5 to +15 each):
+- Grape variety in the user's recommended_grapes list
+- Region in the user's recommended_regions list
+- Overall style closely matches overall_style description
+- Body, tannin, acidity align well with the user's taste_spectrum (within 15 points)
+
+=== SCORE CALIBRATION ===
+- 90-100: Near-perfect — aligns on all key dimensions (style, body, sweetness, acidity, grapes, regions)
+- 75-89: Strong match — aligns on most dimensions with only minor gaps
+- 55-74: Moderate — some alignment but notable differences on 1-2 key dimensions
+- 35-54: Weak — significant mismatches on key preferences (sweetness, body, style)
+- 15-34: Poor — fundamentally different from what the user enjoys
+- 0-14: Anti-match — wine has characteristics the user actively avoids
+
+CRITICAL RULES:
+- If the wine has ANY characteristic listed in the user's "what_to_avoid", the score MUST be below 50.
+- Scores above 85 should be RARE — reserved only for wines that truly nail the user's specific preferences.
+- Use the FULL range 0-100. A semi-dry wine for a dry-wine lover should score 30-45, not 75+.
+- Be honest about mismatches. List every significant gap in the "mismatches" array.
 
 Return this EXACT structure — NO extra keys:
 {
-  "match_percentage": 85,
+  "match_percentage": 50,
   "explanation": "A concise 1-2 sentence explanation of why this wine matches or doesn't match the user's profile.",
-  "wine_spectrum": { "body": 75, "tannin": 60, "sweetness": 10, "acidity": 50 },
-  "positive_matches": ["High acidity matches your preference", "..."],
-  "mismatches": ["Dark fruit notes - you typically prefer red fruit", "..."],
-  "similar_wines_note": "Similar to wines you've enjoyed before"
+  "wine_spectrum": { "body": 55, "tannin": 40, "sweetness": 25, "acidity": 35 },
+  "positive_matches": ["Medium body aligns with your preference", "..."],
+  "mismatches": ["Semi-dry sweetness conflicts with your preference for dry wines", "..."],
+  "similar_wines_note": "Optional note about similar wines the user has enjoyed or would prefer instead"
 }
-${spectrumInstruction}
+${spectrumInstruction}${spectrumComparisonHint}
 
 CRITICAL: Do NOT include "profile_spectrum" in your response. Only return the keys listed above.`,
         },
@@ -360,8 +403,8 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
     const content = response.choices?.[0]?.message?.content;
     if (!content) {
       return {
-        match_percentage: 75,
-        positive_matches: ['Matches your general preferences'],
+        match_percentage: 50,
+        positive_matches: [],
         mismatches: [],
       };
     }
@@ -375,8 +418,8 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
   } catch (error) {
     console.error('Error matching wine to profile:', error);
     return {
-      match_percentage: 75,
-      positive_matches: ['Matches your general preferences'],
+      match_percentage: 50,
+      positive_matches: [],
       mismatches: [],
     };
   }
