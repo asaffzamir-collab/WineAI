@@ -199,6 +199,15 @@
     "spectrumAcidityLeft": "Soft",
     "spectrumAcidityRight": "Acidic",
     "spectrumMatch": "Match",
+    "spectrumTapHint": "Tap any bar to learn more",
+    "spectrumBodyHint": "How heavy the wine feels in your mouth",
+    "spectrumTanninHint": "The drying, gripping sensation from grape skins",
+    "spectrumSweetnessHint": "How much residual sugar the wine has",
+    "spectrumAcidityHint": "How fresh and crisp the wine tastes",
+    "spectrumBodyExplain": "Body is how heavy or light a wine feels in your mouth. Light wines are refreshing and delicate, like Pinot Noir. Bold wines are rich and full, like Cabernet Sauvignon.",
+    "spectrumTanninExplain": "Tannins create a drying, gripping sensation in your mouth. Smooth wines feel silky and easy to drink. Tannic wines have more structure and pair well with rich food.",
+    "spectrumSweetnessExplain": "Ranges from bone-dry (no residual sugar) to sweet (dessert-like). Most red wines are dry; Riesling and Moscato are examples of sweeter styles.",
+    "spectrumAcidityExplain": "Acidity makes wine taste fresh and lively. Soft wines feel rounder and mellow. Acidic wines are crisp and zesty, great with food.",
     "whyDrinkIt": "Why drink it anyway?"
   },
   "profile": {

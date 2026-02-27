@@ -9,17 +9,25 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult, TasteSpectrum } from '@/lib/openai';
 
-/* ─── Comparison spectrum bar: two indicators on one track ─── */
+/* ─── Comparison spectrum bar: two indicators on one track, tappable ─── */
 function ComparisonSpectrumBar({
   profileValue,
   wineValue,
   leftLabel,
   rightLabel,
+  hint,
+  explanation,
+  isExpanded,
+  onToggle,
 }: {
   profileValue: number;
   wineValue: number;
   leftLabel: string;
   rightLabel: string;
+  hint: string;
+  explanation: string;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
   const clamp = (v: number) => Math.max(3, Math.min(97, v));
   const pLeft = clamp(profileValue);
@@ -27,7 +35,11 @@ function ComparisonSpectrumBar({
   const isClose = Math.abs(profileValue - wineValue) <= 3;
 
   return (
-    <div className="py-1">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full text-start rounded-xl px-1 py-1.5 -mx-1 hover:bg-ivory-300/60 transition-all duration-200 dark:hover:bg-charcoal-600/40"
+    >
       <div className="flex items-center gap-2" dir="ltr">
         <span className="w-12 text-end text-[11px] font-medium text-stone-600 dark:text-stone-400">{leftLabel}</span>
         <div className="relative flex-1 h-[7px] rounded-full bg-ivory-300 dark:bg-charcoal-700">
@@ -51,33 +63,53 @@ function ComparisonSpectrumBar({
         </div>
         <span className="w-12 text-[11px] font-medium text-stone-600 dark:text-stone-400">{rightLabel}</span>
       </div>
-    </div>
+      {isExpanded && (
+        <div className="mt-1.5 space-y-1">
+          <p className="text-[11px] italic text-stone-500 dark:text-stone-400">{hint}</p>
+          <p className="rounded-lg bg-ivory-300 px-2.5 py-1.5 text-xs leading-relaxed text-stone-700 dark:bg-charcoal-700 dark:text-stone-300">
+            {explanation}
+          </p>
+        </div>
+      )}
+    </button>
   );
 }
 
-/* ─── Match spectrum chart: 4 comparison bars with legend ─── */
+const ALL_AXES = [
+  { key: 'body' as const, leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight', hintKey: 'spectrumBodyHint', explainKey: 'spectrumBodyExplain' },
+  { key: 'tannin' as const, leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight', hintKey: 'spectrumTanninHint', explainKey: 'spectrumTanninExplain' },
+  { key: 'sweetness' as const, leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight', hintKey: 'spectrumSweetnessHint', explainKey: 'spectrumSweetnessExplain' },
+  { key: 'acidity' as const, leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight', hintKey: 'spectrumAcidityHint', explainKey: 'spectrumAcidityExplain' },
+];
+
+/* ─── Match spectrum chart: comparison bars with legend + tap-to-explain ─── */
 function MatchSpectrumChart({
   wineSpectrum,
   profileSpectrum,
+  wineType,
+  expandedAxis,
+  onToggleAxis,
   t,
 }: {
   wineSpectrum: TasteSpectrum;
   profileSpectrum: TasteSpectrum;
+  wineType: string;
+  expandedAxis: string | null;
+  onToggleAxis: (key: string) => void;
   t: (key: string) => string;
 }) {
-  const axes = [
-    { key: 'body', leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight' },
-    { key: 'tannin', leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight' },
-    { key: 'sweetness', leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight' },
-    { key: 'acidity', leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight' },
-  ] as const;
+  const isRed = wineType === 'red';
+  const axes = isRed ? ALL_AXES : ALL_AXES.filter((a) => a.key !== 'tannin');
 
   return (
     <div className="mb-2 rounded-xl bg-ivory-200 p-3 dark:bg-charcoal-700/50">
-      <p className="mb-2 text-center text-xs font-medium uppercase tracking-wider text-stone-600 dark:text-stone-400">
+      <p className="mb-0.5 text-center text-xs font-medium uppercase tracking-wider text-stone-600 dark:text-stone-400">
         {t('spectrumCompareTitle')}
       </p>
-      <div className="space-y-0.5">
+      <p className="mb-2 text-center text-[10px] text-stone-500 dark:text-stone-500">
+        {t('spectrumTapHint')}
+      </p>
+      <div className="space-y-0">
         {axes.map((axis) => (
           <ComparisonSpectrumBar
             key={axis.key}
@@ -85,6 +117,10 @@ function MatchSpectrumChart({
             wineValue={wineSpectrum[axis.key]}
             leftLabel={t(axis.leftKey)}
             rightLabel={t(axis.rightKey)}
+            hint={t(axis.hintKey)}
+            explanation={t(axis.explainKey)}
+            isExpanded={expandedAxis === axis.key}
+            onToggle={() => onToggleAxis(axis.key)}
           />
         ))}
       </div>
@@ -136,6 +172,7 @@ export function WineCard({
   const g = { gender };
   const [imageError, setImageError] = useState(false);
   const [lazyImageUrl, setLazyImageUrl] = useState<string | null>(null);
+  const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const lazyFetchDone = useRef(false);
 
@@ -432,6 +469,9 @@ export function WineCard({
               <MatchSpectrumChart
                 wineSpectrum={matchResult.wine_spectrum}
                 profileSpectrum={matchResult.profile_spectrum}
+                wineType={wine.wine_type}
+                expandedAxis={expandedAxis}
+                onToggleAxis={(key) => setExpandedAxis((prev) => (prev === key ? null : key))}
                 t={t}
               />
             )}
@@ -453,12 +493,12 @@ export function WineCard({
               </ul>
             )}
 
-            {matchResult.why_drink_it && (
+            {matchResult.why_drink_it && matchResult.match_percentage < 80 && (
               <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-copper-50 dark:bg-copper-900/20 p-3">
                 <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
                 <div>
                   <p className="text-xs font-semibold text-copper-600 dark:text-copper-400 mb-1">{t('whyDrinkIt')}</p>
-                  <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-400">{matchResult.why_drink_it}</p>
+                  <p className="text-sm leading-relaxed text-stone-800 dark:text-stone-300">{matchResult.why_drink_it}</p>
                 </div>
               </div>
             )}

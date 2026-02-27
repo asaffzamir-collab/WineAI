@@ -320,11 +320,19 @@ export async function matchWineToProfile(
 - acidity: 10-20 = Very Low (oaked Chardonnay, Viognier). 35-45 = Medium (Merlot, Malbec). 55-65 = Medium-High (Sangiovese, Pinot Noir). 70-80 = High (Riesling, Barbera). 85+ = Very High (Assyrtiko).
 Bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) typically show 15-25 sweetness from dried/ripe grapes.`;
 
+  const isRedWine = wine.wine_type === 'red';
+  const tanninInstruction = isRedWine
+    ? ''
+    : '\n\nTANNIN HANDLING: This is NOT a red wine. Most white, rosé, sparkling, and dessert wines have negligible tannin. Set tannin to 0 in wine_spectrum and do NOT factor tannin into the match score at all.';
+
   // Build spectrum comparison hint when both sides have numeric spectrums
   const profileSpectrum = profile.taste_spectrum as { body?: number; tannin?: number; sweetness?: number; acidity?: number } | undefined;
   let spectrumComparisonHint = '';
   if (profileSpectrum && typeof profileSpectrum.body === 'number') {
-    spectrumComparisonHint = `\n\nUser's preferred taste_spectrum (numerical): body=${profileSpectrum.body}, tannin=${profileSpectrum.tannin}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}.
+    const axes = isRedWine
+      ? `body=${profileSpectrum.body}, tannin=${profileSpectrum.tannin}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}`
+      : `body=${profileSpectrum.body}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}`;
+    spectrumComparisonHint = `\n\nUser's preferred taste_spectrum (numerical): ${axes}.
 Compare these numbers to the wine's spectrum. Large gaps (>20 points) on any axis indicate a meaningful mismatch that MUST reduce the score. Sweetness mismatches are especially important — a user with sweetness preference of 5-15 (dry) getting a wine at 30+ (semi-dry/sweet) is a MAJOR mismatch.`;
   }
 
@@ -388,7 +396,7 @@ Write like a knowledgeable sommelier friend giving personal advice — not like 
 
 - "why_drink_it": 2-3 sentences about when/why the user might still enjoy this wine despite mismatches — suggest food pairings, occasions, or what to appreciate about it. For high-match wines, explain what makes it special for them. Example: "Pair it with a rich beef stew or aged hard cheeses and this wine comes alive. If you're in the mood to explore beyond your usual elegant style, this is a quality introduction to bold Italian blends."
 
-- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile, with a brief reason why. Example: "Try Sassoalloro from Jacopo Biondi Santi — it offers Italian complexity with the medium body and bright acidity you prefer. Chianti Classico Riserva from Fontodi is another excellent match."
+- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile, with a brief reason why. NEVER recommend wines that appear in the user's "liked_wines" or "liked_wines_detail" arrays — the user already knows those. Only suggest wines they likely haven't tried. Example: "Try Sassoalloro from Jacopo Biondi Santi — it offers Italian complexity with the medium body and bright acidity you prefer. Chianti Classico Riserva from Fontodi is another excellent match."
 
 Return this EXACT structure — NO extra keys:
 {
@@ -400,7 +408,7 @@ Return this EXACT structure — NO extra keys:
   "why_drink_it": "2-3 sentences about when/why to enjoy it...",
   "similar_wines_note": "1-2 specific alternative wine recommendations with reasons..."
 }
-${spectrumInstruction}${spectrumComparisonHint}
+${spectrumInstruction}${spectrumComparisonHint}${tanninInstruction}
 
 CRITICAL: Do NOT include "profile_spectrum" in your response. Only return the keys listed above.`,
         },
