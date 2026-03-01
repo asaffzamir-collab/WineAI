@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
 import { HeatmapToggle } from '@/components/cellar/rack/readiness-overlay';
+import { MobileFilterSheet } from '@/components/cellar/filters/cellar-filters';
 import { trackCellar } from '@/lib/cellar/analytics';
 
 export function CellarHeader() {
@@ -18,10 +19,11 @@ export function CellarHeader() {
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
 
+  const showFilter = activeTab === 'rack' || activeTab === 'list';
+
   return (
     <div className="space-y-2">
-      {/* Title row — right padding on mobile to clear the fixed guide/settings icons */}
-      <div className="pe-20 md:pe-0">
+      <div>
         <h1 className="text-title text-foreground truncate">{t('title')}</h1>
         {activeRack && activeTab === 'rack' && (
           <p className="text-small text-muted-foreground truncate">{activeRack.name}</p>
@@ -30,6 +32,8 @@ export function CellarHeader() {
 
       {/* Action buttons — separate row on mobile, inline on desktop */}
       <div className="flex items-center gap-1.5 flex-wrap">
+        {showFilter && <MobileFilterSheet />}
+
         {activeTab === 'rack' && (
           <>
             <HeatmapToggle />

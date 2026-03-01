@@ -11,7 +11,6 @@ import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { SommelierProvider, useSommelier } from '@/components/sommelier/sommelier-context';
 import { SommelierTrigger } from '@/components/sommelier/sommelier-trigger';
 import { SommelierPanel } from '@/components/sommelier/sommelier-panel';
-import { cn } from '@/lib/utils';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -34,36 +33,20 @@ function SommelierAutoOpen() {
 function MobileTopActions() {
   const pathname = usePathname();
   const t = useTranslations('nav');
-  const isOnSettings = pathname === '/settings';
-  const isOnGuide = pathname === '/guide';
-  const isOnHome = pathname === '/';
-
-  const defaultStyle = isOnHome
-    ? 'text-white/80 hover:text-white hover:bg-white/10'
-    : 'text-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10';
+  if (pathname !== '/') return null;
 
   return (
-    <div className="fixed top-0 end-0 z-30 flex items-center gap-0.5 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
+    <div className="absolute top-0 end-0 z-30 flex items-center gap-0.5 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
       <Link
         href="/guide"
-        className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-          isOnGuide
-            ? 'bg-bordeaux-100 text-bordeaux-600 dark:bg-bordeaux-900/30 dark:text-bordeaux-300'
-            : defaultStyle,
-        )}
+        className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-white/80 hover:text-white hover:bg-white/10"
         aria-label={t('guide')}
       >
         <BookOpen className="h-[18px] w-[18px]" strokeWidth={1.5} />
       </Link>
       <Link
         href="/settings"
-        className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-          isOnSettings
-            ? 'bg-bordeaux-100 text-bordeaux-600 dark:bg-bordeaux-900/30 dark:text-bordeaux-300'
-            : defaultStyle,
-        )}
+        className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors text-white/80 hover:text-white hover:bg-white/10"
         aria-label={t('settings')}
       >
         <Settings className="h-[18px] w-[18px]" strokeWidth={1.5} />
@@ -72,27 +55,36 @@ function MobileTopActions() {
   );
 }
 
-export function AppShell({ children }: AppShellProps) {
-  return (
-    <SommelierProvider>
-      <div className="min-h-screen">
-        <Sidebar />
+function AppShellContent({ children }: AppShellProps) {
+  const { isOpen } = useSommelier();
 
+  return (
+    <div className="min-h-screen">
+      {/* Hide everything on mobile when Pier is open */}
+      <div className={isOpen ? 'hidden md:contents' : undefined}>
+        <Sidebar />
         <div className="md:pl-16 lg:pl-64">
           <main className="min-h-screen pb-32 md:pb-0">
             {children}
           </main>
         </div>
-
         <MobileTopActions />
         <PwaInstallBanner />
         <BottomNav />
         <SommelierTrigger />
-        <SommelierPanel />
-        <Suspense fallback={null}>
-          <SommelierAutoOpen />
-        </Suspense>
       </div>
+      <SommelierPanel />
+      <Suspense fallback={null}>
+        <SommelierAutoOpen />
+      </Suspense>
+    </div>
+  );
+}
+
+export function AppShell({ children }: AppShellProps) {
+  return (
+    <SommelierProvider>
+      <AppShellContent>{children}</AppShellContent>
     </SommelierProvider>
   );
 }

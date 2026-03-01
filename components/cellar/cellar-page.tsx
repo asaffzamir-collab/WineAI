@@ -17,11 +17,11 @@ import { InsightsView } from './views/insights-view';
 import { SlotDetailPanel } from './slot-detail-panel';
 import { SlotDetailSheet } from './slot-detail-sheet';
 import { RackBuilderModal } from './rack-builder/rack-builder-modal';
-import { MobileFilterSheet } from './filters/cellar-filters';
 import { CellarErrorBoundary } from './cellar-error-boundary';
 import { trackCellar } from '@/lib/cellar/analytics';
 import type { CellarItem } from '@/components/pages/cellar-page';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache } from '@/lib/match-cache';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
   loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
@@ -158,13 +158,27 @@ function CellarContent() {
         if (cancelled) return;
         if (data.wine) {
           setCardWine(data.wine);
+
+          const cached = getCachedMatch(userId, data.wine);
+          if (cached) {
+            setCardMatch(cached);
+            setIsMatchLoading(false);
+            return;
+          }
+
           fetch('/api/wine-match', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ wine: data.wine, userId }),
           })
             .then((r) => r.json())
-            .then((d) => { if (!cancelled) setCardMatch(d.match ?? null); })
+            .then((d) => {
+              if (!cancelled) {
+                const match = d.match ?? null;
+                setCardMatch(match);
+                if (match) setCachedMatch(userId, data.wine, match);
+              }
+            })
             .catch(() => {})
             .finally(() => { if (!cancelled) setIsMatchLoading(false); });
         } else {
@@ -177,8 +191,14 @@ function CellarContent() {
     return () => { cancelled = true; };
   }, [wineCardPlacement, userId]);
 
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
+
   return (
-    <div className="animate-page py-6 md:py-8 lg:py-10">
+    <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <CellarHeader />
 
@@ -220,7 +240,6 @@ function CellarContent() {
       </div>
 
       {/* Mobile bottom sheets */}
-      <MobileFilterSheet />
       <SlotDetailSheet />
       <RackBuilderModal />
 
@@ -242,6 +261,7 @@ function CellarContent() {
               wine={cardWine}
               matchResult={cardMatch || undefined}
               matchLoading={isMatchLoading}
+              openedInfo={wineCardPlacement?.openedAt ? { openedAt: wineCardPlacement.openedAt, wineType: cardWine.wine_type } : undefined}
             />
           ) : null}
         </DialogContent>

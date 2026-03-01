@@ -8,7 +8,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, description, actions, children }: PageHeaderProps) {
   return (
     <header className="mb-6 md:mb-8">
-      <div className="flex items-start justify-between gap-4 pe-20 md:pe-0">
+      <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-title text-foreground">{title}</h1>
           {description && (

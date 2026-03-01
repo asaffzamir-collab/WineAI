@@ -20,6 +20,7 @@ const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.Wi
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache, invalidateAllMatchCaches } from '@/lib/match-cache';
 
 interface WineRowData {
   id: string;
@@ -174,7 +175,16 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     const wine = getWine(selectedItem);
     if (!wine) return;
 
-    setDetailWine(toWineData(wine));
+    const wineData = toWineData(wine);
+    setDetailWine(wineData);
+
+    const cached = getCachedMatch(userId, wineData);
+    if (cached) {
+      setDetailMatch(cached);
+      setIsFetchingMatch(false);
+      return;
+    }
+
     setDetailMatch(null);
     setIsFetchingMatch(true);
 
@@ -182,17 +192,27 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     fetch('/api/wine-match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wine: toWineData(wine), userId }),
+      body: JSON.stringify({ wine: wineData, userId }),
     })
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setDetailMatch(data.match ?? null);
+        if (!cancelled) {
+          const match = data.match ?? null;
+          setDetailMatch(match);
+          if (match) setCachedMatch(userId, wineData, match);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
 
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
+
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
 
   const handleDelete = async (itemId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -220,8 +240,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
         body: JSON.stringify({ userId, wine: toWineData(wine), liked: true }),
       });
       if (res.ok) {
-        window.dispatchEvent(new Event('wine-profile-updated'));
-        setTimeout(() => setIsAddingToProfile(false), 2000);
+        invalidateAllMatchCaches(userId);
       } else {
         setIsAddingToProfile(false);
       }
@@ -315,7 +334,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
 
   return (
     <AppShell>
-      <div className="animate-page py-6 md:py-8 lg:py-10">
+      <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <PageHeader title={t('title')} />
         {/* Empty State */}

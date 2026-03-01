@@ -154,10 +154,10 @@
     "multipleResults": "We found several matches — select yours"
   },
   "wineCard": {
-    "vivinoRating": "Vivino Rating",
-    "ratingEstimate": "Est. rating — verify on Vivino",
+    "vivinoRating": "Est. Rating",
+    "ratingEstimate": "AI estimate — verify on Vivino",
     "verifyOnVivino": "Verify on Vivino",
-    "seeOnVivino": "See bottle on Vivino",
+    "seeOnVivino": "See on Vivino",
     "reviews": "reviews",
     "technicalDetails": "Technical Details",
     "country": "Country",
@@ -208,7 +208,11 @@
     "spectrumTanninExplain": "Tannins create a drying, gripping sensation in your mouth. Smooth wines feel silky and easy to drink. Tannic wines have more structure and pair well with rich food.",
     "spectrumSweetnessExplain": "Ranges from bone-dry (no residual sugar) to sweet (dessert-like). Most red wines are dry; Riesling and Moscato are examples of sweeter styles.",
     "spectrumAcidityExplain": "Acidity makes wine taste fresh and lively. Soft wines feel rounder and mellow. Acidic wines are crisp and zesty, great with food.",
-    "whyDrinkIt": "Why drink it anyway?"
+    "whyDrinkIt": "Why drink it anyway?",
+    "openedExpired": "Opened — past its best",
+    "openedDaysLeft": "Opened — {days}d left to drink",
+    "openedOn": "Opened {date}",
+    "whereToBuy": "Find prices & stores"
   },
   "profile": {
     "title": "My Taste Profile",
@@ -298,6 +302,7 @@
     "filterReady": "Ready to drink",
     "filterHold": "Hold",
     "filterPastPeak": "Past peak",
+    "filterOpened": "Opened",
     "filterEmpty": "No wines match this filter",
     "filterSearch": "Search wines...",
     "filterType": "Type",
@@ -385,7 +390,7 @@
     "pickerHint": "Tap an empty slot to place this bottle",
     "pickerConfirm": "Place here",
     "pickerSkip": "Skip — place later",
-    "heatmapToggle": "Readiness heatmap",
+    "heatmapToggle": "Ready to drink?",
     "emptyRackTitle": "Your rack is ready",
     "emptyRackDescription": "Let's place your first bottle",
     "chooseLocation": "Choose spot in rack",

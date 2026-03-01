@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Thermometer } from 'lucide-react';
+import { GlassWater } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { trackCellar } from '@/lib/cellar/analytics';
@@ -25,7 +25,7 @@ export function HeatmapToggle() {
       }}
       title={t('heatmapToggle')}
     >
-      <Thermometer className="h-3.5 w-3.5" strokeWidth={1.5} />
+      <GlassWater className="h-3.5 w-3.5" strokeWidth={1.5} />
       <span className="hidden sm:inline">{t('heatmapToggle')}</span>
     </Button>
   );

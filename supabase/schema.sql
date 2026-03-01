@@ -204,6 +204,27 @@ CREATE POLICY "Users can update own store prices" ON store_prices
 CREATE POLICY "Users can delete own store prices" ON store_prices
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Wine Match Cache table (persists AI-computed match results per user+wine)
+CREATE TABLE IF NOT EXISTS wine_match_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  wine_key TEXT NOT NULL,
+  match_data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, wine_key)
+);
+
+ALTER TABLE wine_match_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own match cache" ON wine_match_cache
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own match cache" ON wine_match_cache
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own match cache" ON wine_match_cache
+  FOR DELETE USING (auth.uid() = user_id);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_cellar_items_user_id ON cellar_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON wishlist_items(user_id);
@@ -211,3 +232,4 @@ CREATE INDEX IF NOT EXISTS idx_taste_profiles_user_id ON taste_profiles(user_id)
 CREATE INDEX IF NOT EXISTS idx_wine_tastings_user_id ON wine_tastings(user_id);
 CREATE INDEX IF NOT EXISTS idx_wines_name ON wines(name);
 CREATE INDEX IF NOT EXISTS idx_wines_winery ON wines(winery);
+CREATE INDEX IF NOT EXISTS idx_wine_match_cache_user ON wine_match_cache(user_id);

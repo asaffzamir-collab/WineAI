@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { cn, safeId } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { invalidateAllMatchCaches } from '@/lib/match-cache';
 
 interface Choice {
   id: 'a' | 'b';
@@ -14,7 +15,7 @@ interface Choice {
 
 export function SmartRefinement() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow, addConversationItem, refreshState } = useSommelier();
+  const { setActiveFlow, addConversationItem, refreshState, userId } = useSommelier();
   const [choices, setChoices] = useState<Choice[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [choosing, setChoosing] = useState(false);
@@ -47,7 +48,7 @@ export function SmartRefinement() {
           created_at: new Date().toISOString(),
         });
         await refreshState();
-        window.dispatchEvent(new Event('wine-profile-updated'));
+        if (userId) invalidateAllMatchCaches(userId);
       }
     } catch { /* ignore */ }
     finally { setActiveFlow(null); }

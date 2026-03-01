@@ -16,6 +16,7 @@ import { WineListItem } from '@/components/wine-list-item';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
+import { getCachedMatch, setCachedMatch, clearMatchCache, invalidateAllMatchCaches } from '@/lib/match-cache';
 import { UsageLimitModal, parseUsageLimitError } from '@/components/usage-limit-modal';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 
@@ -86,10 +87,18 @@ export function SearchPage({ userId }: SearchPageProps) {
       setIsFetchingRecentMatch(false);
       return;
     }
-    let cancelled = false;
     setDisplayWine(selectedRecentWine);
-    setDisplayMatch(null);
     setIsFetchingDetails(false);
+
+    const cached = getCachedMatch(userId, selectedRecentWine);
+    if (cached) {
+      setDisplayMatch(cached);
+      setIsFetchingRecentMatch(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDisplayMatch(null);
     setIsFetchingRecentMatch(true);
 
     fetch('/api/wine-match', {
@@ -99,12 +108,22 @@ export function SearchPage({ userId }: SearchPageProps) {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setDisplayMatch(data.match ?? null);
+        if (!cancelled) {
+          const match = data.match ?? null;
+          setDisplayMatch(match);
+          if (match) setCachedMatch(userId, selectedRecentWine, match);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingRecentMatch(false); });
     return () => { cancelled = true; };
   }, [selectedRecentWine, userId]);
+
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
 
   const doTextSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
@@ -166,6 +185,17 @@ export function SearchPage({ userId }: SearchPageProps) {
   const handleSelectCandidate = async (wine: WineData) => {
     setWineResult(null);
     setMatchResult(null);
+
+    const cached = getCachedMatch(userId, wine);
+    if (cached) {
+      setWineResult(wine);
+      setMatchResult(cached);
+      setWineCandidates([]);
+      addRecentSearch(userId, wine);
+      setRecentSearches(getRecentSearches(userId));
+      return;
+    }
+
     setIsFetchingMatch(true);
     try {
       const response = await fetch('/api/wine-match', {
@@ -174,11 +204,13 @@ export function SearchPage({ userId }: SearchPageProps) {
         body: JSON.stringify({ wine, userId }),
       });
       const data = await response.json();
+      const match = data.match ?? null;
       setWineResult(wine);
-      setMatchResult(data.match ?? null);
+      setMatchResult(match);
       setWineCandidates([]);
       addRecentSearch(userId, wine);
       setRecentSearches(getRecentSearches(userId));
+      if (match) setCachedMatch(userId, wine, match);
     } catch {
       setWineResult(wine);
       setMatchResult(null);
@@ -395,8 +427,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         return;
       }
       setError('');
-      window.dispatchEvent(new Event('wine-profile-updated'));
-      setTimeout(() => setIsAddingToProfile(false), 2000);
+      invalidateAllMatchCaches(userId);
     } catch (err) {
       console.error('Failed to add to profile:', err);
       setError('Failed to add to profile. Please try again.');
@@ -406,7 +437,7 @@ export function SearchPage({ userId }: SearchPageProps) {
 
   return (
     <AppShell>
-      <div className="animate-page py-6 md:py-8 lg:py-10">
+      <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <PageHeader title={t('title')}>
             <div className="relative mt-4 max-w-xl">

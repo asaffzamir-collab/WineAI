@@ -6,7 +6,7 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { TIER_LIMITS, type UsageType } from '@/lib/usage';
 
-const ADMIN_EMAIL = 'asaffz@winejourney.co';
+const ADMIN_EMAILS = ['asaffz@winejourney.co', 'asaffzamir@gmail.com'];
 const FROM_EMAIL = 'notifications@winejourney.co';
 
 const TYPE_LABELS: Record<UsageType, { en: string; he: string }> = {
@@ -75,7 +75,7 @@ export async function notifyAdminUsageThreshold(
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
+      to: ADMIN_EMAILS,
       subject,
       html,
     });

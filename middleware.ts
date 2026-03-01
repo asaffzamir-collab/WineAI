@@ -33,7 +33,27 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Session refresh ---
-  const { supabaseResponse } = await updateSession(request);
+  const { supabaseResponse, user, supabase } = await updateSession(request);
+
+  // --- Locale fallback: restore cookie from DB when missing (e.g. PWA relaunch) ---
+  if (!request.cookies.get('locale')?.value && user) {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('preferred_language')
+        .eq('id', user.id)
+        .single();
+      if (data?.preferred_language) {
+        supabaseResponse.cookies.set('locale', data.preferred_language, {
+          path: '/',
+          maxAge: 31536000,
+        });
+      }
+    } catch {
+      // best-effort — don't block the request
+    }
+  }
+
   return supabaseResponse;
 }
 

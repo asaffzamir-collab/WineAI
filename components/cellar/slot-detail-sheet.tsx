@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Wine, CircleCheck, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye } from 'lucide-react';
+import { Wine, CircleCheck, ArrowRightLeft, Trash2, StickyNote, Sparkles, Loader2, Check, Eye, WineOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -18,6 +18,25 @@ import { LocationPickerModal } from './location-picker/location-picker-modal';
 
 type SheetMode = 'view' | 'note';
 
+const OPEN_WINE_DAYS: Record<string, number> = {
+  red: 5,
+  white: 3,
+  rose: 3,
+  sparkling: 1,
+  dessert: 14,
+};
+
+function getOpenedData(userId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(`cellar-opened:${userId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function setOpenedDataLS(userId: string, data: Record<string, string>) {
+  try { localStorage.setItem(`cellar-opened:${userId}`, JSON.stringify(data)); } catch {}
+}
+
 export function SlotDetailSheet() {
   const t = useTranslations('cellar');
   const router = useRouter();
@@ -25,7 +44,7 @@ export function SlotDetailSheet() {
     selectedSlotId, setSelectedSlotId, selectedPlacement,
     unassignSlot, moveBottle, assignSlot,
     racks, placementMap, unassignedPlacements,
-    refreshCellar, setWineCardPlacement,
+    refreshCellar, setWineCardPlacement, userId,
   } = useCellarRack();
   const { open: openSommelier } = useSommelier();
   const isDesktop = useMediaQuery('(min-width: 1280px)');
@@ -34,8 +53,48 @@ export function SlotDetailSheet() {
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showMovePicker, setShowMovePicker] = useState(false);
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
 
   const placement = selectedPlacement;
+
+  const loadOpenedState = useCallback(() => {
+    if (!userId || !selectedSlotId) return;
+    if (placement?.openedAt) {
+      setOpenedAt(placement.openedAt);
+      return;
+    }
+    const data = getOpenedData(userId);
+    setOpenedAt(placement?.cellarItemId ? data[placement.cellarItemId] ?? null : null);
+  }, [userId, selectedSlotId, placement?.cellarItemId, placement?.openedAt]);
+
+  useEffect(() => { loadOpenedState(); }, [loadOpenedState]);
+
+  const handleMarkOpened = async () => {
+    if (!userId || !placement) return;
+    const now = new Date().toISOString();
+    const data = getOpenedData(userId);
+    data[placement.cellarItemId] = now;
+    setOpenedDataLS(userId, data);
+    setOpenedAt(now);
+    await fetch('/api/cellar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: placement.cellarItemId, openedAt: now }),
+    }).catch(() => {});
+  };
+
+  const handleUnmarkOpened = async () => {
+    if (!userId || !placement) return;
+    const data = getOpenedData(userId);
+    delete data[placement.cellarItemId];
+    setOpenedDataLS(userId, data);
+    setOpenedAt(null);
+    await fetch('/api/cellar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: placement.cellarItemId, openedAt: null }),
+    }).catch(() => {});
+  };
   const pos = selectedSlotId ? parseSlotId(selectedSlotId) : null;
   const isEmpty = !placement;
 
@@ -226,6 +285,30 @@ export function SlotDetailSheet() {
                 </div>
               )}
 
+              {/* Opened indicator */}
+              {openedAt && (() => {
+                const maxDays = OPEN_WINE_DAYS[placement.wineType] ?? 5;
+                const elapsed = Math.floor((Date.now() - new Date(openedAt).getTime()) / 86400000);
+                const remaining = maxDays - elapsed;
+                const isExpired = remaining <= 0;
+                return (
+                  <div className={cn(
+                    'rounded-lg px-3 py-2 flex items-center justify-between',
+                    isExpired ? 'bg-red-50 dark:bg-red-950/30' : 'bg-amber-50 dark:bg-amber-950/30'
+                  )}>
+                    <div className="flex items-center gap-1.5">
+                      <WineOff className={cn('h-3.5 w-3.5 flex-shrink-0', isExpired ? 'text-red-500' : 'text-amber-500')} strokeWidth={1.5} />
+                      <p className={cn('text-xs font-medium', isExpired ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400')}>
+                        {isExpired ? t('openedExpired') : t('openedTimeLeft', { days: remaining })}
+                      </p>
+                    </div>
+                    <button type="button" onClick={handleUnmarkOpened} className="text-xs text-muted-foreground hover:text-foreground underline">
+                      ✕
+                    </button>
+                  </div>
+                );
+              })()}
+
               {/* Notes */}
               {placement.notes && (
                 <p className="text-xs italic text-muted-foreground px-1">{placement.notes}</p>
@@ -248,6 +331,17 @@ export function SlotDetailSheet() {
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CircleCheck className="h-3.5 w-3.5" strokeWidth={1.5} />}
                   {t('actionDrink')}
                 </Button>
+                {!openedAt && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs flex-shrink-0 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                    onClick={handleMarkOpened}
+                  >
+                    <WineOff className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    {t('actionMarkOpened')}
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-shrink-0" onClick={() => setShowMovePicker(true)}>
                   <ArrowRightLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
                   {t('actionMove')}

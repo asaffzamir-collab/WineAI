@@ -9,6 +9,7 @@ import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { useSommelier } from '../sommelier-context';
 import { PierHeadAvatar } from '../sommelier-trigger';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
+import { invalidateAllMatchCaches } from '@/lib/match-cache';
 
 const WineCard = dynamic(
   () => import('@/components/wine-card').then((m) => m.WineCard),
@@ -127,7 +128,7 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
       });
       if (res.ok) {
         await refreshState();
-        window.dispatchEvent(new Event('wine-profile-updated'));
+        invalidateAllMatchCaches(userId);
       } else {
         setIsAddingToProfile(false);
       }

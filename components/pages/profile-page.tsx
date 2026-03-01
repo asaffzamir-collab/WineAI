@@ -21,6 +21,7 @@ const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.Wi
 });
 import { cn } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache, invalidateAllMatchCaches } from '@/lib/match-cache';
 
 interface LikedWineDetail {
   name: string;
@@ -348,10 +349,19 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
     let cancelled = false;
     setDisplayWine(null);
     setDisplayMatch(null);
-    setIsFetchingMatch(true);
 
     if (hasFullWineData(selectedWine)) {
+      const wineForCache = selectedWine as unknown as WineData;
       setDisplayWine(selectedWine);
+
+      const cached = getCachedMatch(userId, wineForCache);
+      if (cached) {
+        setDisplayMatch(cached);
+        setIsFetchingMatch(false);
+        return;
+      }
+
+      setIsFetchingMatch(true);
       fetch('/api/wine-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,13 +369,18 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
       })
         .then((r) => r.json())
         .then((data) => {
-          if (!cancelled) setDisplayMatch(data.match ?? null);
+          if (!cancelled) {
+            const match = data.match ?? null;
+            setDisplayMatch(match);
+            if (match) setCachedMatch(userId, wineForCache, match);
+          }
         })
         .catch(() => {})
         .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
       return () => { cancelled = true; };
     }
 
+    setIsFetchingMatch(true);
     setIsFetchingWineDetails(true);
     const query = `${String(selectedWine.name)} ${String(selectedWine.winery)}`;
     fetch('/api/wine-search', {
@@ -378,11 +393,21 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
         if (cancelled) return;
         if (data.wine) {
           setDisplayWine(data.wine);
-          setDisplayMatch(data.match ?? null);
+          const match = data.match ?? null;
+          setDisplayMatch(match);
+          if (match && data.wine) setCachedMatch(userId, data.wine, match);
           setIsFetchingMatch(false);
         } else if (Array.isArray(data.wines) && data.wines.length > 0) {
           const bestWine = data.wines[0];
           setDisplayWine(bestWine);
+
+          const cached = getCachedMatch(userId, bestWine);
+          if (cached) {
+            setDisplayMatch(cached);
+            setIsFetchingMatch(false);
+            return;
+          }
+
           fetch('/api/wine-match', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -390,7 +415,11 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
           })
             .then((r2) => r2.json())
             .then((matchData) => {
-              if (!cancelled) setDisplayMatch(matchData.match ?? null);
+              if (!cancelled) {
+                const match = matchData.match ?? null;
+                setDisplayMatch(match);
+                if (match) setCachedMatch(userId, bestWine, match);
+              }
             })
             .catch(() => {})
             .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
@@ -415,7 +444,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
       if (document.visibilityState === 'visible') refreshProfiles();
     };
     const handleFocus = () => refreshProfiles();
-    const handleProfileUpdate = () => refreshProfiles();
+    const handleProfileUpdate = () => { clearMatchCache(userId); refreshProfiles(); };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('wine-profile-updated', handleProfileUpdate);
@@ -487,7 +516,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
         setDisplayWine(null);
       }
       await refreshProfiles();
-      window.dispatchEvent(new Event('wine-profile-updated'));
+      invalidateAllMatchCaches(userId);
     } finally {
       setRemovingKey(null);
     }
@@ -495,7 +524,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
 
   return (
     <AppShell>
-      <div className="animate-page py-6 md:py-8 lg:py-10">
+      <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <PageHeader title={t('title')} />
 

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Heebo, Inter, Playfair_Display } from 'next/font/google';
 import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -26,15 +26,18 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+};
+
 export const metadata: Metadata = {
   title: 'WineJourney - Your Personal Wine Companion',
   description: 'Discover wines tailored to your taste, manage your cellar, and explore new favorites.',
   themeColor: '#5A1E2A',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    viewportFit: 'cover',
-  },
   metadataBase: new URL('https://winejourney.co'),
   openGraph: {
     title: 'WineJourney - Your Personal Wine Companion',

@@ -66,6 +66,7 @@ interface CellarRackContextValue {
 
   userId: string;
   refreshCellar: () => Promise<void>;
+  racksReady: boolean;
 }
 
 const CellarRackContext = createContext<CellarRackContextValue | null>(null);
@@ -537,6 +538,7 @@ export function CellarRackProvider({
     setPlacingItemId,
     userId,
     refreshCellar,
+    racksReady,
   }), [
     racks, activeRackId, activeRack, setActiveRackId, createRack, updateRack, deleteRack,
     cellarItems, placementMap, allPlacements, unassignedPlacements,
@@ -546,7 +548,7 @@ export function CellarRackProvider({
     viewMode, activeTab,
     heatmapEnabled, isRackBuilderOpen, editingRack, isPickerMode,
     wineCardPlacement, placingItemId,
-    userId, refreshCellar,
+    userId, refreshCellar, racksReady,
   ]);
 
   return (

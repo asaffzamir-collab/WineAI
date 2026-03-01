@@ -31,6 +31,7 @@ export function RackView() {
   const {
     activeRack, setIsRackBuilderOpen, setEditingRack,
     placingItemId, setPlacingItemId, racks, placementMap, assignSlot,
+    racksReady,
   } = useCellarRack();
 
   const autoPickerShown = useRef(false);
@@ -41,6 +42,18 @@ export function RackView() {
       autoPickerShown.current = false;
     }
   }, [placingItemId, racks.length]);
+
+  if (!racksReady) {
+    return (
+      <div className="rounded-2xl bg-card shadow-soft p-4">
+        <div className="grid grid-cols-6 gap-2">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[3/5] rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!activeRack) {
     return (

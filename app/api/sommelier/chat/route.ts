@@ -58,10 +58,10 @@ export async function POST(request: Request) {
         .single(),
     ]);
 
-    const combinedProfile = profileResult.data?.reduce(
-      (acc, p) => ({ ...acc, ...(p.profile_data as object) }),
-      {} as Record<string, unknown>
-    ) || {};
+    const combinedProfile = profileResult.data?.reduce((acc, p) => {
+      acc[p.wine_type] = p.profile_data;
+      return acc;
+    }, {} as Record<string, unknown>) || {};
 
     let likedWinesCount = 0;
     for (const tp of (profileResult.data || [])) {
@@ -233,25 +233,62 @@ export async function POST(request: Request) {
                     wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
                   }>;
                 };
+
+                const { searchWinesByText, matchWineToProfile } = await import('@/lib/openai');
+                const top = result.wines?.slice(0, 4) || [];
+
+                const enriched = await Promise.all(
+                  top.map(async (w) => {
+                    const base: ToolResultWine = {
+                      name: w.name,
+                      winery: w.winery,
+                      region: w.region,
+                      grape: w.grape,
+                      wine_type: w.wine_type,
+                      country: w.country,
+                      match: w.match,
+                      reason: w.reason,
+                      tasting_note: w.tasting_note,
+                      food_pairings: w.food_pairings,
+                      positive_matches: w.positive_matches,
+                      mismatches: w.mismatches,
+                      wine_spectrum: w.wine_spectrum,
+                    };
+                    try {
+                      const found = await searchWinesByText(`${w.name} ${w.winery}`);
+                      const fullWine = found?.[0];
+                      if (fullWine && Object.keys(combinedProfile).length > 0) {
+                        const raw = await matchWineToProfile(fullWine, combinedProfile);
+                        base.match = raw.match_percentage;
+                        base.reason = raw.explanation || base.reason;
+                        base.positive_matches = raw.positive_matches;
+                        base.mismatches = raw.mismatches;
+                        base.wine_spectrum = raw.wine_spectrum ? { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity } : base.wine_spectrum;
+                        base.profile_spectrum = raw.profile_spectrum ? { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity } : undefined;
+                        if (fullWine.tasting_notes) base.tasting_notes = fullWine.tasting_notes as ToolResultWine['tasting_notes'];
+                        if (fullWine.vivino_rating) base.vivino_rating = fullWine.vivino_rating;
+                        if (fullWine.vivino_reviews) base.vivino_reviews = fullWine.vivino_reviews;
+                        if (fullWine.alcohol) base.alcohol = String(fullWine.alcohol);
+                        if (fullWine.image_url) base.image_url = fullWine.image_url;
+                        if (fullWine.serving) {
+                          base.serving = {
+                            drink_from: fullWine.serving.drink_from,
+                            drink_until: fullWine.serving.drink_until,
+                            decant_minutes: fullWine.serving.decant_minutes,
+                            temperature_celsius: fullWine.serving.temperature_celsius ? Number(fullWine.serving.temperature_celsius) : undefined,
+                          };
+                        }
+                      }
+                    } catch {}
+                    return base;
+                  }),
+                );
+
                 return {
                   id: tc.id,
                   name: tc.name,
                   result: JSON.stringify(result),
-                  wines: result.wines?.slice(0, 4).map(w => ({
-                    name: w.name,
-                    winery: w.winery,
-                    region: w.region,
-                    grape: w.grape,
-                    wine_type: w.wine_type,
-                    country: w.country,
-                    match: w.match,
-                    reason: w.reason,
-                    tasting_note: w.tasting_note,
-                    food_pairings: w.food_pairings,
-                    positive_matches: w.positive_matches,
-                    mismatches: w.mismatches,
-                    wine_spectrum: w.wine_spectrum,
-                  })) || [],
+                  wines: enriched,
                 };
               } catch {
                 return { id: tc.id, name: tc.name, result: '{}', wines: [] };

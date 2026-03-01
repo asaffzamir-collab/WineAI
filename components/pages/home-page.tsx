@@ -31,6 +31,7 @@ import { WineLogo } from '@/components/wine-logo';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache } from '@/lib/match-cache';
 import { FeatureTour } from '@/components/feature-tour';
 import { useUser } from '@/lib/user-context';
 
@@ -174,6 +175,13 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       setIsFetchingRecentMatch(false);
       return;
     }
+    const cached = getCachedMatch(userId, recentDetailWine);
+    if (cached) {
+      setRecentDetailMatch(cached);
+      setIsFetchingRecentMatch(false);
+      return;
+    }
+
     let cancelled = false;
     setIsFetchingRecentMatch(true);
     setRecentDetailMatch(null);
@@ -183,11 +191,23 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
       body: JSON.stringify({ wine: recentDetailWine, userId }),
     })
       .then((r) => r.json())
-      .then((data) => { if (!cancelled) setRecentDetailMatch(data.match ?? null); })
+      .then((data) => {
+        if (!cancelled) {
+          const match = data.match ?? null;
+          setRecentDetailMatch(match);
+          if (match) setCachedMatch(userId, recentDetailWine, match);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingRecentMatch(false); });
     return () => { cancelled = true; };
   }, [recentDetailWine, selectedRecentItem, userId]);
+
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
 
   useEffect(() => {
     if (!selectedRecentItem) {

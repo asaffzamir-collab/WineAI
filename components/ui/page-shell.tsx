@@ -13,7 +13,7 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <div
-      className={cn('animate-page py-6 md:py-8 lg:py-10', className)}
+      className={cn('animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10', className)}
       {...props}
     >
       <Container size={size}>

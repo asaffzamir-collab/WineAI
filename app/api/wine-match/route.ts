@@ -1,9 +1,40 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import type { WineData } from '@/lib/openai';
+import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+
+function wineKey(name: string, winery: string): string {
+  return `${name.trim().toLowerCase()}|${winery.trim().toLowerCase()}`;
+}
+
+async function getDbCachedMatch(userId: string, key: string): Promise<ProfileMatchResult | null> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('wine_match_cache')
+      .select('match_data')
+      .eq('user_id', userId)
+      .eq('wine_key', key)
+      .single();
+    if (data?.match_data) return data.match_data as ProfileMatchResult;
+  } catch { /* miss */ }
+  return null;
+}
+
+async function setDbCachedMatch(userId: string, key: string, match: ProfileMatchResult): Promise<void> {
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from('wine_match_cache')
+      .upsert(
+        { user_id: userId, wine_key: key, match_data: match, created_at: new Date().toISOString() },
+        { onConflict: 'user_id,wine_key' }
+      );
+  } catch { /* best-effort */ }
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,11 +47,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determine locale from cookie
     const cookieStore = await cookies();
     const locale = cookieStore.get('locale')?.value || 'he';
 
-    // Fetch fresh taste profiles from DB when userId is provided; fall back to client-provided profiles
     let tasteProfiles: Record<string, unknown> = clientProfiles || {};
     if (userId) {
       try {
@@ -36,7 +65,6 @@ export async function POST(request: Request) {
     if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
       return NextResponse.json({ match: null });
     }
-    // Only match against the profile for the SAME wine type — no cross-category fallbacks
     const wineType = (wine as WineData).wine_type ?? '';
     const profileKey = wineType === 'sparkling' || wineType === 'dessert' ? 'white' : wineType;
     const relevantProfile = tasteProfiles[profileKey];
@@ -56,22 +84,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ match: null });
     }
 
-    // Skip matching if profile is built from ≤1 liked wines and NOT from onboarding.
-    // A profile built from a single wine can't meaningfully match other wines yet.
     const likedWines = Array.isArray(p.liked_wines_detail) ? p.liked_wines_detail : [];
     if (!p.from_onboarding && likedWines.length <= 1) {
       return NextResponse.json({ match: null });
     }
 
-    const match = await matchWineToProfile(wine as WineData, p, locale);
+    const wineData = wine as WineData;
+    const key = userId ? wineKey(wineData.name || '', wineData.winery || '') : '';
+
+    let match: ProfileMatchResult | null = null;
+
+    if (key && userId) {
+      match = await getDbCachedMatch(userId, key);
+    }
+
+    if (!match) {
+      match = await matchWineToProfile(wineData, p, locale);
+      if (match && key && userId) {
+        await setDbCachedMatch(userId, key, { ...match });
+      }
+    }
 
     if (match) {
-      // Prefer wine's own taste_spectrum (from search) over AI match-time estimate
-      const ws = (wine as WineData).taste_spectrum;
+      const ws = wineData.taste_spectrum;
       if (ws && typeof ws.body === 'number') {
         match.wine_spectrum = ws;
       }
-      // Always use real DB profile spectrum — never AI-generated
       delete match.profile_spectrum;
       if (p.taste_spectrum && typeof p.taste_spectrum === 'object') {
         match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };

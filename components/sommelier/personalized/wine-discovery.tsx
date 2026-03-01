@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
+import { invalidateAllMatchCaches } from '@/lib/match-cache';
 import type { WineData, ProfileMatchResult, TasteSpectrum } from '@/lib/openai';
 
 const WineCard = dynamic(
@@ -135,7 +136,7 @@ export function WineDiscovery() {
       });
       if (res.ok) {
         await refreshState();
-        window.dispatchEvent(new Event('wine-profile-updated'));
+        invalidateAllMatchCaches(userId);
       } else {
         setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], profile: false } }));
       }

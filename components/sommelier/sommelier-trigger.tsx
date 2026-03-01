@@ -69,8 +69,8 @@ export function SommelierTrigger() {
     <div
       className={cn(
         'fixed z-40 flex items-end gap-2',
-        'right-4 bottom-[76px]',
-        'md:right-6 md:bottom-6',
+        'end-4 bottom-[calc(7rem+env(safe-area-inset-bottom))]',
+        'md:end-6 md:bottom-6',
         isOpen && 'scale-0 opacity-0 pointer-events-none',
         mounted ? 'animate-pier-entrance' : 'opacity-0',
       )}

@@ -353,7 +353,8 @@ Do NOT offer personalized recommendation features yet — explain these unlock a
 ${langInstr(lang)}
 
 ${context.userName ? `User's name: ${context.userName}` : ''}
-User's taste profile: ${JSON.stringify(context.profile)}${discoveryData}
+User's taste profile (organized by wine type — red, white, rose — each with its own preferences, liked wines, and taste spectrum):
+${JSON.stringify(context.profile)}${discoveryData}
 ${cellarSummary}
 ${wishlistSummary}`;
 

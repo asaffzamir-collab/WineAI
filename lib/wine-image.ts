@@ -23,6 +23,7 @@ import {
   isNegativelyCached,
   cacheNegativeResult,
 } from '@/lib/wine-cache';
+import { createAdminClient } from '@/lib/supabase/server';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MIN_IMAGE_BYTES = 5_000;
@@ -416,9 +417,70 @@ async function fetchWineImage(wineName: string, winery: string): Promise<string 
   return null;
 }
 
+// ───────────── Self-host: upload to Supabase Storage ─────────────
+
+const STORAGE_BUCKET = 'wine-images';
+let bucketVerified = false;
+
+function imageStoragePath(wineName: string, winery: string, ext: string): string {
+  const slug = `${winery}_${wineName}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 120);
+  return `${slug}.${ext}`;
+}
+
+async function uploadToStorage(externalUrl: string, wineName: string, winery: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    const res = await fetch(externalUrl, {
+      signal: controller.signal,
+      headers: { 'User-Agent': randomUA() },
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+    const bytes = await res.arrayBuffer();
+    if (bytes.byteLength < MIN_IMAGE_BYTES) return null;
+
+    const supabase = createAdminClient();
+    const path = imageStoragePath(wineName, winery, ext);
+
+    if (!bucketVerified) {
+      const { error: bucketErr } = await supabase.storage.getBucket(STORAGE_BUCKET);
+      if (bucketErr) {
+        await supabase.storage.createBucket(STORAGE_BUCKET, { public: true });
+      }
+      bucketVerified = true;
+    }
+
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, bytes, { contentType, upsert: true });
+
+    if (error) {
+      console.error(`[wine-image] Storage upload failed for "${wineName}":`, error.message);
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    console.log(`[wine-image] Self-hosted: ${publicUrl.publicUrl}`);
+    return publicUrl.publicUrl;
+  } catch (err) {
+    console.error(`[wine-image] Storage upload error for "${wineName}":`, err);
+    return null;
+  }
+}
+
 /**
  * Fetch a wine bottle image URL. Checks the DB first (positive and negative
- * cache); falls back to external sources and persists the result.
+ * cache); falls back to external sources, self-hosts the image in Supabase
+ * Storage, and persists the self-hosted URL.
  */
 export async function fetchWineImageUrl(
   wineName: string,
@@ -428,22 +490,24 @@ export async function fetchWineImageUrl(
   if (cached) {
     const valid = await validateImageUrl(cached);
     if (valid) return valid;
-    // Stale URL — clear it from DB so we re-fetch
     await clearCachedImageUrl(wineName, winery);
     console.warn(`[wine-image] Cleared stale cached URL for: "${wineName}" / "${winery}"`);
   }
 
   if (await isNegativelyCached(wineName, winery)) return null;
 
-  const imageUrl = await fetchWineImage(wineName, winery);
+  const externalUrl = await fetchWineImage(wineName, winery);
 
-  if (imageUrl) {
-    await cacheImageUrl(wineName, winery, imageUrl);
+  if (externalUrl) {
+    const selfHostedUrl = await uploadToStorage(externalUrl, wineName, winery);
+    const finalUrl = selfHostedUrl || externalUrl;
+    await cacheImageUrl(wineName, winery, finalUrl);
+    return finalUrl;
   } else {
     await cacheNegativeResult(wineName, winery);
   }
 
-  return imageUrl;
+  return null;
 }
 
 /**

@@ -20,6 +20,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { WineData } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache } from '@/lib/match-cache';
 
 interface CellarWineData {
   id: string;
@@ -178,6 +179,14 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     if (!wine) return;
     const wineData = toWineData(wine);
     setDetailWine(wineData);
+
+    const cached = getCachedMatch(userId, wineData);
+    if (cached) {
+      setDetailMatch(cached);
+      setIsFetchingMatch(false);
+      return;
+    }
+
     setDetailMatch(null);
     setIsFetchingMatch(true);
 
@@ -189,12 +198,22 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
     })
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setDetailMatch(data.match ?? null);
+        if (!cancelled) {
+          const match = data.match ?? null;
+          setDetailMatch(match);
+          if (match) setCachedMatch(userId, wineData, match);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
+
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
 
   const currentYear = new Date().getFullYear();
 
@@ -549,6 +568,7 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
                     matchResult={detailMatch || undefined}
                     matchLoading={isFetchingMatch}
                     uploadedImageUrl={selectedItem.bottle_photo_url || undefined}
+                    openedInfo={selectedItem.opened_at ? { openedAt: selectedItem.opened_at, wineType: detailWine.wine_type } : undefined}
                   />
 
                   <Card className="border border-border">

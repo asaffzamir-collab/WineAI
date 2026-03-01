@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@/lib/user-context';
-import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart, Lightbulb } from 'lucide-react';
+import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed, Heart, Lightbulb, WineOff, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -142,6 +142,15 @@ function MatchSpectrumChart({
   );
 }
 
+const OPEN_WINE_DAYS: Record<string, number> = {
+  red: 5, white: 3, rose: 3, sparkling: 1, dessert: 14,
+};
+
+function wineSearcherUrl(wine: { name: string; winery?: string; vintage?: number }): string {
+  const parts = [wine.name, wine.winery, wine.vintage].filter(Boolean).join(' ');
+  return `https://www.wine-searcher.com/find/${encodeURIComponent(parts)}/1/israel`;
+}
+
 interface WineCardProps {
   wine: WineData;
   matchResult?: ProfileMatchResult;
@@ -153,6 +162,7 @@ interface WineCardProps {
   isAddingToWishlist?: boolean;
   isAddingToProfile?: boolean;
   uploadedImageUrl?: string;
+  openedInfo?: { openedAt: string; wineType: string };
 }
 
 export function WineCard({
@@ -166,6 +176,7 @@ export function WineCard({
   isAddingToWishlist,
   isAddingToProfile,
   uploadedImageUrl,
+  openedInfo,
 }: WineCardProps) {
   const t = useTranslations('wineCard');
   const { gender } = useUser();
@@ -213,6 +224,27 @@ export function WineCard({
 
   return (
     <Card className="overflow-hidden card-hover">
+      {/* Opened bottle shelf-life banner */}
+      {openedInfo && (() => {
+        const maxDays = OPEN_WINE_DAYS[openedInfo.wineType] ?? 5;
+        const elapsed = Math.floor((Date.now() - new Date(openedInfo.openedAt).getTime()) / 86400000);
+        const remaining = maxDays - elapsed;
+        const isExpired = remaining <= 0;
+        const openDate = new Date(openedInfo.openedAt).toLocaleDateString();
+        return (
+          <div className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm',
+            isExpired ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+          )}>
+            <WineOff className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
+            <span className="font-medium">
+              {isExpired ? t('openedExpired') : t('openedDaysLeft', { days: remaining })}
+            </span>
+            <span className="text-xs opacity-70 ms-auto">{t('openedOn', { date: openDate })}</span>
+          </div>
+        );
+      })()}
+
       {/* Wine Header */}
       <CardHeader className="space-y-4 pb-4">
         <div className="flex items-start gap-4">
@@ -357,13 +389,13 @@ export function WineCard({
           <section className="rounded-xl bg-ivory-200 p-4 dark:bg-charcoal-700/50">
             <h3 className="mb-3 font-semibold text-bordeaux-600 dark:text-ivory-200">{t('tastingProfile')}</h3>
             <div className="space-y-2.5 text-sm">
-              {wine.tasting_notes.nose && (
+              {wine.tasting_notes.nose?.length > 0 && (
                 <div>
                   <span className="font-medium text-bordeaux-500 dark:text-bordeaux-300">{t('nose')}:</span>{' '}
                   <span className="text-stone-600 dark:text-stone-400">{wine.tasting_notes.nose.join(', ')}</span>
                 </div>
               )}
-              {wine.tasting_notes.palate && (
+              {wine.tasting_notes.palate?.length > 0 && (
                 <div>
                   <span className="font-medium text-bordeaux-500 dark:text-bordeaux-300">{t('palate')}:</span>{' '}
                   <span className="text-stone-600 dark:text-stone-400">{wine.tasting_notes.palate.join(', ')}</span>
@@ -432,6 +464,22 @@ export function WineCard({
           </section>
         )}
 
+        {/* Where to Buy */}
+        {wine.name && (
+          <section className="flex">
+            <a
+              href={wineSearcherUrl(wine)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              <Search className="h-4 w-4 text-bordeaux-500 dark:text-bordeaux-300" strokeWidth={1.5} />
+              {t('whereToBuy')}
+              <ExternalLink className="h-3.5 w-3.5 opacity-40" strokeWidth={1.5} />
+            </a>
+          </section>
+        )}
+
         {/* Profile Match */}
         {matchResult ? (
           <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
@@ -494,7 +542,7 @@ export function WineCard({
             )}
 
             {matchResult.why_drink_it && matchResult.match_percentage < 80 && (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-copper-50 dark:bg-copper-900/20 p-3">
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-copper-50 dark:bg-copper-900/40 p-3">
                 <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-copper-500 dark:text-copper-400" strokeWidth={1.5} />
                 <div>
                   <p className="text-xs font-semibold text-copper-600 dark:text-copper-400 mb-1">{t('whyDrinkIt')}</p>

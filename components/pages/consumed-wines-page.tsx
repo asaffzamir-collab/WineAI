@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
+import { getCachedMatch, setCachedMatch, clearMatchCache } from '@/lib/match-cache';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
   loading: () => <div className="flex items-center justify-center py-12"><div className="h-10 w-10 animate-spin rounded-full border-2 border-bordeaux-200 border-t-bordeaux-500" /></div>,
@@ -140,6 +141,13 @@ export function ConsumedWinesPage({ items, userId }: ConsumedWinesPageProps) {
     };
     setDetailWine(wineData);
 
+    const cached = getCachedMatch(userId, wineData);
+    if (cached) {
+      setMatchResult(cached);
+      setIsFetchingMatch(false);
+      return;
+    }
+
     let cancelled = false;
     setIsFetchingMatch(true);
     setMatchResult(null);
@@ -149,11 +157,23 @@ export function ConsumedWinesPage({ items, userId }: ConsumedWinesPageProps) {
       body: JSON.stringify({ wine: wineData, userId }),
     })
       .then((r) => r.json())
-      .then((data) => { if (!cancelled) setMatchResult(data.match ?? null); })
+      .then((data) => {
+        if (!cancelled) {
+          const match = data.match ?? null;
+          setMatchResult(match);
+          if (match) setCachedMatch(userId, wineData, match);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
+
+  useEffect(() => {
+    const handler = () => clearMatchCache(userId);
+    window.addEventListener('wine-profile-updated', handler);
+    return () => window.removeEventListener('wine-profile-updated', handler);
+  }, [userId]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -166,7 +186,7 @@ export function ConsumedWinesPage({ items, userId }: ConsumedWinesPageProps) {
   return (
     <AppShell>
       <div className="animate-page">
-        <header className="mb-6 md:mb-8 px-4 sm:px-6 lg:px-8 pt-4">
+        <header className="mb-6 md:mb-8 px-4 sm:px-6 lg:px-8 pt-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] md:pt-4">
           <div className="mx-auto max-w-3xl flex items-center gap-3">
             <Link href="/" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors">
               <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />

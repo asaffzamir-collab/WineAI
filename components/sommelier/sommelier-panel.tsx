@@ -23,27 +23,12 @@ import { MessageCircle, History } from 'lucide-react';
 import { PierHeadAvatar } from './sommelier-trigger';
 import { UsageLimitModal } from '@/components/usage-limit-modal';
 
-function useVisualViewportHeight() {
-  const [height, setHeight] = useState<number | null>(null);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const update = () => setHeight(vv.height);
-    update();
-    vv.addEventListener('resize', update);
-    return () => vv.removeEventListener('resize', update);
-  }, []);
-
-  return height;
-}
-
-function useLockBodyScroll(locked: boolean) {
+function useLockBodyScrollDesktop(locked: boolean) {
   const scrollY = useRef(0);
 
   useEffect(() => {
-    if (locked) {
+    const isDesktop = window.innerWidth >= 768;
+    if (locked && isDesktop) {
       scrollY.current = window.scrollY;
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY.current}px`;
@@ -55,7 +40,7 @@ function useLockBodyScroll(locked: boolean) {
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
-      window.scrollTo(0, y);
+      if (y) window.scrollTo(0, y);
     }
     return () => {
       document.body.style.position = '';
@@ -71,11 +56,10 @@ type ChatView = 'closed' | { conversationId: string | null; showHistory?: boolea
 export function SommelierPanel() {
   const { isOpen, close, activeFlow, likedWinesCount, usageLimitInfo, setUsageLimitInfo } = useSommelier();
   const hasFullAccess = likedWinesCount >= 2;
-  const vpHeight = useVisualViewportHeight();
   const t = useTranslations('sommelier');
   const [chatView, setChatView] = useState<ChatView>('closed');
 
-  useLockBodyScroll(isOpen);
+  useLockBodyScrollDesktop(isOpen);
 
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -117,8 +101,6 @@ export function SommelierPanel() {
       />
     );
   }
-
-  const mobileMaxH = vpHeight ? `${Math.min(vpHeight * 0.85, vpHeight)}px` : '85dvh';
 
   const renderActiveFlow = () => {
     switch (activeFlow) {
@@ -175,14 +157,12 @@ export function SommelierPanel() {
 
   return (
     <>
-      {/* Overlay */}
+      {/* Desktop: overlay + right drawer */}
       <div
-        className="fixed inset-0 z-[60] bg-black/40 animate-in fade-in-0 duration-200"
+        className="hidden md:block fixed inset-0 z-[60] bg-black/40 animate-in fade-in-0 duration-200"
         onClick={close}
         aria-hidden
       />
-
-      {/* Desktop: Right drawer */}
       <div
         className={cn(
           'fixed z-[60] flex flex-col bg-background shadow-lift',
@@ -196,21 +176,11 @@ export function SommelierPanel() {
         </div>
       </div>
 
-      {/* Mobile: Bottom sheet */}
-      <div
-        className={cn(
-          'fixed z-[60] flex flex-col bg-background rounded-t-2xl shadow-lift md:hidden',
-          'inset-x-0 bottom-0',
-          'animate-slide-in-bottom',
-        )}
-        style={{ maxHeight: mobileMaxH }}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center py-2">
-          <div className="h-1.5 w-12 rounded-full bg-muted" />
-        </div>
+      {/* Mobile: normal document flow (no position:fixed — keyboard works naturally) */}
+      <div className="min-h-[100dvh] flex flex-col bg-background md:hidden">
+        <div className="pt-[env(safe-area-inset-top)]" />
         <PanelHeader />
-        <div className="flex-1 overflow-y-auto min-h-0 pb-20">
+        <div className="flex-1 overflow-y-auto min-h-0 pb-6">
           {panelContent}
         </div>
         <div className="pb-[env(safe-area-inset-bottom)]" />

@@ -160,7 +160,7 @@ export function PlansPage() {
 
   return (
     <AppShell>
-      <div className="animate-page py-6 md:py-8 lg:py-10">
+      <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <PageHeader title={t('title')} description={t('subtitle')} />
 

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
@@ -46,7 +46,7 @@ function FilterContent() {
   };
 
   const hasActiveFilters =
-    filters.search || filters.types.length > 0 || filters.readiness.length > 0 || filters.minRating > 0 || filters.regions.length > 0;
+    filters.search || filters.types.length > 0 || filters.readiness.length > 0 || filters.minRating > 0 || filters.regions.length > 0 || filters.openedOnly;
 
   return (
     <div className="space-y-4">
@@ -105,6 +105,22 @@ function FilterContent() {
         </div>
       </div>
 
+      {/* Opened */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setFilters({ ...filters, openedOnly: !filters.openedOnly })}
+          className={cn(
+            'rounded-full px-3 py-1 text-xs font-medium transition-all',
+            filters.openedOnly
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80',
+          )}
+        >
+          {t('filterOpened')}
+        </button>
+      </div>
+
       {/* Rating */}
       <div>
         <h4 className="text-xs font-medium text-muted-foreground mb-2">
@@ -157,45 +173,46 @@ export function CellarFiltersPanel() {
   return <FilterContent />;
 }
 
-export function MobileFilterSheet() {
-  const t = useTranslations('cellar');
+export function useFilterActiveCount() {
   const { filters } = useCellarRack();
-  const [open, setOpen] = useState(false);
-
-  const activeCount =
+  return (
     (filters.search ? 1 : 0) +
     filters.types.length +
     filters.readiness.length +
     (filters.minRating > 0 ? 1 : 0) +
-    filters.regions.length;
+    filters.regions.length +
+    (filters.openedOnly ? 1 : 0)
+  );
+}
+
+export function MobileFilterSheet() {
+  const t = useTranslations('cellar');
+  const [open, setOpen] = useState(false);
+  const activeCount = useFilterActiveCount();
 
   return (
-    <>
-      {/* Floating filter button - mobile only */}
-      <button
-        type="button"
-        aria-label={t('filterTitle')}
-        onClick={() => setOpen(true)}
-        className="fixed bottom-[100px] start-4 z-40 flex h-11 items-center gap-1.5 rounded-full bg-card shadow-lift border border-border/50 px-3 lg:hidden md:bottom-6"
-      >
-        <SlidersHorizontal className="h-4 w-4 text-foreground" strokeWidth={1.5} />
-        <span className="text-xs font-medium text-foreground">{t('filterTitle')}</span>
-        {activeCount > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-garnet-500 text-white text-[10px] font-bold px-1">
-            {activeCount}
-          </span>
-        )}
-      </button>
-
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-          <div className="flex justify-center py-2 mb-2">
-            <div className="h-1.5 w-12 rounded-full bg-muted" />
-          </div>
-          <h3 className="text-heading text-foreground mb-4">{t('filterTitle')}</h3>
-          <FilterContent />
-        </SheetContent>
-      </Sheet>
-    </>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          aria-label={t('filterTitle')}
+          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-accent transition-colors relative lg:hidden"
+        >
+          <SlidersHorizontal className="h-4 w-4" strokeWidth={1.5} />
+          {activeCount > 0 && (
+            <span className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-garnet-500 text-white text-[9px] font-bold px-0.5">
+              {activeCount}
+            </span>
+          )}
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-center py-2 mb-2">
+          <div className="h-1.5 w-12 rounded-full bg-muted" />
+        </div>
+        <h3 className="text-heading text-foreground mb-4">{t('filterTitle')}</h3>
+        <FilterContent />
+      </SheetContent>
+    </Sheet>
   );
 }

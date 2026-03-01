@@ -4,7 +4,6 @@ import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
 import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
-import { enrichWineData } from '@/lib/wine-enrichment';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
@@ -61,11 +60,7 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      // Enrich with real Vivino data and fetch image in parallel, then match
-      const [imageUrl] = await Promise.all([
-        fetchWineImageUrl(wine.name, wine.winery),
-        enrichWineData(wine),
-      ]);
+      const imageUrl = await fetchWineImageUrl(wine.name, wine.winery);
       if (imageUrl) wine.image_url = imageUrl;
       const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
       // Persist taste_spectrum for future consistency
@@ -98,23 +93,15 @@ export async function POST(request: Request) {
         .map((w, i) => ({ w, i }))
         .filter(({ w }) => !w.image_url);
 
-      const enrichPromises = wines.slice(0, 2).map((w) => enrichWineData(w));
-
-      const parallelTasks: Promise<unknown>[] = [...enrichPromises];
       if (winesMissingImages.length > 0) {
-        parallelTasks.push(
-          fetchWineImagesForMany(
-            winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
-          ).then((imgResults) => {
-            winesMissingImages.forEach(({ i }, mapIdx) => {
-              const url = imgResults.get(`${mapIdx}`);
-              if (url) wines[i].image_url = url;
-            });
-          }),
+        const imgResults = await fetchWineImagesForMany(
+          winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
         );
+        winesMissingImages.forEach(({ i }, mapIdx) => {
+          const url = imgResults.get(`${mapIdx}`);
+          if (url) wines[i].image_url = url;
+        });
       }
-
-      await Promise.all(parallelTasks);
 
       // Persist taste_spectrum for all wines (best-effort, in background)
       for (const w of wines) {
