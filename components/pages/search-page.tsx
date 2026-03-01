@@ -163,6 +163,7 @@ export function SearchPage({ userId }: SearchPageProps) {
       } else if (data.wine) {
         setWineResult(data.wine);
         setMatchResult(data.match ?? null);
+        if (data.match) setCachedMatch(userId, data.wine, data.match);
         addRecentSearch(userId, data.wine);
         setRecentSearches(getRecentSearches(userId));
       }
@@ -368,6 +369,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         }
         setWineResult(data.wine);
         setMatchResult(data.match);
+        if (data.match && data.wine) setCachedMatch(userId, data.wine, data.match);
       }
       setIsSearching(false);
     } catch (err) {

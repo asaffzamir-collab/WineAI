@@ -7,6 +7,20 @@ import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
+import { createClient } from '@/lib/supabase/server';
+
+async function persistMatchToDb(userId: string, wine: WineData, match: ProfileMatchResult): Promise<void> {
+  try {
+    const key = `${(wine.name || '').trim().toLowerCase()}|${(wine.winery || '').trim().toLowerCase()}`;
+    const supabase = await createClient();
+    await supabase
+      .from('wine_match_cache')
+      .upsert(
+        { user_id: userId, wine_key: key, match_data: match, created_at: new Date().toISOString() },
+        { onConflict: 'user_id,wine_key' }
+      );
+  } catch { /* best-effort */ }
+}
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -63,6 +77,7 @@ export async function POST(request: Request) {
       const imageUrl = await fetchWineImageUrl(wine.name, wine.winery);
       if (imageUrl) wine.image_url = imageUrl;
       const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
+      if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
       // Persist taste_spectrum for future consistency
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
@@ -117,6 +132,7 @@ export async function POST(request: Request) {
       }
       if (wines.length === 1) {
         const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
+        if (match && userId) persistMatchToDb(userId as string, wines[0], match).catch(() => {});
         return NextResponse.json({ wine: wines[0], match });
       }
       return NextResponse.json({ wines });
