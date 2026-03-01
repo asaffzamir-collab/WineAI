@@ -222,6 +222,9 @@ CREATE POLICY "Users can view own match cache" ON wine_match_cache
 CREATE POLICY "Users can insert own match cache" ON wine_match_cache
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can update own match cache" ON wine_match_cache
+  FOR UPDATE USING (auth.uid() = user_id);
+
 CREATE POLICY "Users can delete own match cache" ON wine_match_cache
   FOR DELETE USING (auth.uid() = user_id);
 

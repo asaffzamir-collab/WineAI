@@ -296,6 +296,68 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
   }
 }
 
+/**
+ * Deterministic match score from spectrum gaps + qualitative signals.
+ * Spectrum accounts for ~75% of the score, qualitative for ~25%.
+ */
+function computeMatchScore(
+  wineSpectrum: TasteSpectrum,
+  profileSpectrum: TasteSpectrum,
+  isRed: boolean,
+  profile: Record<string, unknown>,
+  wine: WineData,
+): number {
+  // --- Spectrum component (max 75 points) ---
+  const bodyGap = Math.abs(wineSpectrum.body - profileSpectrum.body);
+  const tanninGap = isRed ? Math.abs(wineSpectrum.tannin - profileSpectrum.tannin) : 0;
+  const sweetnessGap = Math.abs(wineSpectrum.sweetness - profileSpectrum.sweetness);
+  const acidityGap = Math.abs(wineSpectrum.acidity - profileSpectrum.acidity);
+
+  const bodyPenalty = Math.min(18.75, bodyGap * 0.6);
+  const tanninPenalty = isRed ? Math.min(18.75, tanninGap * 0.5) : 0;
+  const sweetnessPenalty = Math.min(18.75, sweetnessGap * 0.8);
+  const acidityPenalty = Math.min(18.75, acidityGap * 0.6);
+
+  const maxSpectrumPenalty = isRed ? 75 : 56.25;
+  const rawSpectrumPenalty = bodyPenalty + tanninPenalty + sweetnessPenalty + acidityPenalty;
+  const spectrumScore = 75 * (1 - rawSpectrumPenalty / maxSpectrumPenalty);
+
+  // --- Qualitative component (max 25 points, baseline 12.5) ---
+  let qualitative = 12.5;
+
+  const recommendedGrapes = (profile.recommended_grapes as string[] | undefined) || [];
+  const recommendedRegions = (profile.recommended_regions as string[] | undefined) || [];
+  const whatToAvoid = (profile.what_to_avoid as string[] | undefined) || [];
+
+  const wineGrapes = (wine.grapes || []).map(g => g.toLowerCase());
+  const wineRegion = (wine.region || '').toLowerCase();
+  const wineCountry = (wine.country || '').toLowerCase();
+
+  if (wineGrapes.length > 0 && recommendedGrapes.length > 0) {
+    const recLower = recommendedGrapes.map(g => g.toLowerCase());
+    const grapeMatch = wineGrapes.some(g => recLower.some(r => g.includes(r) || r.includes(g)));
+    qualitative += grapeMatch ? 5 : -3;
+  }
+
+  if (wineRegion && recommendedRegions.length > 0) {
+    const recLower = recommendedRegions.map(r => r.toLowerCase());
+    const regionMatch = recLower.some(r => wineRegion.includes(r) || r.includes(wineRegion) ||
+      wineCountry.includes(r) || r.includes(wineCountry));
+    qualitative += regionMatch ? 4 : -2;
+  }
+
+  if (whatToAvoid.length > 0) {
+    const avoidLower = whatToAvoid.map(a => a.toLowerCase());
+    const wineDesc = `${wine.name} ${wine.winery} ${wineGrapes.join(' ')} ${wineRegion} ${wine.winery_description || ''}`.toLowerCase();
+    const avoidHit = avoidLower.some(a => wineDesc.includes(a));
+    if (avoidHit) qualitative -= 12;
+  }
+
+  qualitative = Math.max(0, Math.min(25, qualitative));
+
+  return Math.round(Math.max(0, Math.min(100, spectrumScore + qualitative)));
+}
+
 export async function matchWineToProfile(
   wine: WineData,
   profile: Record<string, unknown>,
@@ -306,7 +368,6 @@ export async function matchWineToProfile(
     ? '\n\nIMPORTANT: Write ALL text values (explanation, positive_matches, mismatches, why_drink_it, similar_wines_note) in Hebrew.'
     : '';
 
-  // If wine already has taste_spectrum from search, include it; otherwise ask AI to estimate.
   const hasWineSpectrum = wine.taste_spectrum &&
     typeof wine.taste_spectrum.body === 'number' &&
     typeof wine.taste_spectrum.tannin === 'number';
@@ -325,18 +386,16 @@ Bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) typically show
     ? ''
     : '\n\nTANNIN HANDLING: This is NOT a red wine. Most white, rosé, sparkling, and dessert wines have negligible tannin. Set tannin to 0 in wine_spectrum and do NOT factor tannin into the match score at all.';
 
-  // Build spectrum comparison hint when both sides have numeric spectrums
-  const profileSpectrum = profile.taste_spectrum as { body?: number; tannin?: number; sweetness?: number; acidity?: number } | undefined;
+  const profileSpectrum = profile.taste_spectrum as TasteSpectrum | undefined;
   let spectrumComparisonHint = '';
   if (profileSpectrum && typeof profileSpectrum.body === 'number') {
     const axes = isRedWine
       ? `body=${profileSpectrum.body}, tannin=${profileSpectrum.tannin}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}`
       : `body=${profileSpectrum.body}, sweetness=${profileSpectrum.sweetness}, acidity=${profileSpectrum.acidity}`;
     spectrumComparisonHint = `\n\nUser's preferred taste_spectrum (numerical): ${axes}.
-Compare these numbers to the wine's spectrum. Large gaps (>20 points) on any axis indicate a meaningful mismatch that MUST reduce the score. Sweetness mismatches are especially important — a user with sweetness preference of 5-15 (dry) getting a wine at 30+ (semi-dry/sweet) is a MAJOR mismatch.`;
+Reference these numbers when describing alignment or gaps in your analysis.`;
   }
 
-  // Strip taste_spectrum from the profile blob sent as JSON to avoid duplication
   const { taste_spectrum: _strip, ...profileForPrompt } = profile;
 
   try {
@@ -345,62 +404,28 @@ Compare these numbers to the wine's spectrum. Large gaps (>20 points) on any axi
       messages: [
         {
           role: 'system',
-          content: `You are a critical, honest wine sommelier and educator. Compare the wine to the user's taste profile and provide a RICH, INSIGHTFUL match analysis. Your job is to PROTECT the user from buying wines they won't enjoy — do NOT inflate scores. But also EDUCATE them about the wine and their own palate.
+          content: `You are a critical, honest wine sommelier and educator. Compare the wine to the user's taste profile and provide a RICH, INSIGHTFUL text analysis. Your job is to PROTECT the user from buying wines they won't enjoy, but also EDUCATE them about the wine and their own palate.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
-=== SCORING METHODOLOGY ===
-Start from 50 (neutral baseline). Add or subtract based on alignment with the user's profile:
-
-HEAVY PENALTY (-20 to -30 each):
-- Wine matches characteristics listed in the user's "what_to_avoid" — this alone should push the score well below 50
-- Sweetness level mismatch: user prefers dry (sweetness 5-15) but wine is semi-dry/sweet (sweetness 25+), or vice versa
-
-MODERATE PENALTY (-10 to -15 each):
-- Body/structure mismatch (e.g., user prefers medium-bodied elegant wines, wine is heavy/extracted)
-- Acidity preference mismatch (e.g., user loves high-acidity wines, wine has low acidity)
-- Style mismatch (e.g., user prefers complex/mineral wines, wine is simple/fruit-forward)
-
-LIGHT PENALTY (-5 to -10 each):
-- Grape variety not in recommended list but wine style is somewhat compatible
-- Region not in recommended regions
-
-BONUS (+5 to +15 each):
-- Grape variety in the user's recommended_grapes list
-- Region in the user's recommended_regions list
-- Overall style closely matches overall_style description
-- Body, tannin, acidity align well with the user's taste_spectrum (within 15 points)
-
-=== SCORE CALIBRATION ===
-- 90-100: Near-perfect — aligns on all key dimensions (style, body, sweetness, acidity, grapes, regions)
-- 75-89: Strong match — aligns on most dimensions with only minor gaps
-- 55-74: Moderate — some alignment but notable differences on 1-2 key dimensions
-- 35-54: Weak — significant mismatches on key preferences (sweetness, body, style)
-- 15-34: Poor — fundamentally different from what the user enjoys
-- 0-14: Anti-match — wine has characteristics the user actively avoids
-
-CRITICAL RULES:
-- If the wine has ANY characteristic listed in the user's "what_to_avoid", the score MUST be below 50.
-- Scores above 85 should be RARE — reserved only for wines that truly nail the user's specific preferences.
-- Use the FULL range 0-100. A semi-dry wine for a dry-wine lover should score 30-45, not 75+.
-- Be honest about mismatches. List every significant gap in the "mismatches" array.
+NOTE: The match_percentage is computed separately by a deterministic formula based on spectrum differences and profile alignment. You do NOT need to compute or guess it — just set it to 0 as a placeholder. Focus entirely on writing insightful, honest text analysis.
 
 === OUTPUT QUALITY GUIDELINES ===
 Write like a knowledgeable sommelier friend giving personal advice — not like a database comparison.
 
-- "explanation": A rich 3-5 sentence bottom-line summary. Describe the wine's character, the user's palate personality, and how they relate. End with a clear verdict. Example: "Edizione Cinque Autoctoni is a bold, complex Italian blend with rich fruit, spice, and a powerful structure. Your palate gravitates toward restrained, elegant wines with bright acidity — think Burgundy and classic Sangiovese. While this wine shares your love of Italian character and complexity, its full body and ripe-fruit sweetness push it beyond your comfort zone. A fascinating wine, but not your natural sweet spot."
+- "explanation": A rich 3-5 sentence bottom-line summary. Describe the wine's character, the user's palate personality, and how they relate. End with a clear verdict.
 
-- "positive_matches": Each item should be 1-2 sentences with CONTEXT. Don't just state a fact — explain why it matters for this user. Example: "This blend includes Sangiovese, which you love for its bright cherry notes and firm acidity — it anchors the blend with some of the elegance you prefer."
+- "positive_matches": Each item should be 1-2 sentences with CONTEXT. Don't just state a fact — explain why it matters for this user.
 
-- "mismatches": Each item should be 1-2 sentences explaining the IMPACT. Don't just say "body doesn't match" — explain what it means. Example: "The full, extracted body with rich oak leans toward a powerful style rather than the restrained, medium-bodied elegance you typically gravitate toward in wines like Chianti or Burgundy."
+- "mismatches": Each item should be 1-2 sentences explaining the IMPACT. Don't just say "body doesn't match" — explain what it means for the drinking experience. Be honest — list every significant gap.
 
-- "why_drink_it": 2-3 sentences about when/why the user might still enjoy this wine despite mismatches — suggest food pairings, occasions, or what to appreciate about it. For high-match wines, explain what makes it special for them. Example: "Pair it with a rich beef stew or aged hard cheeses and this wine comes alive. If you're in the mood to explore beyond your usual elegant style, this is a quality introduction to bold Italian blends."
+- "why_drink_it": 2-3 sentences about when/why the user might still enjoy this wine despite mismatches — suggest food pairings, occasions, or what to appreciate about it.
 
-- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile, with a brief reason why. NEVER recommend wines that appear in the user's "liked_wines" or "liked_wines_detail" arrays — the user already knows those. Only suggest wines they likely haven't tried. Example: "Try Sassoalloro from Jacopo Biondi Santi — it offers Italian complexity with the medium body and bright acidity you prefer. Chianti Classico Riserva from Fontodi is another excellent match."
+- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile. NEVER recommend wines that appear in the user's "liked_wines" or "liked_wines_detail" arrays.
 
 Return this EXACT structure — NO extra keys:
 {
-  "match_percentage": 50,
+  "match_percentage": 0,
   "explanation": "Rich 3-5 sentence summary...",
   "wine_spectrum": { "body": 55, "tannin": 40, "sweetness": 25, "acidity": 35 },
   "positive_matches": ["1-2 sentence insight with context...", "..."],
@@ -433,9 +458,19 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
     }
 
     const result = parseJsonResponse(content) as ProfileMatchResult;
-
-    // Sanitise: always delete any AI-hallucinated profile_spectrum
     delete result.profile_spectrum;
+
+    // Determine wine spectrum: prefer wine's own data, then AI estimate
+    const wineSpec: TasteSpectrum = (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number')
+      ? wine.taste_spectrum
+      : (result.wine_spectrum && typeof result.wine_spectrum.body === 'number')
+        ? result.wine_spectrum
+        : { body: 50, tannin: isRedWine ? 40 : 0, sweetness: 10, acidity: 50 };
+
+    // Compute deterministic score if profile spectrum is available
+    if (profileSpectrum && typeof profileSpectrum.body === 'number') {
+      result.match_percentage = computeMatchScore(wineSpec, profileSpectrum, isRedWine, profile, wine);
+    }
 
     return result;
   } catch (error) {
