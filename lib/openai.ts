@@ -396,6 +396,34 @@ Bold Italian blends (Amarone, Edizione Cinque Autoctoni, Ripasso) typically show
 Reference these numbers when describing alignment or gaps in your analysis.`;
   }
 
+  // Build explicit blocklist of wines the user already has in their profile
+  const likedWineNames: string[] = [];
+  const likedDetail = profile.liked_wines_detail as Array<{ name?: string; winery?: string }> | undefined;
+  if (likedDetail) likedDetail.forEach(w => { if (w.name) likedWineNames.push(`${w.name} (${w.winery || ''})`); });
+  const likedSimple = profile.liked_wines as string[] | undefined;
+  if (likedSimple) likedSimple.forEach(n => likedWineNames.push(n));
+
+  const blocklist = likedWineNames.length > 0
+    ? `\n\nBLOCKLIST — the user already has these wines in their profile. Do NOT recommend ANY of them in similar_wines_note:\n${likedWineNames.map(n => `- ${n}`).join('\n')}`
+    : '';
+
+  // Precompute deterministic score when both spectrums are available
+  let precomputedScore: number | null = null;
+  if (hasWineSpectrum && profileSpectrum && typeof profileSpectrum.body === 'number') {
+    precomputedScore = computeMatchScore(wine.taste_spectrum!, profileSpectrum, isRedWine, profile, wine);
+  }
+
+  let toneInstruction = '';
+  if (precomputedScore !== null) {
+    if (precomputedScore >= 80) {
+      toneInstruction = `\n\nTONE: The computed match score is ${precomputedScore}% (strong match). Write ENTHUSIASTICALLY. Lead the explanation with what makes this wine great for this user. Keep mismatches brief and frame them as minor notes, not warnings. The overall verdict should be positive and encouraging.`;
+    } else if (precomputedScore >= 60) {
+      toneInstruction = `\n\nTONE: The computed match score is ${precomputedScore}% (moderate match). Write with balanced honesty — highlight genuine strengths AND explain the gaps clearly.`;
+    } else {
+      toneInstruction = `\n\nTONE: The computed match score is ${precomputedScore}% (weak match). Be protective — clearly explain why this wine doesn't suit the user's preferences. Still mention any silver linings in positive_matches.`;
+    }
+  }
+
   const { taste_spectrum: _strip, ...profileForPrompt } = profile;
 
   try {
@@ -404,11 +432,11 @@ Reference these numbers when describing alignment or gaps in your analysis.`;
       messages: [
         {
           role: 'system',
-          content: `You are a critical, honest wine sommelier and educator. Compare the wine to the user's taste profile and provide a RICH, INSIGHTFUL text analysis. Your job is to PROTECT the user from buying wines they won't enjoy, but also EDUCATE them about the wine and their own palate.
+          content: `You are a knowledgeable, friendly wine sommelier and educator. Compare the wine to the user's taste profile and provide a RICH, INSIGHTFUL text analysis. EDUCATE the user about the wine and their own palate.
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no code blocks.${langInstruction}
 
-NOTE: The match_percentage is computed separately by a deterministic formula based on spectrum differences and profile alignment. You do NOT need to compute or guess it — just set it to 0 as a placeholder. Focus entirely on writing insightful, honest text analysis.
+NOTE: The match_percentage is computed separately by a deterministic formula. You do NOT need to compute or guess it — just set it to 0 as a placeholder. Focus entirely on writing insightful text analysis.${toneInstruction}
 
 === OUTPUT QUALITY GUIDELINES ===
 Write like a knowledgeable sommelier friend giving personal advice — not like a database comparison.
@@ -417,11 +445,11 @@ Write like a knowledgeable sommelier friend giving personal advice — not like 
 
 - "positive_matches": Each item should be 1-2 sentences with CONTEXT. Don't just state a fact — explain why it matters for this user.
 
-- "mismatches": Each item should be 1-2 sentences explaining the IMPACT. Don't just say "body doesn't match" — explain what it means for the drinking experience. Be honest — list every significant gap.
+- "mismatches": Each item should be 1-2 sentences explaining the IMPACT. For high-match wines, keep these brief and frame as minor notes rather than dealbreakers.
 
-- "why_drink_it": 2-3 sentences about when/why the user might still enjoy this wine despite mismatches — suggest food pairings, occasions, or what to appreciate about it.
+- "why_drink_it": 2-3 sentences about when/why the user might enjoy this wine — suggest food pairings, occasions, or what to appreciate about it.
 
-- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile. NEVER recommend wines that appear in the user's "liked_wines" or "liked_wines_detail" arrays.
+- "similar_wines_note": Recommend 1-2 specific alternative wines that would be a BETTER fit for this user's profile.${blocklist}
 
 Return this EXACT structure — NO extra keys:
 {

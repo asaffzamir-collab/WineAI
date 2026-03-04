@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
-import { fetchWineImageUrl } from '@/lib/wine-image';
 import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
@@ -76,8 +75,6 @@ export async function POST(request: Request) {
       }
       const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
       if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
-      // Pre-warm image cache in background; WineCard lazy-loads via /api/wine-image
-      fetchWineImageUrl(wine.name, wine.winery).catch(() => {});
       // Persist taste_spectrum for future consistency
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
@@ -112,8 +109,6 @@ export async function POST(request: Request) {
         if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
           cacheTasteSpectrum(w.name, w.winery, w.taste_spectrum).catch(() => {});
         }
-        // Pre-warm image cache in background; WineCard lazy-loads via /api/wine-image
-        if (!w.image_url) fetchWineImageUrl(w.name, w.winery).catch(() => {});
       }
 
       if (userId) {
