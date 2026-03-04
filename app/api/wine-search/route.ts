@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
-import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
+import { findCachedWines, cacheTasteSpectrum, findCachedImageUrl } from '@/lib/wine-cache';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
@@ -21,11 +21,23 @@ async function persistMatchToDb(userId: string, wine: WineData, match: ProfileMa
   } catch { /* best-effort */ }
 }
 
+async function fillCachedImages(wines: WineData[]): Promise<void> {
+  for (const w of wines) {
+    if (!w.image_url) {
+      try {
+        const cached = await findCachedImageUrl(w.name, w.winery);
+        if (cached) w.image_url = cached;
+      } catch { /* best-effort */ }
+    }
+  }
+}
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  // Parse the request body with explicit error handling for large/malformed payloads
+  const t0 = performance.now();
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -45,11 +57,9 @@ export async function POST(request: Request) {
       if (usageBlock) return usageBlock;
     }
 
-    // Determine locale from cookie
     const cookieStore = await cookies();
     const locale = cookieStore.get('locale')?.value || 'he';
 
-    // Fetch fresh taste profiles from DB when userId is provided; fall back to client-provided profiles
     let tasteProfiles: Record<string, unknown> = (clientProfiles as Record<string, unknown>) || {};
     if (userId) {
       try {
@@ -62,20 +72,25 @@ export async function POST(request: Request) {
       }
     }
 
-    // Dynamic import so OpenAI is not loaded at build time
+    const tProfile = performance.now();
+
     const { searchWinesByText, searchWineByImage, matchWineToProfile } = await import('@/lib/openai');
+
+    const tImport = performance.now();
 
     if (image) {
       const wine = await searchWineByImage(image as string, (imageMimeType as string) || 'image/jpeg');
+      const tSearch = performance.now();
       if (!wine) {
         return NextResponse.json(
           { error: 'Could not identify wine. Please try a clearer image of the wine label, or search by name.' },
           { status: 200 }
         );
       }
+      await fillCachedImages([wine]);
       const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
+      const tMatch = performance.now();
       if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
-      // Persist taste_spectrum for future consistency
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
       }
@@ -84,7 +99,16 @@ export async function POST(request: Request) {
           if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
         }).catch(() => {});
       }
-      return NextResponse.json({ wine, match });
+      return NextResponse.json({
+        wine, match,
+        _timing: {
+          profile_ms: Math.round(tProfile - t0),
+          import_ms: Math.round(tImport - tProfile),
+          search_ms: Math.round(tSearch - tImport),
+          match_ms: Math.round(tMatch - tSearch),
+          total_ms: Math.round(tMatch - t0),
+        },
+      });
     }
 
     if (query) {
@@ -93,6 +117,8 @@ export async function POST(request: Request) {
         ? cached
         : await searchWinesByText(query as string);
 
+      const tSearch = performance.now();
+
       if (wines.length === 0) {
         return NextResponse.json(
           { error: 'Could not find any matching wines. Try a different spelling or add the winery name.' },
@@ -100,10 +126,15 @@ export async function POST(request: Request) {
         );
       }
 
+      await fillCachedImages(wines);
+      const tImages = performance.now();
+
       const isSingle = wines.length === 1;
       const match = isSingle
         ? await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale)
         : null;
+
+      const tMatch = performance.now();
 
       for (const w of wines) {
         if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
@@ -116,11 +147,22 @@ export async function POST(request: Request) {
           if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
         }).catch(() => {});
       }
+
+      const timing = {
+        profile_ms: Math.round(tProfile - t0),
+        import_ms: Math.round(tImport - tProfile),
+        search_ms: Math.round(tSearch - tImport),
+        images_ms: Math.round(tImages - tSearch),
+        match_ms: Math.round(tMatch - tImages),
+        total_ms: Math.round(tMatch - t0),
+        cached: cached.length > 0,
+      };
+
       if (isSingle) {
         if (match && userId) persistMatchToDb(userId as string, wines[0], match).catch(() => {});
-        return NextResponse.json({ wine: wines[0], match });
+        return NextResponse.json({ wine: wines[0], match, _timing: timing });
       }
-      return NextResponse.json({ wines });
+      return NextResponse.json({ wines, _timing: timing });
     }
 
     return NextResponse.json(

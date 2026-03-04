@@ -26,7 +26,9 @@ export async function GET(request: Request) {
   }
 
   try {
+    const t0 = performance.now();
     const imageUrl = await fetchWineImageUrl(name, winery || '');
+    const fetchMs = Math.round(performance.now() - t0);
     if (imageUrl) {
       try {
         const supabase = await createClient();
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
           .is('image_url', null);
       } catch {}
     }
-    const resp = NextResponse.json({ imageUrl });
+    const resp = NextResponse.json({ imageUrl, _timing: { fetch_ms: fetchMs } });
     if (imageUrl) {
       resp.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
     }
