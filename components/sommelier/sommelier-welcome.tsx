@@ -1,9 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUser } from '@/lib/user-context';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import { PierCharacter } from './sommelier-trigger';
 
 interface Props {
@@ -11,15 +11,28 @@ interface Props {
 }
 
 export function SommelierWelcome({ displayName }: Props) {
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const { gender } = useUser();
   const g = { gender };
   const t = useTranslations('sommelier');
   const tOnboarding = useTranslations('onboarding');
 
   const handleStart = async () => {
-    await fetch('/api/onboarding/complete', { method: 'POST' });
-    router.replace('/');
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/onboarding/complete', { method: 'POST' });
+      if (!res.ok) {
+        const retry = await fetch('/api/onboarding/complete', { method: 'POST' });
+        if (!retry.ok) {
+          setLoading(false);
+          return;
+        }
+      }
+      window.location.href = '/';
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,9 +55,14 @@ export function SommelierWelcome({ displayName }: Props) {
 
       <button
         onClick={handleStart}
-        className="flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-bordeaux-700 shadow-lift transition-all hover:scale-[1.02] active:scale-[0.98]"
+        disabled={loading}
+        className="flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-bordeaux-700 shadow-lift transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-80"
       >
-        <Search className="h-5 w-5" strokeWidth={1.5} />
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Search className="h-5 w-5" strokeWidth={1.5} />
+        )}
         {tOnboarding('findFirstWine', g)}
         <ArrowRight className="h-4 w-4" />
       </button>
