@@ -9,6 +9,7 @@ import { fetchWineImagesForMany } from '@/lib/wine-image';
 import { findCachedWines } from '@/lib/wine-cache';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {

@@ -67,7 +67,9 @@ export function SearchPage({ userId }: SearchPageProps) {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
   const [isFetchingRecentMatch, setIsFetchingRecentMatch] = useState(false);
+  const [isSearchMatchLoading, setIsSearchMatchLoading] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
+  const searchMatchAbort = useRef<AbortController | null>(null);
   const [hasFullPersonalization, setHasFullPersonalization] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,10 +127,42 @@ export function SearchPage({ userId }: SearchPageProps) {
     return () => window.removeEventListener('wine-profile-updated', handler);
   }, [userId]);
 
+  const fetchMatchInBackground = useCallback((wine: WineData) => {
+    searchMatchAbort.current?.abort();
+    const ctrl = new AbortController();
+    searchMatchAbort.current = ctrl;
+
+    const cached = getCachedMatch(userId, wine);
+    if (cached) {
+      setMatchResult(cached);
+      return;
+    }
+
+    setIsSearchMatchLoading(true);
+    fetch('/api/wine-match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wine, userId }),
+      signal: ctrl.signal,
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!ctrl.signal.aborted) {
+          const match = data.match ?? null;
+          setMatchResult(match);
+          if (match) setCachedMatch(userId, wine, match);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!ctrl.signal.aborted) setIsSearchMatchLoading(false); });
+  }, [userId]);
+
   const doTextSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
 
+    searchMatchAbort.current?.abort();
     setIsSearching(true);
+    setIsSearchMatchLoading(false);
     setError('');
     setWineResult(null);
     setMatchResult(null);
@@ -163,7 +197,11 @@ export function SearchPage({ userId }: SearchPageProps) {
       } else if (data.wine) {
         setWineResult(data.wine);
         setMatchResult(data.match ?? null);
-        if (data.match) setCachedMatch(userId, data.wine, data.match);
+        if (data.match) {
+          setCachedMatch(userId, data.wine, data.match);
+        } else {
+          fetchMatchInBackground(data.wine);
+        }
         addRecentSearch(userId, data.wine);
         setRecentSearches(getRecentSearches(userId));
       }
@@ -172,7 +210,7 @@ export function SearchPage({ userId }: SearchPageProps) {
     } finally {
       setIsSearching(false);
     }
-  }, [userId]);
+  }, [userId, fetchMatchInBackground]);
 
   useEffect(() => {
     if (initialQ && !autoSearchTriggered.current) {
@@ -280,7 +318,9 @@ export function SearchPage({ userId }: SearchPageProps) {
     // Reset file input so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = '';
 
+    searchMatchAbort.current?.abort();
     setIsSearching(true);
+    setIsSearchMatchLoading(false);
     setError('');
     setWineResult(null);
     setMatchResult(null);
@@ -361,15 +401,16 @@ export function SearchPage({ userId }: SearchPageProps) {
         setError(data.error);
       } else {
         if (data.wine) {
-          // Vivino image is now fetched server-side and set on wine.image_url.
-          // The user's uploaded photo is kept separately in uploadedImageUrl
-          // as a fallback if no Vivino image was found.
           addRecentSearch(userId, data.wine);
           setRecentSearches(getRecentSearches(userId));
         }
         setWineResult(data.wine);
-        setMatchResult(data.match);
-        if (data.match && data.wine) setCachedMatch(userId, data.wine, data.match);
+        setMatchResult(data.match ?? null);
+        if (data.match && data.wine) {
+          setCachedMatch(userId, data.wine, data.match);
+        } else if (data.wine) {
+          fetchMatchInBackground(data.wine);
+        }
       }
       setIsSearching(false);
     } catch (err) {
@@ -582,6 +623,7 @@ export function SearchPage({ userId }: SearchPageProps) {
             <WineCard
               wine={wineResult}
               matchResult={matchResult || undefined}
+              matchLoading={isSearchMatchLoading}
               onAddToCellar={() => openAddToCellarModal(wineResult)}
               onAddToWishlist={() => handleAddToWishlist()}
               onAddToProfile={() => handleAddToProfile()}

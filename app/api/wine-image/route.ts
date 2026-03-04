@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { fetchWineImageUrl } from '@/lib/wine-image';
 import { clearCachedImageUrl } from '@/lib/wine-cache';
-import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 /**
  * GET /api/wine-image?name=...&winery=...
@@ -30,13 +30,8 @@ export async function GET(request: Request) {
     const fetchMs = Math.round(performance.now() - t0);
     if (imageUrl) {
       try {
-        const supabase = await createClient();
-        await supabase
-          .from('wines')
-          .update({ image_url: imageUrl })
-          .eq('name', name)
-          .eq('winery', winery || '')
-          .is('image_url', null);
+        const { cacheImageUrl } = await import('@/lib/wine-cache');
+        await cacheImageUrl(name, winery || '', imageUrl);
       } catch {}
     }
     const resp = NextResponse.json({ imageUrl, _timing: { fetch_ms: fetchMs } });

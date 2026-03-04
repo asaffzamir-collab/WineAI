@@ -173,12 +173,26 @@ export async function cacheImageUrl(
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    await supabase
+    const { data } = await supabase
       .from('wines')
       .update({ image_url: imageUrl })
       .eq('name', name)
       .eq('winery', winery)
-      .is('image_url', null);
+      .is('image_url', null)
+      .select('id');
+
+    if (!data || data.length === 0) {
+      const { data: existing } = await supabase
+        .from('wines')
+        .select('id')
+        .eq('name', name)
+        .eq('winery', winery)
+        .limit(1);
+
+      if (!existing || existing.length === 0) {
+        await supabase.from('wines').insert({ name, winery, image_url: imageUrl });
+      }
+    }
   } catch {
     // best-effort
   }

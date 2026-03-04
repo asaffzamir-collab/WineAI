@@ -243,7 +243,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
     console.log('Searching wine by image, mime type:', mimeType, 'base64 length:', base64Image.length);
     
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: WINE_SEARCH_SYSTEM_PROMPT },
         {
@@ -257,7 +257,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
               type: 'image_url',
               image_url: {
                 url: `data:${mimeType};base64,${base64Image}`,
-                detail: 'high',
+                detail: 'low',
               },
             },
           ],

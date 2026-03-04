@@ -203,7 +203,7 @@ export function WineCard({
     let cancelled = false;
     setIsLoadingImage(true);
     lazyFetchDone.current = true;
-    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
+    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery || '')}`)
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled && data.imageUrl) setLazyImageUrl(data.imageUrl);
@@ -211,7 +211,7 @@ export function WineCard({
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsLoadingImage(false); });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; lazyFetchDone.current = false; };
   }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url, imageError, lazyImageUrl, isLoadingImage]);
 
   const wineTypeColors = {

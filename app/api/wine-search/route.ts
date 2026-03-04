@@ -1,25 +1,9 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import type { WineData, ProfileMatchResult } from '@/lib/openai';
-import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
+import type { WineData } from '@/lib/openai';
 import { findCachedWines, cacheTasteSpectrum, findCachedImageUrl } from '@/lib/wine-cache';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
-import { createClient } from '@/lib/supabase/server';
-
-async function persistMatchToDb(userId: string, wine: WineData, match: ProfileMatchResult): Promise<void> {
-  try {
-    const key = `${(wine.name || '').trim().toLowerCase()}|${(wine.winery || '').trim().toLowerCase()}`;
-    const supabase = await createClient();
-    await supabase
-      .from('wine_match_cache')
-      .upsert(
-        { user_id: userId, wine_key: key, match_data: match, created_at: new Date().toISOString() },
-        { onConflict: 'user_id,wine_key' }
-      );
-  } catch { /* best-effort */ }
-}
 
 async function fillCachedImages(wines: WineData[]): Promise<void> {
   for (const w of wines) {
@@ -33,6 +17,7 @@ async function fillCachedImages(wines: WineData[]): Promise<void> {
 }
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const t0 = performance.now();
@@ -49,31 +34,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { query, image, imageMimeType, userId, tasteProfiles: clientProfiles } = body;
+    const { query, image, imageMimeType, userId } = body;
 
     if (userId) {
       const usageBlock = await requireUsage(userId as string, 'wine_search');
       if (usageBlock) return usageBlock;
     }
 
-    const cookieStore = await cookies();
-    const locale = cookieStore.get('locale')?.value || 'he';
+    const tSetup = performance.now();
 
-    let tasteProfiles: Record<string, unknown> = (clientProfiles as Record<string, unknown>) || {};
-    if (userId) {
-      try {
-        const dbProfiles = await getTasteProfilesForUser(userId as string);
-        if (dbProfiles && Object.keys(dbProfiles).length > 0) {
-          tasteProfiles = dbProfiles;
-        }
-      } catch (e) {
-        console.error('Failed to fetch taste profiles from DB:', e);
-      }
-    }
-
-    const tProfile = performance.now();
-
-    const { searchWinesByText, searchWineByImage, matchWineToProfile } = await import('@/lib/openai');
+    const { searchWinesByText, searchWineByImage } = await import('@/lib/openai');
 
     const tImport = performance.now();
 
@@ -87,9 +57,6 @@ export async function POST(request: Request) {
         );
       }
       await fillCachedImages([wine]);
-      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
-      const tMatch = performance.now();
-      if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
       }
@@ -99,13 +66,12 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
       return NextResponse.json({
-        wine, match,
+        wine, match: null,
         _timing: {
-          profile_ms: Math.round(tProfile - t0),
-          import_ms: Math.round(tImport - tProfile),
+          setup_ms: Math.round(tSetup - t0),
+          import_ms: Math.round(tImport - tSetup),
           search_ms: Math.round(tSearch - tImport),
-          match_ms: Math.round(tMatch - tSearch),
-          total_ms: Math.round(tMatch - t0),
+          total_ms: Math.round(performance.now() - t0),
         },
       });
     }
@@ -126,14 +92,6 @@ export async function POST(request: Request) {
       }
 
       await fillCachedImages(wines);
-      const tImages = performance.now();
-
-      const isSingle = wines.length === 1;
-      const match = isSingle
-        ? await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale)
-        : null;
-
-      const tMatch = performance.now();
 
       for (const w of wines) {
         if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
@@ -148,18 +106,15 @@ export async function POST(request: Request) {
       }
 
       const timing = {
-        profile_ms: Math.round(tProfile - t0),
-        import_ms: Math.round(tImport - tProfile),
+        setup_ms: Math.round(tSetup - t0),
+        import_ms: Math.round(tImport - tSetup),
         search_ms: Math.round(tSearch - tImport),
-        images_ms: Math.round(tImages - tSearch),
-        match_ms: Math.round(tMatch - tImages),
-        total_ms: Math.round(tMatch - t0),
+        total_ms: Math.round(performance.now() - t0),
         cached: cached.length > 0,
       };
 
-      if (isSingle) {
-        if (match && userId) persistMatchToDb(userId as string, wines[0], match).catch(() => {});
-        return NextResponse.json({ wine: wines[0], match, _timing: timing });
+      if (wines.length === 1) {
+        return NextResponse.json({ wine: wines[0], match: null, _timing: timing });
       }
       return NextResponse.json({ wines, _timing: timing });
     }
@@ -175,53 +130,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-async function getMatchForWine(
-  matchWineToProfile: (wine: WineData, profile: Record<string, unknown>, language?: string) => Promise<ProfileMatchResult>,
-  wine: WineData,
-  tasteProfiles: Record<string, unknown> | undefined,
-  locale?: string
-) {
-  if (!tasteProfiles || typeof tasteProfiles !== 'object' || Object.keys(tasteProfiles).length === 0) {
-    return null;
-  }
-  // Only match against the profile for the SAME wine type — no cross-category fallbacks
-  const wineType = wine.wine_type ?? '';
-  // Normalize: sparkling → white, dessert → white
-  const profileKey = wineType === 'sparkling' || wineType === 'dessert' ? 'white' : wineType;
-  const relevantProfile = tasteProfiles[profileKey];
-  if (!relevantProfile) return null;
-  const p = relevantProfile as Record<string, unknown>;
-  const hasProfileContent =
-    typeof p === 'object' &&
-    p !== null &&
-    (Array.isArray(p.liked_wines_detail) && p.liked_wines_detail.length > 0 ||
-      Array.isArray(p.liked_wines) && p.liked_wines.length > 0 ||
-      (Array.isArray(p.recommended_grapes) && p.recommended_grapes.length > 0) ||
-      (typeof p.overall_style === 'string' && p.overall_style.length > 0) ||
-      (typeof p.summary === 'string' && p.summary.length > 0));
-  if (!hasProfileContent) return null;
-
-  // Skip matching if profile is built from ≤1 liked wines and NOT from onboarding.
-  // A profile built from a single wine can't meaningfully match other wines yet.
-  const likedWines = Array.isArray(p.liked_wines_detail) ? p.liked_wines_detail : [];
-  if (!p.from_onboarding && likedWines.length <= 1) {
-    return null;
-  }
-
-  const match = await matchWineToProfile(wine, p, locale);
-
-  if (match) {
-    // Prefer wine's own taste_spectrum (from search) over AI match-time estimate
-    if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
-      match.wine_spectrum = wine.taste_spectrum;
-    }
-    // Always use real DB profile spectrum — never AI-generated
-    delete match.profile_spectrum;
-    if (p.taste_spectrum && typeof p.taste_spectrum === 'object') {
-      match.profile_spectrum = p.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number };
-    }
-  }
-  return match;
 }

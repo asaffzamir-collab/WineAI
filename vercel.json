@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "app/**": {
-      "maxDuration": 60
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/notifications",
