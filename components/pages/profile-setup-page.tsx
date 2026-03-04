@@ -51,7 +51,7 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [alias, setAlias] = useState(initialDisplayName);
-  const [country, setCountry] = useState('');
+  const [country, setCountry] = useState('Israel');
   const [birthday, setBirthday] = useState('');
   const [gender, setGender] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState(locale);
