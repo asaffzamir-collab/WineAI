@@ -50,6 +50,14 @@ function isIos(): boolean {
   return /iPhone|iPad|iPod/.test(navigator.userAgent);
 }
 
+let _earlyPrompt: BeforeInstallPromptEvent | null = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _earlyPrompt = e as BeforeInstallPromptEvent;
+  });
+}
+
 export function PwaInstallBanner() {
   const t = useTranslations('pwa');
   const [visible, setVisible] = useState(false);
@@ -63,6 +71,13 @@ export function PwaInstallBanner() {
     if (isIos()) {
       setShowIos(true);
       setVisible(true);
+      return;
+    }
+
+    if (_earlyPrompt) {
+      setDeferredPrompt(_earlyPrompt);
+      setVisible(true);
+      _earlyPrompt = null;
       return;
     }
 

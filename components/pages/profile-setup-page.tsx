@@ -219,7 +219,7 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
                   required
                   value={birthday}
                   onChange={(e) => setBirthday(e.target.value)}
-                  className="mt-1.5"
+                  className="mt-1.5 block w-full min-w-0 appearance-none"
                   dir="ltr"
                   max={new Date().toISOString().split('T')[0]}
                 />
