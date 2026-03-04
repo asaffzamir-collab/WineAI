@@ -6,7 +6,6 @@ import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {

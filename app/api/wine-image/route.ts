@@ -4,7 +4,6 @@ import { clearCachedImageUrl } from '@/lib/wine-cache';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 /**
  * GET /api/wine-image?name=...&winery=...

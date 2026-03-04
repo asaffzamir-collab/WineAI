@@ -6,7 +6,6 @@ import { changelog } from '@/lib/changelog';
 import type { ChangelogEntry, ChangelogHighlight } from '@/lib/changelog';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
 
 interface DbRow {
   version: string;

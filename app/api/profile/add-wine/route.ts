@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 export interface LikedWineDetail {
   name: string;

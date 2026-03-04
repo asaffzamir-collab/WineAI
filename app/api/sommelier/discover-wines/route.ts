@@ -7,7 +7,6 @@ import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 import { fetchWineImagesForMany } from '@/lib/wine-image';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 45;
 
 interface DiscoveredWine {
   name: string;

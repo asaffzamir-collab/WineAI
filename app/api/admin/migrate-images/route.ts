@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
 
 const STORAGE_BUCKET = 'wine-images';
 const EXTERNAL_PATTERNS = ['images.vivino.com', 'images.wine-searcher.net'];
