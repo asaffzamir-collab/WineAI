@@ -29,6 +29,7 @@ export function SommelierWelcome({ displayName }: Props) {
           return;
         }
       }
+      try { localStorage.removeItem('pwa-install-dismissed'); } catch {}
       window.location.href = '/';
     } catch {
       setLoading(false);
