@@ -109,9 +109,9 @@ export default async function RootLayout({
                 <div id="main-content">{children}</div>
               </AgeGate>
             </UserProvider>
+            <CookieConsent />
           </NextIntlClientProvider>
         </DirectionProvider>
-        <CookieConsent />
         <Analytics />
         <SpeedInsights />
       </body>
