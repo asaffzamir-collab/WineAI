@@ -938,5 +938,17 @@
     "notificationTip": "After installing, open the app and go to Settings to enable notifications for cellar alerts and wine recommendations.",
     "install": "Install App",
     "dismiss": "Not now"
+  },
+  "cookieConsent": {
+    "description": "We use essential cookies for authentication and optional analytics (Vercel Analytics) to improve your experience. No advertising cookies are used.",
+    "acceptAll": "Accept all",
+    "essentialOnly": "Essential only",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "ageGate": {
+    "title": "Age Verification",
+    "description": "This app contains wine-related content. You must be of legal drinking age in your country to continue.",
+    "confirm": "I am of legal drinking age",
+    "disclaimer": "By continuing, you confirm you are of legal drinking age in your jurisdiction."
   }
 }

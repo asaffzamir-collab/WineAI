@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 const STORAGE_KEY = 'wj_age_verified';
 
 export function AgeGate({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('ageGate');
   const [verified, setVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -28,19 +30,19 @@ export function AgeGate({ children }: { children: React.ReactNode }) {
           </svg>
         </div>
         <h2 className="mb-2 text-xl font-bold text-charcoal-900 dark:text-ivory-100">
-          Age Verification
+          {t('title')}
         </h2>
         <p className="mb-6 text-sm text-stone-600 dark:text-stone-400">
-          This app contains wine-related content. You must be of legal drinking age in your country to continue.
+          {t('description')}
         </p>
         <button
           onClick={handleConfirm}
           className="w-full rounded-xl bg-bordeaux-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-bordeaux-700 dark:bg-bordeaux-500 dark:hover:bg-bordeaux-600"
         >
-          I am of legal drinking age
+          {t('confirm')}
         </button>
         <p className="mt-4 text-xs text-stone-400 dark:text-stone-500">
-          By continuing, you confirm you are of legal drinking age in your jurisdiction.
+          {t('disclaimer')}
         </p>
       </div>
     </div>
