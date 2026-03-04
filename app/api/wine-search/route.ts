@@ -74,9 +74,11 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      const imageUrl = await fetchWineImageUrl(wine.name, wine.winery);
+      const [imageUrl, match] = await Promise.all([
+        fetchWineImageUrl(wine.name, wine.winery),
+        getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale),
+      ]);
       if (imageUrl) wine.image_url = imageUrl;
-      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
       if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
       // Persist taste_spectrum for future consistency
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
@@ -103,22 +105,27 @@ export async function POST(request: Request) {
         );
       }
 
-      // Fill in missing images and enrich top wines with Vivino data in parallel
+      // Run image fetching and (for single results) match analysis in parallel
+      const isSingle = wines.length === 1;
       const winesMissingImages = wines
         .map((w, i) => ({ w, i }))
         .filter(({ w }) => !w.image_url);
 
-      if (winesMissingImages.length > 0) {
-        const imgResults = await fetchWineImagesForMany(
-          winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
-        );
-        winesMissingImages.forEach(({ i }, mapIdx) => {
-          const url = imgResults.get(`${mapIdx}`);
-          if (url) wines[i].image_url = url;
-        });
-      }
+      const imagePromise = winesMissingImages.length > 0
+        ? fetchWineImagesForMany(winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })))
+        : Promise.resolve(new Map<string, string | null>());
 
-      // Persist taste_spectrum for all wines (best-effort, in background)
+      const matchPromise = isSingle
+        ? getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale)
+        : Promise.resolve(null);
+
+      const [imgResults, match] = await Promise.all([imagePromise, matchPromise]);
+
+      winesMissingImages.forEach(({ i }, mapIdx) => {
+        const url = imgResults.get(`${mapIdx}`);
+        if (url) wines[i].image_url = url;
+      });
+
       for (const w of wines) {
         if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
           cacheTasteSpectrum(w.name, w.winery, w.taste_spectrum).catch(() => {});
@@ -130,8 +137,7 @@ export async function POST(request: Request) {
           if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
         }).catch(() => {});
       }
-      if (wines.length === 1) {
-        const match = await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale);
+      if (isSingle) {
         if (match && userId) persistMatchToDb(userId as string, wines[0], match).catch(() => {});
         return NextResponse.json({ wine: wines[0], match });
       }

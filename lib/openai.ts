@@ -185,13 +185,13 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
     console.log('Searching wines by text (multi):', query);
 
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: WINE_TEXT_SEARCH_SYSTEM_PROMPT },
         { role: 'user', content: `Find wines matching this query (be tolerant of typos and partial names): "${query}"` },
       ],
       temperature: 0.2,
-      max_tokens: 5000,
+      max_tokens: 3000,
     });
 
     const content = response.choices?.[0]?.message?.content;
@@ -400,7 +400,7 @@ Reference these numbers when describing alignment or gaps in your analysis.`;
 
   try {
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
@@ -445,7 +445,7 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
         },
       ],
       temperature: 0.3,
-      max_tokens: 1500,
+      max_tokens: 1000,
     });
 
     const content = response.choices?.[0]?.message?.content;
