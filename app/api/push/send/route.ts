@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { timingSafeCompare } from '@/lib/timing-safe';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -32,8 +33,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Push not configured' }, { status: 503 });
     }
 
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const apiKey = request.headers.get('x-api-key') ?? '';
+    const expected = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+    if (!expected || !timingSafeCompare(apiKey, expected)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

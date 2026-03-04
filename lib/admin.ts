@@ -11,17 +11,7 @@ export async function requireAdmin() {
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError) {
-    console.error('[requireAdmin] Auth error:', authError);
-    return null;
-  }
-
-  if (!user) {
-    console.log('[requireAdmin] No authenticated user');
-    return null;
-  }
-
-  console.log('[requireAdmin] Checking admin status for user:', user.id);
+  if (authError || !user) return null;
 
   const adminClient = createAdminClient();
   const { data: profile, error: profileError } = await adminClient
@@ -30,19 +20,8 @@ export async function requireAdmin() {
     .eq('id', user.id)
     .single();
 
-  if (profileError) {
-    console.error('[requireAdmin] Error fetching profile:', profileError);
-    return null;
-  }
+  if (profileError || !profile?.is_admin) return null;
 
-  console.log('[requireAdmin] Profile data:', profile);
-
-  if (!profile?.is_admin) {
-    console.log('[requireAdmin] User is not admin');
-    return null;
-  }
-
-  console.log('[requireAdmin] User is admin ✓');
   return user;
 }
 

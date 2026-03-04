@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/require-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,8 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
+    const { error: authError } = await requireUser(userId);
+    if (authError) return authError;
     const supabase = await createClient();
 
     const [profileRes, tastingsRes, cellarRes, wishlistRes, tasteProfilesRes, sommelierProfileRes] = await Promise.all([

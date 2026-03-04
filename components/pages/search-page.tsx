@@ -42,6 +42,7 @@ function buildWineMetadata(
 
 export function SearchPage({ userId }: SearchPageProps) {
   const t = useTranslations('search');
+  const tCommon = useTranslations('common');
   const tHome = useTranslations('home');
   const tProfile = useTranslations('profile');
   const { gender } = useUser();
@@ -728,6 +729,7 @@ export function SearchPage({ userId }: SearchPageProps) {
       {usageLimitInfo && (
         <UsageLimitModal info={usageLimitInfo} onClose={() => setUsageLimitInfo(null)} />
       )}
+      <p className="text-center text-[10px] text-muted-foreground/60 pb-4 px-4">{tCommon('drinkResponsibly')}</p>
     </AppShell>
   );
 }

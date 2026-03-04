@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { verifyAdmin } from '@/lib/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,9 @@ async function runMigrations(): Promise<{ success: boolean; message: string }> {
 }
 
 export async function POST() {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return authError;
+
   const result = await runMigrations();
 
   if (!result.success) {
@@ -93,6 +97,9 @@ export async function POST() {
 }
 
 export async function GET() {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return authError;
+
   return NextResponse.json({
     message: 'POST to this endpoint to run schema migrations, or copy the SQL below and run it in the Supabase SQL Editor.',
     sql: {

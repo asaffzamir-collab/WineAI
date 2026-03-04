@@ -19,6 +19,7 @@ interface FullScreenChatProps {
 
 export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: FullScreenChatProps) {
   const t = useTranslations('sommelier');
+  const tCommon = useTranslations('common');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -421,6 +422,7 @@ export function FullScreenChat({ conversationId, onBack, initialSidebarOpen }: F
           <div ref={bottomRef} />
         </div>
       )}
+      <p className="text-center text-[9px] text-muted-foreground/50 px-4 pb-1">{tCommon('aiDisclaimer')} {tCommon('drinkResponsibly')}</p>
     </div>
   );
 

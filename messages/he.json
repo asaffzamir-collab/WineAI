@@ -13,7 +13,9 @@
     "next": "הבא",
     "submit": "שלח",
     "yes": "כן",
-    "no": "לא"
+    "no": "לא",
+    "drinkResponsibly": "נא לשתות באחריות. תהנו מיין במתינות.",
+    "aiDisclaimer": "תוכן שנוצר על ידי AI עשוי להיות לא מדויק. אמתו פרטים חשובים באופן עצמאי."
   },
   "auth": {
     "welcome": "ברוכים הבאים ל-WineJourney",
@@ -155,9 +157,9 @@
   },
   "wineCard": {
     "vivinoRating": "דירוג משוער",
-    "ratingEstimate": "הערכת AI — אימות ב-Vivino",
-    "verifyOnVivino": "אימות ב-Vivino",
-    "seeOnVivino": "{gender, select, female {צפי} other {צפה}} ב-Vivino",
+    "ratingEstimate": "הערכת דירוג קהילתי של AI",
+    "verifyOnVivino": "חיפוש היין",
+    "seeOnVivino": "{gender, select, female {חפשי} other {חפש}} את היין",
     "reviews": "ביקורות",
     "technicalDetails": "פרטים טכניים",
     "country": "מדינה",
@@ -461,6 +463,14 @@
     "legal": "משפטי",
     "termsOfService": "תנאי שימוש",
     "privacyPolicy": "מדיניות פרטיות",
+    "dataManagement": "ניהול מידע",
+    "exportData": "ייצוא הנתונים שלי",
+    "exportDataDesc": "הורדת כל הנתונים שלך כקובץ JSON",
+    "exporting": "מייצא...",
+    "deleteAccount": "מחיקת חשבון",
+    "deleteAccountDesc": "מחיקה לצמיתות של החשבון וכל הנתונים",
+    "deleteAccountConfirm": "האם אתה בטוח? פעולה זו לא ניתנת לביטול. כל הנתונים שלך (מרתף, רשימת משאלות, פרופיל טעם, שיחות) יימחקו לצמיתות.",
+    "deleting": "מוחק...",
     "personalInfo": "פרטים אישיים",
     "firstName": "שם פרטי",
     "lastName": "שם משפחה",

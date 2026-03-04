@@ -55,8 +55,11 @@ export default function PrivacyPolicy() {
           <ul className="list-disc space-y-1 ps-6">
             <li><strong>Supabase</strong> — authentication and database</li>
             <li><strong>OpenAI</strong> — wine identification, recommendations, and AI-generated content</li>
-            <li><strong>Vercel</strong> — hosting and analytics</li>
+            <li><strong>Vercel</strong> — hosting, analytics, and performance monitoring</li>
             <li><strong>Google</strong> — OAuth sign-in (optional)</li>
+            <li><strong>Sentry</strong> — error tracking and diagnostics (no personal data is sent; PII is stripped before transmission)</li>
+            <li><strong>Upstash</strong> — rate limiting infrastructure (processes IP-based rate limit keys only)</li>
+            <li><strong>Resend</strong> — transactional email delivery for admin notifications</li>
             <li><strong>Vivino</strong> — external links for wine verification (we link to Vivino search pages so you can verify wine details; we do not collect data from Vivino)</li>
             <li><strong>Wine-Searcher</strong> — external links to find wine prices and stores</li>
           </ul>
@@ -64,7 +67,12 @@ export default function PrivacyPolicy() {
 
         <section className="space-y-3">
           <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Your rights</h2>
-          <p>You can request deletion of your account and all associated data at any time by contacting us. You can also export your cellar and wishlist data from the app.</p>
+          <p>You can delete your account and all associated data at any time from the Settings page. You can also export your cellar and wishlist data as a JSON file from Settings. For any additional data-related requests, contact us at <a href="mailto:asaffz@winejourney.co" className="text-bordeaux-400 underline">asaffz@winejourney.co</a>.</p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Cookies and analytics</h2>
+          <p>WineJourney uses essential cookies for authentication and language preferences. We also use Vercel Analytics for anonymous usage statistics and Sentry for error tracking. You can manage your cookie preferences from the cookie consent banner shown on your first visit.</p>
         </section>
 
         <section className="space-y-3">

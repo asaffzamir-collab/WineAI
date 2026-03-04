@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireUser } from '@/lib/require-user';
 
 /** Admin client for wine record updates (bypasses RLS). Falls back to null. */
 function tryAdminClient() {
@@ -38,6 +39,8 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
+    const { error: authError } = await requireUser(userId);
+    if (authError) return authError;
     const supabase = await createClient();
     let { data, error } = await supabase
       .from('cellar_items')
@@ -101,6 +104,8 @@ export async function POST(request: Request) {
     if (!userId || !wine?.name || !wine?.winery) {
       return NextResponse.json({ error: 'Missing userId or wine name and winery' }, { status: 400 });
     }
+    const { error: authError } = await requireUser(userId);
+    if (authError) return authError;
     const supabase = await createClient();
     const wineRow = normalizeWineForDb(wine);
 
@@ -170,6 +175,8 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id } = body;
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    const { error: authError } = await requireUser();
+    if (authError) return authError;
     const supabase = await createClient();
 
     // Build update object from allowed fields
@@ -217,6 +224,8 @@ export async function DELETE(request: Request) {
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    const { error: authError } = await requireUser();
+    if (authError) return authError;
     const supabase = await createClient();
     const { error } = await supabase.from('cellar_items').delete().eq('id', id);
     if (error) throw error;

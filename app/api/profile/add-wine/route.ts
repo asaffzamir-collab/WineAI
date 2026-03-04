@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 import type { WineData } from '@/lib/openai';
+import { requireUser } from '@/lib/require-user';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
   if (!userId || !wine || typeof wine !== 'object' || !wine.name || !wine.winery) {
     return NextResponse.json({ error: 'userId and wine (with name, winery) required' }, { status: 400 });
   }
+  const { error: authError } = await requireUser(userId);
+  if (authError) return authError;
 
   const supabase = await createClient();
 

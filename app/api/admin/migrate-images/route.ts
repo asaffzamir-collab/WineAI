@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { verifyAdmin } from '@/lib/admin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -22,6 +23,9 @@ function imageStoragePath(wineName: string, winery: string, ext: string): string
 }
 
 export async function POST(request: Request) {
+  const { error: authError } = await verifyAdmin();
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const dryRun = searchParams.get('dry') === '1';
 

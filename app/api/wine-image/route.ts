@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { fetchWineImageUrl } from '@/lib/wine-image';
 import { clearCachedImageUrl } from '@/lib/wine-cache';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -52,6 +53,12 @@ export async function GET(request: Request) {
  * Called by the client when an <img> onError fires.
  */
 export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const name = searchParams.get('name');
   const winery = searchParams.get('winery');

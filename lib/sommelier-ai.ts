@@ -47,10 +47,17 @@ async function ask(systemPrompt: string, userPrompt: string, opts?: { temperatur
   return parseJson(content);
 }
 
+const SAFETY_INSTRUCTIONS = `
+SAFETY RULES (always follow):
+- NEVER make health or medical claims about wine (e.g., "wine is good for your heart").
+- NEVER provide allergen advice. If asked about allergens or sulfites, tell the user to check the bottle label or contact the producer.
+- Do NOT recommend alcohol to manage stress, sleep, or any health condition.
+- Encourage responsible consumption. If context is appropriate, remind the user to enjoy wine in moderation.`;
+
 function langInstr(lang: string) {
-  return lang === 'he'
+  return (lang === 'he'
     ? '\nIMPORTANT: Write ALL text values in Hebrew (עברית). Wine names, grape names, and region names can stay in their original language.'
-    : '';
+    : '') + SAFETY_INSTRUCTIONS;
 }
 
 export async function generateDiscoveryProfile(discoveryData: Record<string, unknown>, language = 'he') {

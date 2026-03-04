@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireUser } from '@/lib/require-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  const { error: authError } = await requireUser(userId);
+  if (authError) return authError;
 
   const supabase = await createClient();
 

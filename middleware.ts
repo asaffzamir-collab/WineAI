@@ -4,9 +4,11 @@ import { rateLimit } from '@/lib/rate-limit';
 
 /** Routes that call OpenAI or are otherwise expensive / abuse-prone. */
 const RATE_LIMITED_ROUTES: Record<string, { limit: number; windowMs: number }> = {
-  '/api/wine-search':  { limit: 15, windowMs: 60_000 },   // 15 req/min
-  '/api/onboarding':   { limit: 5,  windowMs: 60_000 },   // 5 req/min
-  '/api/auth/register': { limit: 5,  windowMs: 60_000 },   // 5 req/min
+  '/api/wine-search':     { limit: 15, windowMs: 60_000 },   // 15 req/min
+  '/api/onboarding':      { limit: 5,  windowMs: 60_000 },   // 5 req/min
+  '/api/auth/register':   { limit: 5,  windowMs: 60_000 },   // 5 req/min
+  '/api/auth/login':      { limit: 10, windowMs: 60_000 },   // 10 req/min – brute-force protection
+  '/api/sommelier/chat':  { limit: 20, windowMs: 60_000 },   // 20 req/min – expensive AI endpoint
 };
 
 export async function middleware(request: NextRequest) {

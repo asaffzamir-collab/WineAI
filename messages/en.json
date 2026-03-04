@@ -13,7 +13,9 @@
     "next": "Next",
     "submit": "Submit",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "drinkResponsibly": "Please drink responsibly. Enjoy wine in moderation.",
+    "aiDisclaimer": "AI-generated content may be inaccurate. Verify important details independently."
   },
   "auth": {
     "welcome": "Welcome to WineJourney",
@@ -155,9 +157,9 @@
   },
   "wineCard": {
     "vivinoRating": "Est. Rating",
-    "ratingEstimate": "AI estimate — verify on Vivino",
-    "verifyOnVivino": "Verify on Vivino",
-    "seeOnVivino": "See on Vivino",
+    "ratingEstimate": "AI community rating estimate",
+    "verifyOnVivino": "Look up wine",
+    "seeOnVivino": "Look up wine",
     "reviews": "reviews",
     "technicalDetails": "Technical Details",
     "country": "Country",
@@ -461,6 +463,14 @@
     "legal": "Legal",
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy",
+    "dataManagement": "Data Management",
+    "exportData": "Export My Data",
+    "exportDataDesc": "Download all your data as a JSON file",
+    "exporting": "Exporting...",
+    "deleteAccount": "Delete Account",
+    "deleteAccountDesc": "Permanently delete your account and all data",
+    "deleteAccountConfirm": "Are you sure? This action cannot be undone. All your data (cellar, wishlist, taste profile, conversations) will be permanently deleted.",
+    "deleting": "Deleting...",
     "personalInfo": "Personal Info",
     "firstName": "First Name",
     "lastName": "Last Name",

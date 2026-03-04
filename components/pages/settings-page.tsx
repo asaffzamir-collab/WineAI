@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2, Crown, Bell, BellOff } from 'lucide-react';
+import { Globe, LogOut, User, Moon, Sun, Shield, ChevronRight, BookOpen, RotateCcw, FileText, Scale, Pencil, Check, Loader2, Crown, Bell, BellOff, Download, Trash2, Database } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { isPushSupported, isNotificationGranted, subscribeToPush, unsubscribeFromPush } from '@/lib/push-notifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +75,9 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const tCommon = useTranslations('common');
   const tGuide = useTranslations('guide');
 
@@ -566,6 +569,86 @@ export function SettingsPage({ userId, profile, userEmail, isAdmin }: SettingsPa
                 </CardContent>
               </Card>
             </button>
+
+            {/* Data Management */}
+            <div className="pt-2 space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">{t('dataManagement')}</h3>
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <button
+                    type="button"
+                    disabled={isExporting}
+                    onClick={async () => {
+                      setIsExporting(true);
+                      try {
+                        const res = await fetch('/api/account/export');
+                        if (!res.ok) throw new Error();
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `winejourney-export-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } catch {} finally { setIsExporting(false); }
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-start transition-colors hover:bg-accent"
+                  >
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                      <Download className="h-4 w-4 text-blue-500 dark:text-blue-400" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">{isExporting ? t('exporting') : t('exportData')}</p>
+                      <p className="text-xs text-muted-foreground">{t('exportDataDesc')}</p>
+                    </div>
+                  </button>
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="flex w-full items-center gap-3 rounded-xl p-2 text-start transition-colors hover:bg-destructive/5"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20">
+                        <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" strokeWidth={1.5} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-destructive">{t('deleteAccount')}</p>
+                        <p className="text-xs text-muted-foreground">{t('deleteAccountDesc')}</p>
+                      </div>
+                    </button>
+                  ) : (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+                      <p className="text-sm text-destructive">{t('deleteAccountConfirm')}</p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={isDeleting}
+                          onClick={async () => {
+                            setIsDeleting(true);
+                            try {
+                              const res = await fetch('/api/account/delete', { method: 'DELETE' });
+                              if (res.ok) {
+                                const supabase = createClient();
+                                await supabase.auth.signOut();
+                                window.location.href = '/';
+                              }
+                            } catch {} finally { setIsDeleting(false); }
+                          }}
+                        >
+                          {isDeleting ? (
+                            <><Loader2 className="me-1 h-3 w-3 animate-spin" />{t('deleting')}</>
+                          ) : t('deleteAccount')}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                          {tCommon('cancel')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Legal */}
             <div className="pt-2 space-y-2">
