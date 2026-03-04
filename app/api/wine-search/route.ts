@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
-import { fetchWineImageUrl, fetchWineImagesForMany } from '@/lib/wine-image';
+import { fetchWineImageUrl } from '@/lib/wine-image';
 import { findCachedWines, cacheTasteSpectrum } from '@/lib/wine-cache';
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
@@ -74,12 +74,10 @@ export async function POST(request: Request) {
           { status: 200 }
         );
       }
-      const [imageUrl, match] = await Promise.all([
-        fetchWineImageUrl(wine.name, wine.winery),
-        getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale),
-      ]);
-      if (imageUrl) wine.image_url = imageUrl;
+      const match = await getMatchForWine(matchWineToProfile, wine, tasteProfiles, locale);
       if (match && userId) persistMatchToDb(userId as string, wine, match).catch(() => {});
+      // Pre-warm image cache in background; WineCard lazy-loads via /api/wine-image
+      fetchWineImageUrl(wine.name, wine.winery).catch(() => {});
       // Persist taste_spectrum for future consistency
       if (wine.taste_spectrum && typeof wine.taste_spectrum.body === 'number') {
         cacheTasteSpectrum(wine.name, wine.winery, wine.taste_spectrum).catch(() => {});
@@ -105,31 +103,17 @@ export async function POST(request: Request) {
         );
       }
 
-      // Run image fetching and (for single results) match analysis in parallel
       const isSingle = wines.length === 1;
-      const winesMissingImages = wines
-        .map((w, i) => ({ w, i }))
-        .filter(({ w }) => !w.image_url);
-
-      const imagePromise = winesMissingImages.length > 0
-        ? fetchWineImagesForMany(winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })))
-        : Promise.resolve(new Map<string, string | null>());
-
-      const matchPromise = isSingle
-        ? getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale)
-        : Promise.resolve(null);
-
-      const [imgResults, match] = await Promise.all([imagePromise, matchPromise]);
-
-      winesMissingImages.forEach(({ i }, mapIdx) => {
-        const url = imgResults.get(`${mapIdx}`);
-        if (url) wines[i].image_url = url;
-      });
+      const match = isSingle
+        ? await getMatchForWine(matchWineToProfile, wines[0], tasteProfiles, locale)
+        : null;
 
       for (const w of wines) {
         if (w.taste_spectrum && typeof w.taste_spectrum.body === 'number') {
           cacheTasteSpectrum(w.name, w.winery, w.taste_spectrum).catch(() => {});
         }
+        // Pre-warm image cache in background; WineCard lazy-loads via /api/wine-image
+        if (!w.image_url) fetchWineImageUrl(w.name, w.winery).catch(() => {});
       }
 
       if (userId) {
