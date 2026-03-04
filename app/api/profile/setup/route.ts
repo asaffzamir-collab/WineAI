@@ -88,7 +88,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const updatePayload: Record<string, unknown> = {
+    // Full payload including new columns
+    const fullPayload: Record<string, unknown> = {
       first_name: firstName,
       last_name: lastName,
       display_name: alias,
@@ -101,17 +102,28 @@ export async function POST(request: Request) {
       cookie_consent: cookieConsent || null,
     };
 
+    // Core payload without the new columns (safe for older schemas)
+    const corePayload: Record<string, unknown> = {
+      first_name: firstName,
+      last_name: lastName,
+      display_name: alias,
+      country: country || null,
+      birthday,
+      gender: gender || null,
+      preferred_language: preferredLanguage || 'he',
+      profile_completed: true,
+    };
+
     let { error } = await supabase
       .from('user_profiles')
-      .update(updatePayload)
+      .update(fullPayload)
       .eq('id', user.id);
 
-    // If columns are missing, try running the migration then retry
+    // If the full payload failed (likely missing new columns), try without them
     if (error) {
-      console.error('[profile-setup] First attempt error:', JSON.stringify(error));
+      console.error('[profile-setup] Full payload error:', JSON.stringify(error));
       await runProfileMigration();
 
-      // Also try the ensure-schema endpoint (for postgres-based migration)
       try {
         const base = process.env.NEXT_PUBLIC_BASE_URL
           || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
@@ -120,22 +132,33 @@ export async function POST(request: Request) {
         }
       } catch { /* ignore */ }
 
-      // Retry the update
+      // Retry with full payload after migration
       const retry = await supabase
         .from('user_profiles')
-        .update(updatePayload)
+        .update(fullPayload)
         .eq('id', user.id);
       error = retry.error;
     }
 
-    // Final fallback: update only columns that definitely exist
+    // If still failing, try the core payload without new columns
     if (error) {
       console.error('[profile-setup] Retry error:', JSON.stringify(error));
+      const coreTry = await supabase
+        .from('user_profiles')
+        .update(corePayload)
+        .eq('id', user.id);
+      error = coreTry.error;
+    }
+
+    // Final fallback: minimal fields that definitely exist
+    if (error) {
+      console.error('[profile-setup] Core payload error:', JSON.stringify(error));
       const { error: fallbackError } = await supabase
         .from('user_profiles')
         .update({
           display_name: alias,
           preferred_language: preferredLanguage || 'he',
+          profile_completed: true,
         })
         .eq('id', user.id);
 
@@ -147,13 +170,6 @@ export async function POST(request: Request) {
           hint: 'Run this SQL in your Supabase SQL Editor: ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS first_name TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS last_name TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS country TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS birthday DATE; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS gender TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE;',
         }, { status: 500 });
       }
-
-      // Fallback succeeded for basic fields; return partial success
-      return NextResponse.json({
-        success: true,
-        warning: 'Profile saved with limited fields. Migration needed for full profile support.',
-        migrationSql: 'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS first_name TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS last_name TEXT; ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE;',
-      });
     }
 
     return NextResponse.json({ success: true });
