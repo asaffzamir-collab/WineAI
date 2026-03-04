@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   profile_completed BOOLEAN DEFAULT FALSE,
   onboarding_completed BOOLEAN DEFAULT FALSE,
   terms_accepted_at TIMESTAMP WITH TIME ZONE,
+  age_verified_at TIMESTAMP WITH TIME ZONE,
+  cookie_consent TEXT,
   is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

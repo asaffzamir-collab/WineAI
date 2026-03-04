@@ -65,7 +65,14 @@
     "languageHe": "עברית",
     "languageEn": "English",
     "continue": "המשך",
-    "saving": "שומר..."
+    "saving": "שומר...",
+    "birthdayRequired": "תאריך לידה הוא שדה חובה",
+    "birthdayAgeError": "יש להיות בני 18 לפחות כדי להשתמש באפליקציה",
+    "birthdayHelper": "עליכם להיות בגיל החוקי לשתיית אלכוהול כדי להמשיך",
+    "cookieConsentLabel": "העדפות עוגיות",
+    "cookieConsentDescription": "אנו משתמשים בעוגיות חיוניות לאימות ובאנליטיקה אופציונלית לשיפור החוויה. לא נעשה שימוש בעוגיות פרסום.",
+    "cookieAcceptAll": "אישור הכל",
+    "cookieEssentialOnly": "חיוניות בלבד"
   },
   "home": {
     "welcome": "שלום, {name}",

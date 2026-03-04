@@ -20,6 +20,8 @@ async function runProfileMigration(): Promise<boolean> {
     `ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('male', 'female', 'non-binary', 'prefer-not-to-say'))`,
     'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT FALSE',
     'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMP WITH TIME ZONE',
+    'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS age_verified_at TIMESTAMP WITH TIME ZONE',
+    'ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS cookie_consent TEXT',
   ];
 
   try {
@@ -70,10 +72,14 @@ async function runProfileMigration(): Promise<boolean> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { firstName, lastName, alias, country, birthday, gender, preferredLanguage } = body;
+    const { firstName, lastName, alias, country, birthday, gender, preferredLanguage, cookieConsent } = body;
 
     if (!firstName || !lastName || !alias) {
       return NextResponse.json({ error: 'First name, last name, and alias are required' }, { status: 400 });
+    }
+
+    if (!birthday) {
+      return NextResponse.json({ error: 'Birthday is required' }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -82,15 +88,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const updatePayload = {
+    const updatePayload: Record<string, unknown> = {
       first_name: firstName,
       last_name: lastName,
       display_name: alias,
       country: country || null,
-      birthday: birthday || null,
+      birthday,
       gender: gender || null,
       preferred_language: preferredLanguage || 'he',
       profile_completed: true,
+      age_verified_at: new Date().toISOString(),
+      cookie_consent: cookieConsent || null,
     };
 
     let { error } = await supabase

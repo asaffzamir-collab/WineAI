@@ -1,14 +1,25 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Loader2, Wine } from 'lucide-react';
+import { Loader2, Wine, Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WineLogo } from '@/components/wine-logo';
+
+function getAge(birthday: string): number {
+  const birth = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
 
 interface Props {
   userId: string;
@@ -44,8 +55,14 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
   const [birthday, setBirthday] = useState('');
   const [gender, setGender] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState(locale);
+  const [cookieConsent, setCookieConsent] = useState<'accepted' | 'declined' | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isUnderage = useMemo(
+    () => birthday !== '' && getAge(birthday) < 18,
+    [birthday],
+  );
 
   const handleLanguageChange = useCallback((lang: string) => {
     setPreferredLanguage(lang);
@@ -67,9 +84,10 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
           lastName,
           alias: alias || firstName,
           country,
-          birthday: birthday || null,
+          birthday,
           gender: gender || null,
           preferredLanguage,
+          cookieConsent,
         }),
       });
 
@@ -80,6 +98,8 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
         return;
       }
 
+      localStorage.setItem('wj_age_verified', '1');
+      localStorage.setItem('wj_cookie_consent', cookieConsent);
       router.replace('/sommelier/welcome');
     } catch {
       setError('Something went wrong. Please try again.');
@@ -87,7 +107,13 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
     }
   };
 
-  const isValid = firstName.trim() && lastName.trim() && alias.trim();
+  const isValid =
+    firstName.trim() &&
+    lastName.trim() &&
+    alias.trim() &&
+    birthday !== '' &&
+    !isUnderage &&
+    cookieConsent !== '';
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bordeaux-600 px-4 dark:bg-charcoal-900">
@@ -186,16 +212,22 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
               </div>
 
               <div>
-                <Label htmlFor="birthday">{t('birthday')}</Label>
+                <Label htmlFor="birthday">{t('birthday')} *</Label>
                 <Input
                   id="birthday"
                   type="date"
+                  required
                   value={birthday}
                   onChange={(e) => setBirthday(e.target.value)}
                   className="mt-1.5"
                   dir="ltr"
                   max={new Date().toISOString().split('T')[0]}
                 />
+                {isUnderage ? (
+                  <p className="mt-1 text-xs text-destructive">{t('birthdayAgeError')}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">{t('birthdayHelper')}</p>
+                )}
               </div>
 
               <div>
@@ -212,6 +244,38 @@ export function ProfileSetupPage({ initialDisplayName }: Props) {
                   <option value="non-binary">{t('genderNonBinary')}</option>
                   <option value="prefer-not-to-say">{t('genderPreferNot')}</option>
                 </select>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <Cookie className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  {t('cookieConsentLabel')} *
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">{t('cookieConsentDescription')}</p>
+                <div className="mt-2 flex rounded-xl bg-secondary p-1">
+                  <button
+                    type="button"
+                    onClick={() => setCookieConsent('accepted')}
+                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-150 ${
+                      cookieConsent === 'accepted'
+                        ? 'bg-card text-foreground shadow-soft'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('cookieAcceptAll')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCookieConsent('declined')}
+                    className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-150 ${
+                      cookieConsent === 'declined'
+                        ? 'bg-card text-foreground shadow-soft'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('cookieEssentialOnly')}
+                  </button>
+                </div>
               </div>
 
               {error && (

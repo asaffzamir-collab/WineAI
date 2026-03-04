@@ -6,8 +6,6 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { UserProvider } from '@/lib/user-context';
 import { DirectionProvider } from '@/lib/direction-provider';
-import { AgeGate } from '@/components/age-gate';
-import { CookieConsent } from '@/components/cookie-consent';
 import './globals.css';
 
 const heebo = Heebo({
@@ -105,11 +103,8 @@ export default async function RootLayout({
             defaultTranslationValues={{ gender: 'male' }}
           >
             <UserProvider>
-              <AgeGate>
-                <div id="main-content">{children}</div>
-              </AgeGate>
+              <div id="main-content">{children}</div>
             </UserProvider>
-            <CookieConsent />
           </NextIntlClientProvider>
         </DirectionProvider>
         <Analytics />

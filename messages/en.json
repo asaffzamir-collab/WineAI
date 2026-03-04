@@ -65,7 +65,14 @@
     "languageHe": "Hebrew",
     "languageEn": "English",
     "continue": "Continue",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "birthdayRequired": "Birthday is required",
+    "birthdayAgeError": "You must be at least 18 years old to use this app",
+    "birthdayHelper": "You must be of legal drinking age to continue",
+    "cookieConsentLabel": "Cookie preferences",
+    "cookieConsentDescription": "We use essential cookies for authentication and optional analytics to improve your experience. No advertising cookies are used.",
+    "cookieAcceptAll": "Accept all",
+    "cookieEssentialOnly": "Essential only"
   },
   "home": {
     "welcome": "Hello, {name}",
