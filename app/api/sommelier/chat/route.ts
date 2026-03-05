@@ -347,8 +347,8 @@ export async function POST(request: Request) {
           winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
         );
         winesMissingImages.forEach(({ i }, mapIdx) => {
-          const url = imgResults.get(`${mapIdx}`);
-          if (url) allWines[i].image_url = url;
+          const result = imgResults.get(`${mapIdx}`);
+          if (result) allWines[i].image_url = result.url;
         });
       }
 

@@ -9,6 +9,7 @@ import { AppShell } from '@/components/app-shell';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
@@ -67,6 +68,7 @@ function getWine(item: ConsumedItem): WineRowData | null {
 
 function ConsumedItemImage({ wine }: { wine: WineRowData }) {
   const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const [lazySource, setLazySource] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
   const fetchedRef = useRef(false);
@@ -78,7 +80,12 @@ function ConsumedItemImage({ wine }: { wine: WineRowData }) {
     fetchedRef.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
       .then((r) => r.json())
-      .then((data) => { if (!cancelled && data.imageUrl) setLazyUrl(data.imageUrl); })
+      .then((data) => {
+        if (!cancelled && data.imageUrl) {
+          setLazyUrl(data.imageUrl);
+          if (data.imageSource) setLazySource(data.imageSource);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -88,8 +95,11 @@ function ConsumedItemImage({ wine }: { wine: WineRowData }) {
 
   if (src) {
     return (
-      <div className="h-12 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-        <img src={src} alt={wine.name} className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+      <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+        <div className="h-12 w-9 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+          <img src={src} alt={wine.name} className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+        </div>
+        <ImageAttribution source={lazySource} />
       </div>
     );
   }

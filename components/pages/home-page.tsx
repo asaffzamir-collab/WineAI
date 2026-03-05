@@ -33,6 +33,7 @@ import { formatCurrency } from '@/lib/utils';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { getCachedMatch, setCachedMatch, clearMatchCache } from '@/lib/match-cache';
 import { FeatureTour } from '@/components/feature-tour';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { useUser } from '@/lib/user-context';
 
 const WineCard = dynamic(() => import('@/components/wine-card').then((m) => m.WineCard), {
@@ -772,6 +773,7 @@ export function HomePage({ userId, displayName: initialDisplayName }: HomePagePr
 
 function RecentItemImage({ item }: { item: RecentCellarItem }) {
   const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const [lazySource, setLazySource] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
   const fetchedRef = useRef(false);
@@ -783,7 +785,12 @@ function RecentItemImage({ item }: { item: RecentCellarItem }) {
     fetchedRef.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(item.wineName)}&winery=${encodeURIComponent(item.winery)}`)
       .then((r) => r.json())
-      .then((data) => { if (!cancelled && data.imageUrl) setLazyUrl(data.imageUrl); })
+      .then((data) => {
+        if (!cancelled && data.imageUrl) {
+          setLazyUrl(data.imageUrl);
+          if (data.imageSource) setLazySource(data.imageSource);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -793,8 +800,11 @@ function RecentItemImage({ item }: { item: RecentCellarItem }) {
 
   if (src) {
     return (
-      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-        <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+      <div className="flex shrink-0 flex-col items-center gap-0.5">
+        <div className="h-9 w-9 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+          <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" onError={() => setImgError(true)} />
+        </div>
+        <ImageAttribution source={lazySource} />
       </div>
     );
   }

@@ -46,6 +46,7 @@ export function cellarItemToPlacement(
     consumedAt: item.consumed_at,
     isGift: item.is_gift,
     imageUrl: wine.image_url,
+    imageSource: wine.image_source,
     rating: wine.vivino_rating,
     region: wine.region,
     country: wine.country,

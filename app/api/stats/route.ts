@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       supabase.from('wine_tastings').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       supabase
         .from('cellar_items')
-        .select('id, quantity, purchase_price, drink_from, drink_until, created_at, opened_at, consumed_at, wines(name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, image_url, serving, food_pairings, ai_description)')
+        .select('id, quantity, purchase_price, drink_from, drink_until, created_at, opened_at, consumed_at, wines(name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, image_url, image_source, serving, food_pairings, ai_description)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }),
       supabase.from('wishlist_items').select('*', { count: 'exact', head: true }).eq('user_id', userId),

@@ -5,10 +5,8 @@
  * hitting external sources. Once fetched, the URL is persisted to the DB
  * so subsequent requests never hit external APIs again.
  *
- * Strategy 0: Vivino-targeted Google search (site:vivino.com).
- * Strategy 1: Google Image Search (extracts wine-retailer image URLs).
- * Strategy 2: Wine-Searcher scraping (independent CDN).
- * Strategy 3: OpenAI web search fallback (costs API credits, last resort).
+ * Strategy 1: Vertex AI Search (legitimate Google Cloud API).
+ * Strategy 2: OpenAI web search fallback (costs API credits, last resort).
  *
  * Hebrew wine names are transliterated to English before searching.
  *
@@ -23,22 +21,17 @@ import {
   isNegativelyCached,
   cacheNegativeResult,
 } from '@/lib/wine-cache';
-import { createAdminClient } from '@/lib/supabase/server';
+
+export interface WineImageResult {
+  url: string;
+  source: string;
+}
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MIN_IMAGE_BYTES = 5_000;
 
-const USER_AGENTS = [
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
-];
-
-function randomUA(): string {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
 function normalizeImageUrl(url: string): string {
   if (url.startsWith('//')) return `https:${url}`;
@@ -108,7 +101,7 @@ async function validateImageUrl(url: string): Promise<string | null> {
       method: 'HEAD',
       signal: controller.signal,
       redirect: 'follow',
-      headers: { 'User-Agent': randomUA() },
+      headers: { 'User-Agent': USER_AGENT },
     });
     clearTimeout(timeout);
 
@@ -128,25 +121,6 @@ async function validateImageUrl(url: string): Promise<string | null> {
     console.warn(`[wine-image] URL validation error: ${url}`);
     return null;
   }
-}
-
-/** Shared browser-like headers that reduce bot-detection fingerprinting. */
-function browserHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  return {
-    'User-Agent': randomUA(),
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Upgrade-Insecure-Requests': '1',
-    ...extra,
-  };
-}
-
-function detectChallengePage(html: string): boolean {
-  const markers = ['cf-challenge', 'Checking your browser', 'cf-turnstile', 'challenge-platform', 'px-captcha'];
-  return markers.some((m) => html.includes(m));
 }
 
 // ───────────── Image filtering ─────────────
@@ -178,14 +152,11 @@ const UNWANTED_URL_PATTERNS = [
   'logo', 'icon', 'flag', 'avatar', 'placeholder', 'default',
   '/press/', '/web/',
   '_40x', '_80x', '_32x', '/30/', '/40/', '/60/',
-  // Social media
   'instagram.com', 'facebook.com', 'fbcdn.net', 'twitter.com', 'x.com/pic',
   'pinterest.com', 'pinimg.com', 'reddit.com', 'redditmedia.com',
   'tiktok.com', 'youtube.com', 'ytimg.com',
-  // Stock photo sites
   'shutterstock.com', 'gettyimages.com', 'alamy.com', 'istockphoto.com',
   'dreamstime.com', 'depositphotos.com', 'stock.adobe.com',
-  // Common non-product patterns in URLs
   'profile_image', 'user_photo', 'banner', 'header', 'background',
   'thumbnail_small', 'emoji', 'sticker', 'badge',
 ];
@@ -195,58 +166,90 @@ function isUnwantedImage(url: string): boolean {
   return UNWANTED_URL_PATTERNS.some((p) => lower.includes(p));
 }
 
-// ───────────── Strategy 0 & 1: Google Image Search ─────────────
+/**
+ * Detect the image source domain from a URL for attribution purposes.
+ */
+export function detectSource(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.includes('vivino.com')) return 'vivino';
+  if (lower.includes('wine-searcher.net')) return 'wine-searcher';
+  if (lower.includes('wine.com')) return 'wine.com';
+  if (lower.includes('totalwine.com')) return 'totalwine';
+  if (lower.includes('klwines.com')) return 'klwines';
+  if (lower.includes('winelibrary.com')) return 'winelibrary';
+  if (lower.includes('jamesuckling.com')) return 'jamesuckling';
+  if (lower.includes('winespectator.com')) return 'winespectator';
+  if (lower.includes('wineenthusiast.com')) return 'wineenthusiast';
+  return 'web';
+}
 
-async function scrapeGoogleImages(query: string, siteRestrict?: string): Promise<string | null> {
-  const searchQuery = siteRestrict
-    ? `${query} wine bottle site:${siteRestrict}`
-    : `${query} wine bottle product`;
-  const url = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=isch`;
+// ───────────── Strategy 1: Vertex AI Search ─────────────
+
+async function searchViaVertexAI(query: string): Promise<WineImageResult | null> {
+  const engineId = process.env.VERTEX_AI_SEARCH_ENGINE_ID;
+  const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
+  const projectId = process.env.GCP_PROJECT_ID;
+  if (!engineId || !apiKey || !projectId) return null;
+
+  const endpoint = `https://discoveryengine.googleapis.com/v1/projects/${projectId}/locations/global/collections/default_collection/engines/${engineId}/servingConfigs/default_search:search?key=${apiKey}`;
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(endpoint, {
+      method: 'POST',
       signal: controller.signal,
-      redirect: 'follow',
-      headers: browserHeaders({
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `${query} wine bottle`,
+        pageSize: 10,
       }),
     });
     clearTimeout(timeout);
 
     if (!res.ok) {
-      console.error(`[wine-image] Google Images returned ${res.status} for: "${query}"`);
+      console.error(`[wine-image] Vertex AI Search returned ${res.status} for: "${query}"`);
       return null;
     }
 
-    const html = await res.text();
-    if (!html || html.length < 1000) {
-      console.error(`[wine-image] Google Images HTML too short (${html.length}) for: "${query}"`);
-      return null;
+    const data = await res.json();
+    const results = data?.results ?? [];
+
+    for (const result of results) {
+      const doc = result?.document?.derivedStructData ?? {};
+
+      const pagemap = doc.pagemap ?? {};
+      const images: string[] = [];
+
+      if (doc.link) {
+        const ogImages = pagemap.metatags
+          ?.map((t: Record<string, string>) => t['og:image'])
+          .filter(Boolean) ?? [];
+        images.push(...ogImages);
+      }
+
+      const cseImages = pagemap.cse_image?.map((i: { src: string }) => i.src).filter(Boolean) ?? [];
+      images.push(...cseImages);
+
+      const cseThumb = pagemap.cse_thumbnail?.map((i: { src: string }) => i.src).filter(Boolean) ?? [];
+      images.push(...cseThumb);
+
+      if (doc.thumbnailUrl) images.push(doc.thumbnailUrl);
+
+      for (const imgUrl of images) {
+        const normalized = normalizeImageUrl(imgUrl);
+        if (isUnwantedImage(normalized)) continue;
+        if (!isWineImageUrl(normalized) && !/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(normalized)) continue;
+
+        const validated = await validateImageUrl(normalized);
+        if (validated) {
+          return { url: validated, source: detectSource(validated) };
+        }
+      }
     }
 
-    const generalRegex = /https?:\/\/[^\s"'<>&\\]+\.(?:jpg|jpeg|png|webp)/gi;
-    const allImages = Array.from(new Set(html.match(generalRegex) ?? []));
-
-    const candidates = allImages.filter((img) => {
-      const lower = img.toLowerCase();
-      if (lower.includes('google.com') || lower.includes('gstatic.com') || lower.includes('googleapis.com')) return false;
-      if (isUnwantedImage(img)) return false;
-      return true;
-    });
-
-    // Prioritize known wine retailer CDN URLs
-    const priority = candidates.filter((u) => WINE_IMAGE_HOSTS.some((h) => u.toLowerCase().includes(h)));
-    const others = candidates.filter((u) => !WINE_IMAGE_HOSTS.some((h) => u.toLowerCase().includes(h)));
-    const ordered = [...priority, ...others];
-
-    for (const img of ordered.slice(0, 5)) {
-      const validated = await validateImageUrl(normalizeImageUrl(img));
-      if (validated) return validated;
-    }
-
-    console.warn(`[wine-image] Google Images: no valid image in ${ordered.length} candidates for: "${query}"`);
+    console.warn(`[wine-image] Vertex AI Search: no valid image for: "${query}"`);
     return null;
   } catch (err: unknown) {
     clearTimeout(timeout);
@@ -254,78 +257,16 @@ async function scrapeGoogleImages(query: string, siteRestrict?: string): Promise
       (err instanceof DOMException && err.name === 'AbortError') ||
       (err instanceof Error && err.name === 'AbortError');
     console.error(
-      `[wine-image] Google Images ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
+      `[wine-image] Vertex AI Search ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
       isAbort ? '' : err,
     );
     return null;
   }
 }
 
-// ───────────── Strategy 2: Wine-Searcher scraping ─────────────
+// ───────────── Strategy 2: OpenAI web search fallback ─────────────
 
-async function scrapeWineSearcher(query: string): Promise<string | null> {
-  const slug = query.toLowerCase().replace(/[^a-z0-9]+/g, '+');
-  const searchUrl = `https://www.wine-searcher.com/find/${encodeURIComponent(slug)}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(searchUrl, {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: browserHeaders({
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        Referer: 'https://www.wine-searcher.com/',
-      }),
-    });
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error(`[wine-image] Wine-Searcher returned ${response.status} for: "${query}"`);
-      return null;
-    }
-
-    const html = await response.text();
-
-    if (detectChallengePage(html)) {
-      console.error(`[wine-image] Wine-Searcher challenge page for: "${query}"`);
-      return null;
-    }
-
-    const wsImgRegex = /(?:https?:)?\/\/images\.wine-searcher\.net\/[^"'\s)&]+\.(?:jpg|jpeg|png|webp)/gi;
-    let match: RegExpExecArray | null;
-    while ((match = wsImgRegex.exec(html)) !== null) {
-      const url = match[0];
-      if (isUnwantedImage(url)) continue;
-      const validated = await validateImageUrl(normalizeImageUrl(url));
-      if (validated) return validated;
-    }
-
-    const ogMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)
-      || html.match(/<meta\s+content="([^"]+)"\s+property="og:image"/i);
-    if (ogMatch?.[1] && !isUnwantedImage(ogMatch[1])) {
-      const validated = await validateImageUrl(normalizeImageUrl(ogMatch[1]));
-      if (validated) return validated;
-    }
-
-    console.warn(`[wine-image] No image in Wine-Searcher for: "${query}"`);
-    return null;
-  } catch (err: unknown) {
-    clearTimeout(timeout);
-    const isAbort =
-      (err instanceof DOMException && err.name === 'AbortError') ||
-      (err instanceof Error && err.name === 'AbortError');
-    console.error(
-      `[wine-image] Wine-Searcher ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
-      isAbort ? '' : err,
-    );
-    return null;
-  }
-}
-
-// ───────────── Strategy 3: OpenAI web search fallback ─────────────
-
-async function searchViaOpenAI(query: string): Promise<string | null> {
+async function searchViaOpenAI(query: string): Promise<WineImageResult | null> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return null;
 
@@ -364,7 +305,9 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
       || text.match(/https?:\/\/images\.wine-searcher\.net\/[^\s"'<>]+/i);
     if (urlMatch && !isUnwantedImage(urlMatch[0])) {
       const validated = await validateImageUrl(normalizeImageUrl(urlMatch[0]));
-      if (validated) return validated;
+      if (validated) {
+        return { url: validated, source: detectSource(validated) };
+      }
     }
 
     console.warn(`[wine-image] OpenAI search: no usable URL for: "${query}"`);
@@ -382,131 +325,59 @@ async function searchViaOpenAI(query: string): Promise<string | null> {
   }
 }
 
-// ───────────── Combined fetch with multi-source fallback ─────────────
-
-async function fetchWineImage(wineName: string, winery: string): Promise<string | null> {
-  const rawQuery = `${winery} ${wineName}`.trim();
-  if (!rawQuery) return null;
-
-  // Transliterate Hebrew to English for better search results
-  const query = await transliterateHebrew(rawQuery);
-
-  // Strategy 0: Vivino-targeted Google search (most reliable product images)
-  const vivinoResult = await scrapeGoogleImages(query, 'vivino.com');
-  if (vivinoResult) return vivinoResult;
-
-  // Strategy 1: General Google Image Search with enhanced filtering
-  const googleResult = await scrapeGoogleImages(query);
-  if (googleResult) return googleResult;
-
-  // Strategy 2: Wine-Searcher scraping
-  const wsResult = await scrapeWineSearcher(query);
-  if (wsResult) return wsResult;
-
-  // Retry Google with just the wine name for broader results
-  const transliteratedName = await transliterateHebrew(wineName);
-  if (transliteratedName !== query) {
-    const retryGoogle = await scrapeGoogleImages(transliteratedName);
-    if (retryGoogle) return retryGoogle;
-  }
-
-  // Strategy 3: OpenAI web search (last resort, costs API credits)
-  const aiResult = await searchViaOpenAI(query);
-  if (aiResult) return aiResult;
-
-  return null;
-}
-
-// ───────────── Self-host: upload to Supabase Storage ─────────────
-
-const STORAGE_BUCKET = 'wine-images';
-let bucketVerified = false;
-
-function imageStoragePath(wineName: string, winery: string, ext: string): string {
-  const slug = `${winery}_${wineName}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 120);
-  return `${slug}.${ext}`;
-}
-
-async function uploadToStorage(externalUrl: string, wineName: string, winery: string): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    const res = await fetch(externalUrl, {
-      signal: controller.signal,
-      headers: { 'User-Agent': randomUA() },
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) return null;
-
-    const contentType = res.headers.get('content-type') || 'image/jpeg';
-    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-    const bytes = await res.arrayBuffer();
-    if (bytes.byteLength < MIN_IMAGE_BYTES) return null;
-
-    const supabase = createAdminClient();
-    const path = imageStoragePath(wineName, winery, ext);
-
-    if (!bucketVerified) {
-      const { error: bucketErr } = await supabase.storage.getBucket(STORAGE_BUCKET);
-      if (bucketErr) {
-        await supabase.storage.createBucket(STORAGE_BUCKET, { public: true });
-      }
-      bucketVerified = true;
-    }
-
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, bytes, { contentType, upsert: true });
-
-    if (error) {
-      console.error(`[wine-image] Storage upload failed for "${wineName}":`, error.message);
-      return null;
-    }
-
-    const { data: publicUrl } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    console.log(`[wine-image] Self-hosted: ${publicUrl.publicUrl}`);
-    return publicUrl.publicUrl;
-  } catch (err) {
-    console.error(`[wine-image] Storage upload error for "${wineName}":`, err);
-    return null;
-  }
-}
+// ───────────── Combined fetch: Vertex AI -> OpenAI -> placeholder ─────────────
 
 /**
  * Fetch a wine bottle image URL. Checks the DB first (positive and negative
- * cache); falls back to external sources, self-hosts the image in Supabase
- * Storage, and persists the self-hosted URL.
+ * cache); falls back to Vertex AI Search and then OpenAI web search.
+ * Returns the image URL and its source for attribution.
  */
 export async function fetchWineImageUrl(
   wineName: string,
   winery: string,
-): Promise<string | null> {
+): Promise<WineImageResult | null> {
   const cached = await findCachedImageUrl(wineName, winery);
   if (cached) {
-    const valid = await validateImageUrl(cached);
-    if (valid) return valid;
+    const valid = await validateImageUrl(cached.url);
+    if (valid) return cached;
     await clearCachedImageUrl(wineName, winery);
     console.warn(`[wine-image] Cleared stale cached URL for: "${wineName}" / "${winery}"`);
   }
 
-  if (await isNegativelyCached(wineName, winery)) return null;
+  if (isNegativelyCached(wineName, winery)) return null;
 
-  const externalUrl = await fetchWineImage(wineName, winery);
+  const rawQuery = `${winery} ${wineName}`.trim();
+  if (!rawQuery) return null;
 
-  if (externalUrl) {
-    const selfHostedUrl = await uploadToStorage(externalUrl, wineName, winery);
-    const finalUrl = selfHostedUrl || externalUrl;
-    await cacheImageUrl(wineName, winery, finalUrl);
-    return finalUrl;
-  } else {
-    await cacheNegativeResult(wineName, winery);
+  const query = await transliterateHebrew(rawQuery);
+
+  // Strategy 1: Vertex AI Search (primary, legitimate API)
+  const vertexResult = await searchViaVertexAI(query);
+  if (vertexResult) {
+    await cacheImageUrl(wineName, winery, vertexResult.url, vertexResult.source);
+    return vertexResult;
   }
 
+  // Strategy 2: OpenAI web search (fallback, legitimate API)
+  const openaiResult = await searchViaOpenAI(query);
+  if (openaiResult) {
+    await cacheImageUrl(wineName, winery, openaiResult.url, openaiResult.source);
+    return openaiResult;
+  }
+
+  // Retry with just the wine name for broader results
+  if (containsHebrew(wineName)) {
+    const transliteratedName = await transliterateHebrew(wineName);
+    if (transliteratedName !== query) {
+      const retryVertex = await searchViaVertexAI(transliteratedName);
+      if (retryVertex) {
+        await cacheImageUrl(wineName, winery, retryVertex.url, retryVertex.source);
+        return retryVertex;
+      }
+    }
+  }
+
+  await cacheNegativeResult(wineName, winery);
   return null;
 }
 
@@ -515,11 +386,11 @@ export async function fetchWineImageUrl(
  */
 export async function fetchWineImagesForMany(
   wines: Array<{ name: string; winery: string }>,
-): Promise<Map<string, string | null>> {
-  const results = new Map<string, string | null>();
+): Promise<Map<string, WineImageResult | null>> {
+  const results = new Map<string, WineImageResult | null>();
   const promises = wines.map(async (w, idx) => {
-    const url = await fetchWineImageUrl(w.name, w.winery);
-    results.set(`${idx}`, url);
+    const result = await fetchWineImageUrl(w.name, w.winery);
+    results.set(`${idx}`, result);
   });
   await Promise.allSettled(promises);
   return results;

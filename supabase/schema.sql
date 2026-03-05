@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS wines (
   tasting_notes JSONB,
   ai_description TEXT,
   image_url TEXT,
+  image_source TEXT,
   taste_spectrum JSONB,
   serving JSONB,
   food_pairings TEXT[],

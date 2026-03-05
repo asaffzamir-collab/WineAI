@@ -52,6 +52,7 @@ export interface Wine {
   };
   ai_description?: string;
   image_url?: string;
+  image_source?: string;
   created_at?: string;
 }
 

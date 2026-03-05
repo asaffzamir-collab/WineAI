@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { PreliminaryProfile, WineSuggestion } from '@/lib/sommelier-types';
 import { RadarChart } from '../radar-chart';
 import { Loader2, MapPin, Sparkles, Wine, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 
 interface Props {
   profile: PreliminaryProfile | null;
@@ -14,18 +15,27 @@ interface Props {
 
 function SuggestionImage({ name, winery }: { name: string; winery?: string }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [imgSource, setImgSource] = useState<string | null>(null);
   const fetched = useRef(false);
   useEffect(() => {
     if (fetched.current || !name) return;
     fetched.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(name)}&winery=${encodeURIComponent(winery || '')}`)
-      .then(r => r.json()).then(d => { if (d.imageUrl) setUrl(d.imageUrl); }).catch(() => {});
+      .then(r => r.json()).then(d => {
+        if (d.imageUrl) {
+          setUrl(d.imageUrl);
+          if (d.imageSource) setImgSource(d.imageSource);
+        }
+      }).catch(() => {});
   }, [name, winery]);
 
   if (url) {
     return (
-      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-        <img src={url} alt={name} className="h-full w-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+      <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+        <div className="h-10 w-10 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+          <img src={url} alt={name} className="h-full w-full object-contain" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        </div>
+        <ImageAttribution source={imgSource} />
       </div>
     );
   }

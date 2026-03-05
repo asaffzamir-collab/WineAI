@@ -27,22 +27,28 @@ export async function GET(request: Request) {
 
   try {
     const t0 = performance.now();
-    const imageUrl = await fetchWineImageUrl(name, winery || '');
+    const result = await fetchWineImageUrl(name, winery || '');
     const fetchMs = Math.round(performance.now() - t0);
-    if (imageUrl) {
+
+    if (result) {
       try {
         const { cacheImageUrl } = await import('@/lib/wine-cache');
-        await cacheImageUrl(name, winery || '', imageUrl);
+        await cacheImageUrl(name, winery || '', result.url, result.source);
       } catch {}
     }
-    const resp = NextResponse.json({ imageUrl, _timing: { fetch_ms: fetchMs } });
-    if (imageUrl) {
+
+    const resp = NextResponse.json({
+      imageUrl: result?.url ?? null,
+      imageSource: result?.source ?? null,
+      _timing: { fetch_ms: fetchMs },
+    });
+    if (result) {
       resp.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
     }
     return resp;
   } catch (err) {
     console.error('Wine image fetch error:', err);
-    return NextResponse.json({ imageUrl: null });
+    return NextResponse.json({ imageUrl: null, imageSource: null });
   }
 }
 

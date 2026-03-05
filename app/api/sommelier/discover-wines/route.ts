@@ -56,8 +56,8 @@ export async function POST() {
         wines.map((w) => ({ name: w.name, winery: w.winery || '' })),
       );
       wines.forEach((w, i) => {
-        const url = imgResults.get(`${i}`);
-        if (url) w.image_url = url;
+        const result = imgResults.get(`${i}`);
+        if (result) w.image_url = result.url;
       });
     }
 

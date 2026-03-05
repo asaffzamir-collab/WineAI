@@ -65,6 +65,7 @@ export interface WineData {
   food_pairings?: string[];
   price_range_usd?: string;
   image_url?: string;
+  image_source?: string;
   taste_spectrum?: TasteSpectrum;
 }
 

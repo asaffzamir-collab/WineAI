@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { useCellarRack } from '@/lib/cellar/cellar-rack-context';
 import { useSommelier } from '@/components/sommelier/sommelier-context';
 import { WINE_TYPE_COLORS, parseSlotId } from '@/lib/cellar/types';
@@ -265,8 +266,11 @@ export function SlotDetailPanel() {
             {/* Wine card */}
             <div className="flex items-start gap-3">
               {placement.imageUrl ? (
-                <div className="h-20 w-14 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700 flex-shrink-0">
-                  <img src={placement.imageUrl} alt={placement.wineName} className="h-full w-full object-contain" />
+                <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+                  <div className="h-20 w-14 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                    <img src={placement.imageUrl} alt={placement.wineName} className="h-full w-full object-contain" />
+                  </div>
+                  <ImageAttribution source={placement.imageSource} />
                 </div>
               ) : (
                 <div

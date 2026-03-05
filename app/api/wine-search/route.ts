@@ -10,7 +10,7 @@ async function fillCachedImages(wines: WineData[]): Promise<void> {
     if (!w.image_url) {
       try {
         const cached = await findCachedImageUrl(w.name, w.winery);
-        if (cached) w.image_url = cached;
+        if (cached) w.image_url = cached.url;
       } catch { /* best-effort */ }
     }
   }

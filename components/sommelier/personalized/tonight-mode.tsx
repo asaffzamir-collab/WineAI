@@ -6,6 +6,7 @@ import { useSommelier } from '../sommelier-context';
 import { cn } from '@/lib/utils';
 import { Loader2, Wine, Utensils, Sparkles, ArrowLeft, MapPin, Grape, AlertCircle } from 'lucide-react';
 import { safeId } from '@/lib/utils';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 
 type TonightStep = 'occasion' | 'food' | 'mood' | 'result';
 
@@ -14,17 +15,26 @@ const MOODS = ['casual', 'special'];
 
 function ResultImage({ name, winery, imageUrl }: { name: string; winery?: string; imageUrl?: string | null }) {
   const [url, setUrl] = useState<string | null>(imageUrl || null);
+  const [imgSource, setImgSource] = useState<string | null>(null);
   const fetched = useRef(false);
   useEffect(() => {
     if (url || fetched.current || !name) return;
     fetched.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(name)}&winery=${encodeURIComponent(winery || '')}`)
-      .then(r => r.json()).then(d => { if (d.imageUrl) setUrl(d.imageUrl); }).catch(() => {});
+      .then(r => r.json()).then(d => {
+        if (d.imageUrl) {
+          setUrl(d.imageUrl);
+          if (d.imageSource) setImgSource(d.imageSource);
+        }
+      }).catch(() => {});
   }, [name, winery, url]);
   if (url) {
     return (
-      <div className="h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
-        <img src={url} alt={name} className="h-full w-full object-contain" loading="lazy" onError={() => setUrl(null)} />
+      <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+        <div className="h-28 w-20 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
+          <img src={url} alt={name} className="h-full w-full object-contain" loading="lazy" onError={() => setUrl(null)} />
+        </div>
+        <ImageAttribution source={imgSource} />
       </div>
     );
   }

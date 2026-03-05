@@ -7,6 +7,7 @@ import { Wine, MapPin, Calendar, Star, Trash2, Camera, Loader2, ChevronRight, Pe
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppShell } from '@/components/app-shell';
@@ -40,6 +41,7 @@ interface CellarWineData {
   } | null;
   ai_description?: string | null;
   image_url?: string;
+  image_source?: string;
   serving?: {
     drink_from?: number;
     drink_until?: number;
@@ -426,14 +428,17 @@ export function CellarPage({ userId, initialItems, initialFilter }: CellarPagePr
               >
                 <div className="relative flex-shrink-0">
                   {imageUrl && !isImageBroken ? (
-                    <div className="h-16 w-12 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-                      <img
-                        src={imageUrl}
-                        alt={wine?.name || ''}
-                        className="h-full w-full object-contain"
-                        loading="lazy"
-                        onError={() => handleImageError(item.id)}
-                      />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div className="h-16 w-12 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                        <img
+                          src={imageUrl}
+                          alt={wine?.name || ''}
+                          className="h-full w-full object-contain"
+                          loading="lazy"
+                          onError={() => handleImageError(item.id)}
+                        />
+                      </div>
+                      {!item.bottle_photo_url && <ImageAttribution source={wine?.image_source} />}
                     </div>
                   ) : (
                     <div

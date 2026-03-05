@@ -15,6 +15,7 @@ import { useSommelier } from '@/components/sommelier/sommelier-context';
 import { WINE_TYPE_COLORS } from '@/lib/cellar/types';
 import type { Placement } from '@/lib/cellar/types';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { formatCurrency } from '@/lib/utils';
 import { trackCellar } from '@/lib/cellar/analytics';
 
@@ -78,13 +79,16 @@ function ListItem({
       >
         <div className="flex-shrink-0">
           {placement.imageUrl ? (
-            <div className="h-14 w-10 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-              <img
-                src={placement.imageUrl}
-                alt={placement.wineName}
-                className="h-full w-full object-contain"
-                loading="lazy"
-              />
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="h-14 w-10 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                <img
+                  src={placement.imageUrl}
+                  alt={placement.wineName}
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <ImageAttribution source={placement.imageSource} />
             </div>
           ) : (
             <div

@@ -7,6 +7,7 @@ import { Star, ExternalLink, Check, X, Wine, Thermometer, Clock, UtensilsCrossed
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import type { WineData, ProfileMatchResult, TasteSpectrum } from '@/lib/openai';
 
 /* ─── Comparison spectrum bar: two indicators on one track, tappable ─── */
@@ -183,6 +184,7 @@ export function WineCard({
   const g = { gender };
   const [imageError, setImageError] = useState(false);
   const [lazyImageUrl, setLazyImageUrl] = useState<string | null>(null);
+  const [lazyImageSource, setLazyImageSource] = useState<string | null>(null);
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const lazyFetchDone = useRef(false);
@@ -193,7 +195,6 @@ export function WineCard({
     lazyFetchDone.current = false;
   }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url]);
 
-  // Lazy-fetch wine image from Vivino when no image is available
   useEffect(() => {
     const hasImage = wine.image_url || uploadedImageUrl;
     if (hasImage && !imageError) return;
@@ -206,7 +207,10 @@ export function WineCard({
     fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery || '')}`)
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled && data.imageUrl) setLazyImageUrl(data.imageUrl);
+        if (!cancelled && data.imageUrl) {
+          setLazyImageUrl(data.imageUrl);
+          if (data.imageSource) setLazyImageSource(data.imageSource);
+        }
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setIsLoadingImage(false); });
@@ -249,22 +253,25 @@ export function WineCard({
       <CardHeader className="space-y-4 pb-4">
         <div className="flex items-start gap-4">
           {((wine.image_url || uploadedImageUrl) && !imageError) || lazyImageUrl ? (
-            <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
-              <img
-                src={(imageError ? (lazyImageUrl || uploadedImageUrl) : (wine.image_url || uploadedImageUrl || lazyImageUrl)) as string}
-                alt={`${wine.name} by ${wine.winery}`}
-                className="absolute inset-0 h-full w-full object-contain"
-                loading="lazy"
-                onError={() => {
-                  if (lazyImageUrl) {
-                    setLazyImageUrl(null);
-                  }
-                  setImageError(true);
-                  if (wine.name) {
-                    fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`, { method: 'DELETE' }).catch(() => {});
-                  }
-                }}
-              />
+            <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+              <div className="relative h-28 w-20 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">
+                <img
+                  src={(imageError ? (lazyImageUrl || uploadedImageUrl) : (wine.image_url || uploadedImageUrl || lazyImageUrl)) as string}
+                  alt={`${wine.name} by ${wine.winery}`}
+                  className="absolute inset-0 h-full w-full object-contain"
+                  loading="lazy"
+                  onError={() => {
+                    if (lazyImageUrl) {
+                      setLazyImageUrl(null);
+                    }
+                    setImageError(true);
+                    if (wine.name) {
+                      fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`, { method: 'DELETE' }).catch(() => {});
+                    }
+                  }}
+                />
+              </div>
+              <ImageAttribution source={wine.image_source || lazyImageSource} />
             </div>
           ) : isLoadingImage ? (
             <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ivory-300 shadow-soft dark:bg-charcoal-700">

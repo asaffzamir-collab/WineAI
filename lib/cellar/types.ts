@@ -52,6 +52,7 @@ export interface Placement {
   consumedAt?: string | null;
   isGift?: boolean;
   imageUrl?: string;
+  imageSource?: string;
   rating?: number;
   region?: string;
   country?: string;

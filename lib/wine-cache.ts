@@ -61,6 +61,7 @@ interface WineRow {
   tasting_notes: Record<string, unknown> | null;
   ai_description: string | null;
   image_url: string | null;
+  image_source: string | null;
   serving: Record<string, unknown> | null;
   food_pairings: string[] | null;
   taste_spectrum: { body: number; tannin: number; sweetness: number; acidity: number } | null;
@@ -79,6 +80,7 @@ function rowToWineData(row: WineRow): WineData {
     wine_type: (row.wine_type as WineData['wine_type']) ?? 'red',
     tasting_notes: row.tasting_notes as WineData['tasting_notes'],
     image_url: row.image_url ?? undefined,
+    image_source: row.image_source ?? undefined,
     serving: row.serving as WineData['serving'],
     food_pairings: row.food_pairings ?? undefined,
     taste_spectrum: row.taste_spectrum ?? undefined,
@@ -88,7 +90,7 @@ function rowToWineData(row: WineRow): WineData {
 const WINE_SELECT = `
   id, name, winery, vivino_rating, vivino_reviews,
   country, region, grapes, alcohol, wine_type,
-  tasting_notes, ai_description, image_url, serving, food_pairings, taste_spectrum
+  tasting_notes, ai_description, image_url, image_source, serving, food_pairings, taste_spectrum
 `;
 
 /**
@@ -138,18 +140,18 @@ export async function findCachedWine(
 }
 
 /**
- * Look up the cached image_url for a wine by name + winery.
- * Returns the URL if stored, or null.
+ * Look up the cached image_url and image_source for a wine by name + winery.
+ * Returns { url, source } if stored, or null.
  */
 export async function findCachedImageUrl(
   name: string,
   winery: string,
-): Promise<string | null> {
+): Promise<{ url: string; source: string } | null> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('wines')
-      .select('image_url')
+      .select('image_url, image_source')
       .eq('name', name)
       .eq('winery', winery)
       .not('image_url', 'is', null)
@@ -157,25 +159,32 @@ export async function findCachedImageUrl(
       .single();
 
     if (error || !data) return null;
-    return (data as { image_url: string | null }).image_url;
+    const row = data as { image_url: string | null; image_source: string | null };
+    if (!row.image_url) return null;
+    return { url: row.image_url, source: row.image_source || 'web' };
   } catch {
     return null;
   }
 }
 
 /**
- * Persist a wine's image_url to the DB so future requests skip external APIs.
+ * Persist a wine's image_url and image_source to the DB so future requests
+ * skip external APIs and can show attribution.
  */
 export async function cacheImageUrl(
   name: string,
   winery: string,
   imageUrl: string,
+  imageSource?: string,
 ): Promise<void> {
   try {
     const supabase = await createClient();
+    const updatePayload: Record<string, unknown> = { image_url: imageUrl };
+    if (imageSource) updatePayload.image_source = imageSource;
+
     const { data } = await supabase
       .from('wines')
-      .update({ image_url: imageUrl })
+      .update(updatePayload)
       .eq('name', name)
       .eq('winery', winery)
       .is('image_url', null)
@@ -190,7 +199,9 @@ export async function cacheImageUrl(
         .limit(1);
 
       if (!existing || existing.length === 0) {
-        await supabase.from('wines').insert({ name, winery, image_url: imageUrl });
+        const insertPayload: Record<string, unknown> = { name, winery, image_url: imageUrl };
+        if (imageSource) insertPayload.image_source = imageSource;
+        await supabase.from('wines').insert(insertPayload);
       }
     }
   } catch {
@@ -209,7 +220,7 @@ export async function clearCachedImageUrl(
     const supabase = await createClient();
     await supabase
       .from('wines')
-      .update({ image_url: null })
+      .update({ image_url: null, image_source: null })
       .eq('name', name)
       .eq('winery', winery);
   } catch {

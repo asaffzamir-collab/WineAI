@@ -13,6 +13,7 @@ import { AppShell } from '@/components/app-shell';
 import { PageHeader } from '@/components/ui/page-header';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import { WineListItem } from '@/components/wine-list-item';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
@@ -649,8 +650,11 @@ export function SearchPage({ userId }: SearchPageProps) {
                   <Card className="card-hover">
                     <CardContent className="flex items-center gap-3 p-3">
                       {w.image_url ? (
-                        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
-                          <img src={w.image_url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                        <div className="flex shrink-0 flex-col items-center gap-0.5">
+                          <div className="h-9 w-9 overflow-hidden rounded-xl bg-ivory-300 dark:bg-charcoal-700">
+                            <img src={w.image_url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                          </div>
+                          <ImageAttribution source={w.image_source} />
                         </div>
                       ) : (
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bordeaux-50 dark:bg-bordeaux-900/20">

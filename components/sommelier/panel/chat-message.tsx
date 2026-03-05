@@ -10,6 +10,7 @@ import { useSommelier } from '../sommelier-context';
 import { PierHeadAvatar } from '../sommelier-trigger';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import { invalidateAllMatchCaches } from '@/lib/match-cache';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 
 const WineCard = dynamic(
   () => import('@/components/wine-card').then((m) => m.WineCard),
@@ -60,6 +61,7 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
   const { userId, refreshState } = useSommelier();
   const [expanded, setExpanded] = useState(false);
   const [lazyUrl, setLazyUrl] = useState<string | null>(null);
+  const [lazySource, setLazySource] = useState<string | null>(null);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
@@ -71,7 +73,12 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
     fetched.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery)}`)
       .then((r) => r.json())
-      .then((d) => { if (d.imageUrl) setLazyUrl(d.imageUrl); })
+      .then((d) => {
+        if (d.imageUrl) {
+          setLazyUrl(d.imageUrl);
+          if (d.imageSource) setLazySource(d.imageSource);
+        }
+      })
       .catch(() => {});
   }, [wine.name, wine.winery, wine.image_url, lazyUrl]);
 
@@ -179,8 +186,11 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {imgSrc ? (
-        <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-          <img src={imgSrc} alt="" className="h-full w-full object-contain" loading="lazy" />
+        <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+          <div className="h-16 w-12 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+            <img src={imgSrc} alt="" className="h-full w-full object-contain" loading="lazy" />
+          </div>
+          <ImageAttribution source={lazySource} />
         </div>
       ) : (
         <div className="flex h-16 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">

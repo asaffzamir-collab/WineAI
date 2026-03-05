@@ -19,13 +19,13 @@ function sanitizeQuantity(raw: unknown): number {
 const CELLAR_SELECT_FULL = `
   id, quantity, purchase_price, purchase_date, notes,
   drink_from, drink_until, slot_id, opened_at, consumed_at, is_gift,
-  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url, image_source)
 `;
 
 const CELLAR_SELECT_NO_SLOT = `
   id, quantity, purchase_price, purchase_date, notes,
   drink_from, drink_until, opened_at, consumed_at, is_gift,
-  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url)
+  wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url, image_source)
 `;
 
 function isColumnMissing(err: unknown): boolean {

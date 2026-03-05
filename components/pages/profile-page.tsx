@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { AppShell } from '@/components/app-shell';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
 import { WineListItem } from '@/components/wine-list-item';
+import { ImageAttribution } from '@/components/ui/image-attribution';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 
@@ -32,6 +33,7 @@ interface LikedWineDetail {
   vintage?: number;
   grapes?: string[];
   image_url?: string;
+  image_source?: string;
   full_wine?: Record<string, unknown>;
 }
 
@@ -707,14 +709,17 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                                         )}
                                       >
                                         {(w.image_url || w.full_wine?.image_url) ? (
-                                          <div className="relative h-14 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
-                                            <img
-                                              src={w.image_url || String(w.full_wine?.image_url || '')}
-                                              alt={w.name}
-                                              className="h-full w-full object-contain"
-                                              loading="lazy"
-                                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                            />
+                                          <div className="flex flex-shrink-0 flex-col items-center gap-0.5">
+                                            <div className="relative h-14 w-10 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+                                              <img
+                                                src={w.image_url || String(w.full_wine?.image_url || '')}
+                                                alt={w.name}
+                                                className="h-full w-full object-contain"
+                                                loading="lazy"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                              />
+                                            </div>
+                                            <ImageAttribution source={w.image_source || (w.full_wine?.image_source as string)} />
                                           </div>
                                         ) : (
                                           <div className={cn(
