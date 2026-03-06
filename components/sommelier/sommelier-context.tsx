@@ -57,7 +57,23 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [usageLimitInfo, setUsageLimitInfo] = useState<{ type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null>(null);
-  const [lastDiscoveryWines, setLastDiscoveryWines] = useState<unknown[] | null>(null);
+  const [lastDiscoveryWines, setLastDiscoveryWinesState] = useState<unknown[] | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = sessionStorage.getItem('lastDiscoveryWines');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+  const setLastDiscoveryWines = useCallback((wines: unknown[] | null) => {
+    setLastDiscoveryWinesState(wines);
+    try {
+      if (wines) {
+        sessionStorage.setItem('lastDiscoveryWines', JSON.stringify(wines));
+      } else {
+        sessionStorage.removeItem('lastDiscoveryWines');
+      }
+    } catch { /* quota or unavailable */ }
+  }, []);
   const hasFetched = useRef(false);
 
   const refreshState = useCallback(async () => {

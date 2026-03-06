@@ -55,6 +55,19 @@ export function setCachedMatch(userId: string, wine: WineData, match: ProfileMat
   const map = readMap(userId);
   map[wineKey(wine)] = { match, ts: Date.now() };
   writeMap(userId, map);
+  persistMatchToServer(userId, wine, match);
+}
+
+function persistMatchToServer(userId: string, wine: WineData, match: ProfileMatchResult): void {
+  fetch('/api/wine-match', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      wine: { name: wine.name, winery: wine.winery },
+      match,
+    }),
+  }).catch(() => {});
 }
 
 export function clearMatchCache(userId: string): void {

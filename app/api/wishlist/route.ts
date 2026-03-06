@@ -44,11 +44,9 @@ export async function POST(request: Request) {
     if (authError) return authError;
     const supabase = await createClient();
 
-    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings, taste_spectrum').eq('name', wine.name).eq('winery', wine.winery).single();
+    const { data: existingWine } = await supabase.from('wines').select('id, image_url, serving, food_pairings, taste_spectrum, country, region, grapes, alcohol, wine_type').eq('name', wine.name).eq('winery', wine.winery).single();
     let wineId = existingWine?.id;
     if (wineId && existingWine) {
-      // Update existing wine with latest data (image_url, serving, food_pairings, etc.)
-      // Uses admin client to bypass RLS (wines table has no UPDATE policy by default)
       const updates: Record<string, unknown> = {};
       const imgUrl = typeof wine.image_url === 'string' ? wine.image_url : null;
       if (imgUrl && !existingWine.image_url) updates.image_url = imgUrl;
@@ -60,6 +58,11 @@ export async function POST(request: Request) {
       const aiDesc = wine.winery_description ?? wine.ai_description;
       if (aiDesc) updates.ai_description = aiDesc;
       if (wine.taste_spectrum && !existingWine.taste_spectrum) updates.taste_spectrum = wine.taste_spectrum;
+      if (wine.country && !existingWine.country) updates.country = wine.country;
+      if (wine.region && !existingWine.region) updates.region = wine.region;
+      if (wine.grapes?.length && !existingWine.grapes?.length) updates.grapes = wine.grapes;
+      if (wine.alcohol != null && !existingWine.alcohol) updates.alcohol = wine.alcohol;
+      if (wine.wine_type && !existingWine.wine_type) updates.wine_type = wine.wine_type;
       if (Object.keys(updates).length > 0) {
         const admin = tryAdminClient();
         const client = admin ?? supabase;

@@ -452,6 +452,7 @@ export function SearchPage({ userId }: SearchPageProps) {
         body: JSON.stringify({ userId, wine: target }),
       });
       if (!response.ok) throw new Error('Failed to add');
+      window.dispatchEvent(new Event('wishlist-updated'));
       setTimeout(() => setIsAddingToWishlist(false), 2000);
     } catch (err) {
       console.error('Failed to add to wishlist:', err);

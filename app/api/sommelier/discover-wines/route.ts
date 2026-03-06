@@ -29,6 +29,7 @@ interface DiscoveredWine {
   alcohol?: string;
   tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
   serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
+  food_pairings?: string[];
   why_drink_it?: string;
   similar_wines_note?: string;
 }
@@ -114,15 +115,36 @@ export async function POST() {
 
           if (rp) {
             try {
-              const score = quickMatchScore(
-                { name: w.name, winery: w.winery || '', wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
-                w.wine_spectrum,
-                rp,
-              );
-              if (score !== null) w.match = score;
-              const ps = rp.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
-              if (ps && typeof ps.body === 'number') w.profile_spectrum = ps;
-            } catch { /* scoring is best-effort */ }
+              const minimalWine = {
+                name: w.name,
+                winery: w.winery || '',
+                wine_type: (w.wine_type || 'red') as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert',
+                country: w.country || '',
+                region: w.region,
+                grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [],
+                taste_spectrum: w.wine_spectrum,
+              };
+              const raw = await matchWineToProfile(minimalWine, rp, lang);
+              w.match = raw.match_percentage;
+              w.reason = raw.explanation || w.reason;
+              w.positive_matches = raw.positive_matches;
+              w.mismatches = raw.mismatches;
+              w.why_drink_it = raw.why_drink_it;
+              w.similar_wines_note = raw.similar_wines_note;
+              if (raw.wine_spectrum) w.wine_spectrum = { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity };
+              if (raw.profile_spectrum) w.profile_spectrum = { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity };
+            } catch {
+              try {
+                const score = quickMatchScore(
+                  { name: w.name, winery: w.winery || '', wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
+                  w.wine_spectrum,
+                  rp,
+                );
+                if (score !== null) w.match = score;
+                const ps = rp.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
+                if (ps && typeof ps.body === 'number') w.profile_spectrum = ps;
+              } catch { /* scoring is best-effort */ }
+            }
           }
         }),
       );

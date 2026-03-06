@@ -142,7 +142,11 @@ export function WineDiscovery() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, wine: fullWine }),
       });
-      if (!res.ok) setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: false } }));
+      if (res.ok) {
+        window.dispatchEvent(new Event('wishlist-updated'));
+      } else {
+        setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: false } }));
+      }
     } catch { setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: false } })); }
   };
 

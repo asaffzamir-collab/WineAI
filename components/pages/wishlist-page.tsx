@@ -161,6 +161,22 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [items, setItems] = useState<WishlistItem[]>(initialItems);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  const fetchItems = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/wishlist?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items)) setItems(data.items);
+      }
+    } catch { /* best-effort refresh */ }
+  }, [userId]);
+
+  useEffect(() => {
+    const handler = () => { fetchItems(); };
+    window.addEventListener('wishlist-updated', handler);
+    return () => window.removeEventListener('wishlist-updated', handler);
+  }, [fetchItems]);
+
   const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
   const [detailWine, setDetailWine] = useState<WineData | null>(null);
   const [detailMatch, setDetailMatch] = useState<ProfileMatchResult | null>(null);
@@ -474,6 +490,9 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
                     </p>
                   )}
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    {wine?.wine_type && (
+                      <span className="capitalize">{wine.wine_type}</span>
+                    )}
                     {wine?.vivino_rating != null && (() => {
                       const r = Number(wine.vivino_rating);
                       const lo = Math.max(1.0, r - 0.2);

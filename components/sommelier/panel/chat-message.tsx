@@ -107,7 +107,11 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, wine: fullWine }),
       });
-      if (!res.ok) setIsAddingToWishlist(false);
+      if (res.ok) {
+        window.dispatchEvent(new Event('wishlist-updated'));
+      } else {
+        setIsAddingToWishlist(false);
+      }
     } catch { setIsAddingToWishlist(false); }
   };
 

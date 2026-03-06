@@ -37,6 +37,20 @@ async function setDbCachedMatch(userId: string, key: string, match: ProfileMatch
   } catch { /* best-effort */ }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const { userId, wine, match } = await request.json();
+    if (!userId || !wine?.name || !wine?.winery || !match?.explanation) {
+      return NextResponse.json({ error: 'userId, wine, and match with explanation required' }, { status: 400 });
+    }
+    const key = wineKey(wine.name, wine.winery);
+    await setDbCachedMatch(userId, key, match);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: 'Cache failed' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { matchWineToProfile } = await import('@/lib/openai');
