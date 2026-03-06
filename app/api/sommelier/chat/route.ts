@@ -158,6 +158,7 @@ export async function POST(request: Request) {
             const enriched = await enrichWines(top, combinedProfile, {
               language: lang,
               maxFullMatch: 0,
+              dbCacheOnly: true,
             });
             return { id: tc.id, name: tc.name, result: JSON.stringify(result), wines: enriched };
           } catch {

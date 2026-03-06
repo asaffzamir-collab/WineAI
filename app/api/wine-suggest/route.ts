@@ -37,7 +37,9 @@ export async function GET(request: Request) {
       wine_type: row.wine_type as string | null,
       region: row.region as string | null,
       country: row.country as string | null,
-      image_url: row.image_url as string | null,
+      image_url: row.image_url
+        ? (row.image_url as string).replace(/^http:\/\//, 'https://')
+        : null,
     }));
 
     return NextResponse.json(

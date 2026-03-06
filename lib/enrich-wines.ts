@@ -9,6 +9,12 @@
 import type { WineData, TasteSpectrum } from '@/lib/openai';
 import { findCachedWines } from '@/lib/wine-cache';
 
+/** Upgrade bare http:// image URLs to https:// to avoid mixed-content warnings. */
+export function httpsImageUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  return url.replace(/^http:\/\//, 'https://');
+}
+
 export interface MinimalWine {
   name: string;
   winery: string;
@@ -59,6 +65,8 @@ export interface EnrichOptions {
   maxFullMatch?: number;
   /** Skip searchWinesByText if the wine already has these fields. */
   skipSearchWhenComplete?: boolean;
+  /** Only check DB cache for supplementary data; never call GPT search. */
+  dbCacheOnly?: boolean;
 }
 
 type TypedProfiles = Record<string, unknown>;
@@ -104,7 +112,7 @@ function applyFullWineData(target: EnrichedWine, fullWine: WineData): void {
   if (fullWine.vivino_rating) target.vivino_rating = fullWine.vivino_rating;
   if (fullWine.vivino_reviews) target.vivino_reviews = fullWine.vivino_reviews;
   if (fullWine.alcohol != null) target.alcohol = String(fullWine.alcohol);
-  if (fullWine.image_url) target.image_url = fullWine.image_url;
+  if (fullWine.image_url) target.image_url = httpsImageUrl(fullWine.image_url);
   if (fullWine.tasting_notes) target.tasting_notes = fullWine.tasting_notes as EnrichedWine['tasting_notes'];
   if (fullWine.serving) {
     target.serving = {
@@ -146,7 +154,7 @@ export async function enrichWines(
   typedProfiles: TypedProfiles,
   options: EnrichOptions = {},
 ): Promise<EnrichedWine[]> {
-  const { language, maxFullMatch = 2, skipSearchWhenComplete } = options;
+  const { language, maxFullMatch = 2, skipSearchWhenComplete, dbCacheOnly } = options;
   const hasProfile = Object.keys(typedProfiles).length > 0;
 
   const { searchWinesByText, matchWineToProfile, quickMatchScore } = await import('@/lib/openai');
@@ -170,7 +178,7 @@ export async function enrichWines(
         positive_matches: w.positive_matches,
         mismatches: w.mismatches,
         wine_spectrum: w.wine_spectrum,
-        image_url: w.image_url,
+        image_url: httpsImageUrl(w.image_url),
         match: w.match,
       };
 
@@ -188,7 +196,7 @@ export async function enrichWines(
           const cached = await findCachedWines(query);
           if (cached.length > 0) {
             fullWine = cached[0];
-          } else {
+          } else if (!dbCacheOnly) {
             const found = await searchWinesByText(query);
             fullWine = found?.[0] ?? null;
           }
@@ -270,7 +278,7 @@ export async function enrichSearchedWines(
       grape: w.grapes?.join(', '),
       wine_type: w.wine_type,
       country: w.country,
-      image_url: w.image_url,
+      image_url: httpsImageUrl(w.image_url),
       food_pairings: w.food_pairings,
       alcohol: w.alcohol != null ? String(w.alcohol) : undefined,
       vivino_rating: w.vivino_rating,
@@ -296,7 +304,7 @@ export async function enrichSearchedWines(
         grape: w.grapes?.join(', '),
         wine_type: w.wine_type,
         country: w.country,
-        image_url: w.image_url,
+        image_url: httpsImageUrl(w.image_url),
         food_pairings: w.food_pairings,
         alcohol: w.alcohol != null ? String(w.alcohol) : undefined,
         vivino_rating: w.vivino_rating,
