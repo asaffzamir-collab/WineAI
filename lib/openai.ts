@@ -181,6 +181,13 @@ Example format:
   {"name": "Brunello di Montalcino", "winery": "Tenuta", "vintage": 2019, "country": "Italy", "region": "Tuscany", "grapes": ["Sangiovese"], "wine_type": "red", "vivino_rating": 4.4, "vivino_reviews": 12000, "alcohol": 14.5, "volume_ml": 750, "is_kosher": false, "body": "full", "sweetness": "dry", "tasting_notes": {"nose": ["דובדבן", "טבק", "אדמה"], "palate": ["חומציות גבוהה", "טאנינים עדינים"], "finish": "ארוך עם עשבי תיבול"}, "winery_description": "...", "serving": {"drink_from": 2024, "drink_until": 2035, "decant_minutes": 60, "temperature_celsius": "16-18"}, "food_pairings": ["כבש צלוי", "גבינות מיושנות"], "price_range_usd": "40-60", "image_url": null, "taste_spectrum": {"body": 80, "tannin": 70, "sweetness": 5, "acidity": 65}}
 ]}`;
 
+function sanitizeImageUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  if (/\/0{5,}\./.test(url)) return undefined;
+  if (url.startsWith('http://')) return url.replace('http://', 'https://');
+  return url;
+}
+
 export async function searchWinesByText(query: string): Promise<WineData[]> {
   try {
     console.log('Searching wines by text (multi):', query);
@@ -207,7 +214,9 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
       return [];
     }
     const wines = Array.isArray(data?.wines) ? data.wines : [];
-    return wines.filter((w): w is WineData => typeof w === 'object' && w !== null && typeof (w as WineData).name === 'string' && typeof (w as WineData).winery === 'string');
+    return wines
+      .filter((w): w is WineData => typeof w === 'object' && w !== null && typeof (w as WineData).name === 'string' && typeof (w as WineData).winery === 'string')
+      .map(w => ({ ...w, image_url: sanitizeImageUrl(w.image_url) }));
   } catch (error) {
     console.error('Error searching wines by text:', error);
     return [];
@@ -290,7 +299,9 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
       return null;
     }
     
-    return data as WineData;
+    const wine = data as WineData;
+    wine.image_url = sanitizeImageUrl(wine.image_url);
+    return wine;
   } catch (error) {
     console.error('Error searching wine by image:', error);
     return null;

@@ -226,7 +226,7 @@ export function WineCard({
         }
       });
 
-    return () => { cancelled = true; isLoadingRef.current = false; lazyFetchDone.current = false; };
+    return () => { cancelled = true; isLoadingRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url, imageError, lazyImageUrl]);
 

@@ -105,12 +105,13 @@ function looksHallucinated(url: string): boolean {
   const pathOnly = url.replace(/^https?:\/\/[^/]+/, '');
   if (/(.{2,4})\1{10,}/.test(pathOnly)) return true;
   if (pathOnly.length > 300) return true;
+  if (/\/0{5,}\./.test(pathOnly)) return true;
   return false;
 }
 
 async function validateImageUrl(url: string): Promise<string | null> {
   if (looksHallucinated(url)) {
-    console.warn(`[wine-image] Rejected hallucinated URL: ${url.slice(0, 120)}...`);
+    console.warn(`[wine-image] Rejected hallucinated/placeholder URL: ${url.slice(0, 120)}`);
     return null;
   }
   if (isTrustedImageHost(url)) return url;

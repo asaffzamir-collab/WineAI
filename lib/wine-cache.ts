@@ -69,6 +69,7 @@ interface WineRow {
 
 function normalizeUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
+  if (/\/0{5,}\./.test(url)) return undefined;
   if (url.startsWith('http://')) return url.replace('http://', 'https://');
   return url;
 }
@@ -168,6 +169,7 @@ export async function findCachedImageUrl(
     const row = data as { image_url: string | null; image_source: string | null };
     if (!row.image_url) return null;
     let url = row.image_url;
+    if (/\/0{5,}\./.test(url)) return null;
     if (url.startsWith('http://')) url = url.replace('http://', 'https://');
     return { url, source: row.image_source || 'web' };
   } catch {
