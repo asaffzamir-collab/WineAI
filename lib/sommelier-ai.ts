@@ -440,7 +440,7 @@ export async function continueChatAfterToolCall(
   ];
 
   const res: ChatCompletionResponse = await client.chat.completions.create({
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     messages,
     temperature: 0.7,
     max_tokens: 2000,

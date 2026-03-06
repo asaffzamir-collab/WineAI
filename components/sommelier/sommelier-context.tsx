@@ -52,7 +52,27 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [hasDiscoveryData, setHasDiscoveryData] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [conversationItems, setConversationItems] = useState<ConversationItem[]>([]);
-  const [activeFlow, setActiveFlow] = useState<string | null>(null);
+  const [activeFlow, setActiveFlowState] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = sessionStorage.getItem('sommelierActiveFlow');
+      if (saved === 'wine-discovery') {
+        const hasWines = sessionStorage.getItem('lastDiscoveryWines');
+        if (hasWines) return saved;
+      }
+      return null;
+    } catch { return null; }
+  });
+  const setActiveFlow = useCallback((flow: string | null) => {
+    setActiveFlowState(flow);
+    try {
+      if (flow) {
+        sessionStorage.setItem('sommelierActiveFlow', flow);
+      } else {
+        sessionStorage.removeItem('sommelierActiveFlow');
+      }
+    } catch { /* quota or unavailable */ }
+  }, []);
   const [isLoading, setIsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);

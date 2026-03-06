@@ -38,6 +38,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
   }
 }
 
+export async function POST(request: Request, ctx: RouteParams) {
+  return PATCH(request, ctx);
+}
+
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;

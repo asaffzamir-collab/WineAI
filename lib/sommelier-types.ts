@@ -90,6 +90,8 @@ export interface ChatWineCard {
   mismatches?: string[];
   wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
   profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+  why_drink_it?: string;
+  similar_wines_note?: string;
 }
 
 export interface ChatMessage {

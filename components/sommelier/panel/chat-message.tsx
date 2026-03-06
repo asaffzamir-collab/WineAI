@@ -55,6 +55,8 @@ function chatWineToMatchResult(wine: ChatWineCard): ProfileMatchResult | undefin
     mismatches: wine.mismatches || [],
     wine_spectrum: wine.wine_spectrum,
     profile_spectrum: wine.profile_spectrum,
+    why_drink_it: wine.why_drink_it,
+    similar_wines_note: wine.similar_wines_note,
   };
 }
 

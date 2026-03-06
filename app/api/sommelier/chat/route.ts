@@ -108,6 +108,8 @@ export async function POST(request: Request) {
       mismatches?: string[];
       wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
       profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+      why_drink_it?: string;
+      similar_wines_note?: string;
     }
     interface ToolResult {
       id: string;
@@ -270,6 +272,8 @@ export async function POST(request: Request) {
                         base.reason = raw.explanation || base.reason;
                         base.positive_matches = raw.positive_matches;
                         base.mismatches = raw.mismatches;
+                        base.why_drink_it = raw.why_drink_it;
+                        base.similar_wines_note = raw.similar_wines_note;
                         base.wine_spectrum = raw.wine_spectrum ? { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity } : base.wine_spectrum;
                         base.profile_spectrum = raw.profile_spectrum ? { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity } : undefined;
                         if (fullWine.tasting_notes) base.tasting_notes = fullWine.tasting_notes as ToolResultWine['tasting_notes'];
@@ -286,14 +290,35 @@ export async function POST(request: Request) {
                           };
                         }
                       } else {
-                        const score = quickMatchScore(
-                          { name: w.name, winery: w.winery, wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
-                          w.wine_spectrum,
-                          relevantProfile,
-                        );
-                        if (score !== null) base.match = score;
-                        const ps = relevantProfile.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
-                        if (ps && typeof ps.body === 'number') base.profile_spectrum = ps;
+                        try {
+                          const minimalWine = {
+                            name: w.name,
+                            winery: w.winery,
+                            wine_type: (w.wine_type || 'red') as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert',
+                            country: w.country || '',
+                            region: w.region,
+                            grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [],
+                            taste_spectrum: w.wine_spectrum,
+                          };
+                          const raw = await matchWineToProfile(minimalWine, relevantProfile);
+                          base.match = raw.match_percentage;
+                          base.reason = raw.explanation || base.reason;
+                          base.positive_matches = raw.positive_matches;
+                          base.mismatches = raw.mismatches;
+                          base.why_drink_it = raw.why_drink_it;
+                          base.similar_wines_note = raw.similar_wines_note;
+                          if (raw.wine_spectrum) base.wine_spectrum = { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity };
+                          if (raw.profile_spectrum) base.profile_spectrum = { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity };
+                        } catch {
+                          const score = quickMatchScore(
+                            { name: w.name, winery: w.winery, wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
+                            w.wine_spectrum,
+                            relevantProfile,
+                          );
+                          if (score !== null) base.match = score;
+                          const ps = relevantProfile.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
+                          if (ps && typeof ps.body === 'number') base.profile_spectrum = ps;
+                        }
                       }
                     } catch {}
                     return base;
