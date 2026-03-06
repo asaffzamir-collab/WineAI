@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useSommelier } from '../sommelier-context';
 import { Loader2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
-import { invalidateAllMatchCaches } from '@/lib/match-cache';
+import { invalidateAllMatchCaches, setCachedMatch } from '@/lib/match-cache';
 import type { WineData, ProfileMatchResult, TasteSpectrum } from '@/lib/openai';
 
 const WineCard = dynamic(
@@ -29,6 +29,7 @@ interface DiscoveredWine {
   positive_matches?: string[];
   mismatches?: string[];
   wine_spectrum?: TasteSpectrum;
+  profile_spectrum?: TasteSpectrum;
 }
 
 function discoveredToWineData(w: DiscoveredWine): WineData {
@@ -42,6 +43,7 @@ function discoveredToWineData(w: DiscoveredWine): WineData {
     winery_description: w.reason,
     tasting_notes: w.tasting_note ? { nose: [], palate: [], finish: w.tasting_note } : undefined,
     food_pairings: w.food_pairings,
+    taste_spectrum: w.wine_spectrum,
     ...(w.image_url ? { image_url: w.image_url } : {}),
   };
 }
@@ -53,17 +55,30 @@ function discoveredToMatchResult(w: DiscoveredWine): ProfileMatchResult {
     positive_matches: w.positive_matches || [],
     mismatches: w.mismatches || [],
     wine_spectrum: w.wine_spectrum,
+    profile_spectrum: w.profile_spectrum,
   };
 }
 
 export function WineDiscovery() {
   const t = useTranslations('sommelier');
-  const { setActiveFlow, userId, refreshState } = useSommelier();
+  const { setActiveFlow, userId, refreshState, lastDiscoveryWines, setLastDiscoveryWines } = useSommelier();
   const [wines, setWines] = useState<DiscoveredWine[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [addToCellarWine, setAddToCellarWine] = useState<WineData | null>(null);
   const [actionStates, setActionStates] = useState<Record<number, { cellar?: boolean; wishlist?: boolean; profile?: boolean }>>({});
+
+  const cacheAndSetWines = useCallback((wineList: DiscoveredWine[]) => {
+    setWines(wineList);
+    setLastDiscoveryWines(wineList);
+    if (userId) {
+      for (const w of wineList) {
+        if (w.match != null) {
+          setCachedMatch(userId, discoveredToWineData(w), discoveredToMatchResult(w));
+        }
+      }
+    }
+  }, [userId, setLastDiscoveryWines]);
 
   const discover = useCallback(async () => {
     setError(false);
@@ -74,7 +89,7 @@ export function WineDiscovery() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.wines) && data.wines.length > 0) {
-          setWines(data.wines);
+          cacheAndSetWines(data.wines);
         } else {
           setError(true);
         }
@@ -83,30 +98,27 @@ export function WineDiscovery() {
       }
     } catch { setError(true); }
     finally { setLoading(false); }
-  }, []);
+  }, [cacheAndSetWines]);
 
-  useEffect(() => { discover(); }, [discover]);
+  useEffect(() => {
+    if (lastDiscoveryWines && lastDiscoveryWines.length > 0) {
+      setWines(lastDiscoveryWines as DiscoveredWine[]);
+      setLoading(false);
+    } else {
+      discover();
+    }
+  }, []);
 
   const handleAddToWishlist = async (index: number) => {
     if (!wines || !userId || actionStates[index]?.wishlist) return;
     const wine = wines[index];
     setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: true } }));
     try {
+      const fullWine = discoveredToWineData(wine);
       const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          wine: {
-            name: wine.name,
-            winery: wine.winery || '',
-            wine_type: wine.wine_type || 'red',
-            country: wine.country || 'Israel',
-            region: wine.region,
-            grapes: wine.grape ? [wine.grape] : [],
-            image_url: wine.image_url || undefined,
-          },
-        }),
+        body: JSON.stringify({ userId, wine: fullWine }),
       });
       if (!res.ok) setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: false } }));
     } catch { setActionStates((prev) => ({ ...prev, [index]: { ...prev[index], wishlist: false } })); }

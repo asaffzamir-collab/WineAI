@@ -27,6 +27,9 @@ yarn-error.log*
 .env
 .env*.local
 
+# GCP service account keys
+wineai-*.json
+
 # Supabase local
 supabase/.temp/
 

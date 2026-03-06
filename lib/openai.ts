@@ -258,7 +258,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
               type: 'image_url',
               image_url: {
                 url: `data:${mimeType};base64,${base64Image}`,
-                detail: 'low',
+                detail: 'auto',
               },
             },
           ],
@@ -301,6 +301,22 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
  * Deterministic match score from spectrum gaps + qualitative signals.
  * Spectrum accounts for ~75% of the score, qualitative for ~25%.
  */
+/**
+ * Fast deterministic match: returns just the numeric score (0-100).
+ * No LLM calls -- requires both wine spectrum and profile spectrum.
+ * Returns null if either spectrum is missing.
+ */
+export function quickMatchScore(
+  wine: { name: string; winery: string; wine_type?: string; grapes?: string[]; region?: string; country?: string; winery_description?: string },
+  wineSpectrum: TasteSpectrum | undefined | null,
+  profile: Record<string, unknown>,
+): number | null {
+  const profileSpectrum = profile.taste_spectrum as TasteSpectrum | undefined;
+  if (!wineSpectrum || !profileSpectrum || typeof profileSpectrum.body !== 'number') return null;
+  const isRed = wine.wine_type === 'red';
+  return computeMatchScore(wineSpectrum, profileSpectrum, isRed, profile, wine as WineData);
+}
+
 function computeMatchScore(
   wineSpectrum: TasteSpectrum,
   profileSpectrum: TasteSpectrum,

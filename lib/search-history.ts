@@ -75,3 +75,22 @@ export function addRecentSearch(userId: string, wine: WineData): void {
     // quota or disabled
   }
 }
+
+/** Patch a stored recent-search entry with a newly discovered image URL. */
+export function updateRecentSearchImage(userId: string, wineName: string, winery: string, imageUrl: string, imageSource?: string): void {
+  if (typeof window === 'undefined') return;
+  const list = getRecentSearches(userId);
+  const target = `${wineName.trim()}|${winery.trim()}`;
+  let changed = false;
+  for (const w of list) {
+    if (dedupeKey(w) === target && !w.image_url) {
+      w.image_url = imageUrl;
+      if (imageSource) w.image_source = imageSource;
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  try {
+    localStorage.setItem(storageKey(userId), JSON.stringify(list));
+  } catch {}
+}

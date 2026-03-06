@@ -5,8 +5,8 @@
  * hitting external sources. Once fetched, the URL is persisted to the DB
  * so subsequent requests never hit external APIs again.
  *
- * Strategy 1: Vertex AI Search (legitimate Google Cloud API).
- * Strategy 2: OpenAI web search fallback (costs API credits, last resort).
+ * Strategy: Serper.dev image search (licensed Google Images API) finds
+ * wine bottle product images from across the web.
  *
  * Hebrew wine names are transliterated to English before searching.
  *
@@ -27,7 +27,7 @@ export interface WineImageResult {
   source: string;
 }
 
-const FETCH_TIMEOUT_MS = 15_000;
+const SERPER_TIMEOUT_MS = 10_000;
 const MIN_IMAGE_BYTES = 5_000;
 
 const USER_AGENT =
@@ -35,6 +35,7 @@ const USER_AGENT =
 
 function normalizeImageUrl(url: string): string {
   if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('http://')) return url.replace('http://', 'https://');
   return url;
 }
 
@@ -44,10 +45,6 @@ function containsHebrew(text: string): boolean {
   return HEBREW_RE.test(text);
 }
 
-/**
- * Transliterate/translate a Hebrew wine name to English using OpenAI.
- * Returns the original text if no Hebrew is detected or the call fails.
- */
 async function transliterateHebrew(text: string): Promise<string> {
   if (!containsHebrew(text)) return text;
 
@@ -89,64 +86,76 @@ async function transliterateHebrew(text: string): Promise<string> {
   }
 }
 
-/**
- * HEAD-request an image URL and return it only if it responds 200
- * and the content is large enough to be a real product photo.
- */
-async function validateImageUrl(url: string): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5_000);
-    const res = await fetch(url, {
-      method: 'HEAD',
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: { 'User-Agent': USER_AGENT },
-    });
-    clearTimeout(timeout);
+// ───────────── Image validation ─────────────
 
-    if (!res.ok) {
-      console.warn(`[wine-image] URL validation failed (${res.status}): ${url}`);
-      return null;
-    }
-
-    const contentLength = Number(res.headers.get('content-length') || 0);
-    if (contentLength > 0 && contentLength < MIN_IMAGE_BYTES) {
-      console.warn(`[wine-image] Image too small (${contentLength}B): ${url}`);
-      return null;
-    }
-
-    return url;
-  } catch {
-    console.warn(`[wine-image] URL validation error: ${url}`);
-    return null;
-  }
-}
-
-// ───────────── Image filtering ─────────────
-
-const WINE_IMAGE_HOSTS = [
+const TRUSTED_IMAGE_HOSTS = [
   'images.vivino.com',
   'images.wine-searcher.net',
-  'winelibrary.com',
-  'bottleraiders.com',
-  'wine.com',
-  'totalwine.com',
-  'klwines.com',
   'wineenthusiast.com',
   'jamesuckling.com',
   'winespectator.com',
-  'dalton-winery.com',
-  'golanwines.co.il',
-  'barkan-winery.com',
 ];
 
-function isWineImageUrl(url: string): boolean {
+function isTrustedImageHost(url: string): boolean {
   const lower = url.toLowerCase();
-  if (WINE_IMAGE_HOSTS.some((host) => lower.includes(host))) return true;
-  if (/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(url) && /wine|bottle|vivino|winery/i.test(url)) return true;
+  return TRUSTED_IMAGE_HOSTS.some((host) => lower.includes(host));
+}
+
+function looksHallucinated(url: string): boolean {
+  const pathOnly = url.replace(/^https?:\/\/[^/]+/, '');
+  if (/(.{2,4})\1{10,}/.test(pathOnly)) return true;
+  if (pathOnly.length > 300) return true;
   return false;
 }
+
+async function validateImageUrl(url: string): Promise<string | null> {
+  if (looksHallucinated(url)) {
+    console.warn(`[wine-image] Rejected hallucinated URL: ${url.slice(0, 120)}...`);
+    return null;
+  }
+  if (isTrustedImageHost(url)) return url;
+
+  for (const method of ['HEAD', 'GET'] as const) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5_000);
+      const res = await fetch(url, {
+        method,
+        signal: controller.signal,
+        redirect: 'follow',
+        headers: { 'User-Agent': USER_AGENT, ...(method === 'GET' ? { Range: 'bytes=0-0' } : {}) },
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        if (method === 'HEAD') continue;
+        console.warn(`[wine-image] URL validation failed (${res.status}): ${url}`);
+        return null;
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (method === 'GET' && contentType && !contentType.startsWith('image/')) {
+        console.warn(`[wine-image] Not an image (${contentType}): ${url}`);
+        return null;
+      }
+
+      const contentLength = Number(res.headers.get('content-length') || 0);
+      if (contentLength > 0 && contentLength < MIN_IMAGE_BYTES) {
+        console.warn(`[wine-image] Image too small (${contentLength}B): ${url}`);
+        return null;
+      }
+
+      return url;
+    } catch {
+      if (method === 'HEAD') continue;
+      console.warn(`[wine-image] URL validation error: ${url}`);
+      return null;
+    }
+  }
+  return null;
+}
+
+// ───────────── Image filtering ─────────────
 
 const UNWANTED_URL_PATTERNS = [
   'logo', 'icon', 'flag', 'avatar', 'placeholder', 'default',
@@ -166,9 +175,6 @@ function isUnwantedImage(url: string): boolean {
   return UNWANTED_URL_PATTERNS.some((p) => lower.includes(p));
 }
 
-/**
- * Detect the image source domain from a URL for attribution purposes.
- */
 export function detectSource(url: string): string {
   const lower = url.toLowerCase();
   if (lower.includes('vivino.com')) return 'vivino';
@@ -183,134 +189,59 @@ export function detectSource(url: string): string {
   return 'web';
 }
 
-// ───────────── Strategy 1: Vertex AI Search ─────────────
+// ───────────── Serper.dev image search ─────────────
 
-async function searchViaVertexAI(query: string): Promise<WineImageResult | null> {
-  const engineId = process.env.VERTEX_AI_SEARCH_ENGINE_ID;
-  const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
-  const projectId = process.env.GCP_PROJECT_ID;
-  if (!engineId || !apiKey || !projectId) return null;
-
-  const endpoint = `https://discoveryengine.googleapis.com/v1/projects/${projectId}/locations/global/collections/default_collection/engines/${engineId}/servingConfigs/default_search:search?key=${apiKey}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: `${query} wine bottle`,
-        pageSize: 10,
-      }),
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      console.error(`[wine-image] Vertex AI Search returned ${res.status} for: "${query}"`);
-      return null;
-    }
-
-    const data = await res.json();
-    const results = data?.results ?? [];
-
-    for (const result of results) {
-      const doc = result?.document?.derivedStructData ?? {};
-
-      const pagemap = doc.pagemap ?? {};
-      const images: string[] = [];
-
-      if (doc.link) {
-        const ogImages = pagemap.metatags
-          ?.map((t: Record<string, string>) => t['og:image'])
-          .filter(Boolean) ?? [];
-        images.push(...ogImages);
-      }
-
-      const cseImages = pagemap.cse_image?.map((i: { src: string }) => i.src).filter(Boolean) ?? [];
-      images.push(...cseImages);
-
-      const cseThumb = pagemap.cse_thumbnail?.map((i: { src: string }) => i.src).filter(Boolean) ?? [];
-      images.push(...cseThumb);
-
-      if (doc.thumbnailUrl) images.push(doc.thumbnailUrl);
-
-      for (const imgUrl of images) {
-        const normalized = normalizeImageUrl(imgUrl);
-        if (isUnwantedImage(normalized)) continue;
-        if (!isWineImageUrl(normalized) && !/\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(normalized)) continue;
-
-        const validated = await validateImageUrl(normalized);
-        if (validated) {
-          return { url: validated, source: detectSource(validated) };
-        }
-      }
-    }
-
-    console.warn(`[wine-image] Vertex AI Search: no valid image for: "${query}"`);
-    return null;
-  } catch (err: unknown) {
-    clearTimeout(timeout);
-    const isAbort =
-      (err instanceof DOMException && err.name === 'AbortError') ||
-      (err instanceof Error && err.name === 'AbortError');
-    console.error(
-      `[wine-image] Vertex AI Search ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
-      isAbort ? '' : err,
-    );
-    return null;
-  }
+interface SerperImage {
+  imageUrl?: string;
+  title?: string;
+  source?: string;
 }
 
-// ───────────── Strategy 2: OpenAI web search fallback ─────────────
-
-async function searchViaOpenAI(query: string): Promise<WineImageResult | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+async function searchViaSerper(query: string): Promise<WineImageResult | null> {
+  const apiKey = process.env.SERPER_API_KEY?.trim();
   if (!apiKey) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
+  const timeout = setTimeout(() => controller.abort(), SERPER_TIMEOUT_MS);
 
   try {
-    const res = await fetch('https://api.openai.com/v1/responses', {
+    const res = await fetch('https://google.serper.dev/images', {
       method: 'POST',
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        'X-API-KEY': apiKey,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        tools: [{ type: 'web_search_preview' }],
-        input: `Find a product image URL for this wine bottle: "${query}". Search on vivino.com, wine-searcher.com, or any wine retailer. I need a direct URL to an image of the wine bottle (not a logo, icon, or generic placeholder). The URL should end in .jpg, .jpeg, .png, or .webp, OR be from images.vivino.com. Return ONLY the image URL, nothing else. If you cannot find one, return "NONE".`,
+        q: `${query} wine bottle`,
+        num: 10,
       }),
     });
     clearTimeout(timeout);
 
     if (!res.ok) {
-      console.error(`[wine-image] OpenAI search returned ${res.status} for: "${query}"`);
+      console.error(`[wine-image] Serper returned ${res.status} for: "${query}"`);
       return null;
     }
 
     const data = await res.json();
-    const text: string =
-      data?.output?.find((o: { type: string }) => o.type === 'message')?.content
-        ?.find((c: { type: string }) => c.type === 'output_text')?.text
-      ?? '';
+    const images: SerperImage[] = data?.images ?? [];
 
-    const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i)
-      || text.match(/https?:\/\/images\.vivino\.com\/[^\s"'<>]+/i)
-      || text.match(/https?:\/\/images\.wine-searcher\.net\/[^\s"'<>]+/i);
-    if (urlMatch && !isUnwantedImage(urlMatch[0])) {
-      const validated = await validateImageUrl(normalizeImageUrl(urlMatch[0]));
+    for (const img of images) {
+      const rawUrl = img.imageUrl;
+      if (!rawUrl) continue;
+
+      const url = normalizeImageUrl(rawUrl);
+      if (isUnwantedImage(url)) continue;
+      if (looksHallucinated(url)) continue;
+
+      const validated = await validateImageUrl(url);
       if (validated) {
         return { url: validated, source: detectSource(validated) };
       }
     }
 
-    console.warn(`[wine-image] OpenAI search: no usable URL for: "${query}"`);
+    console.warn(`[wine-image] Serper: no valid image for: "${query}"`);
     return null;
   } catch (err: unknown) {
     clearTimeout(timeout);
@@ -318,20 +249,15 @@ async function searchViaOpenAI(query: string): Promise<WineImageResult | null> {
       (err instanceof DOMException && err.name === 'AbortError') ||
       (err instanceof Error && err.name === 'AbortError');
     console.error(
-      `[wine-image] OpenAI search ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
+      `[wine-image] Serper ${isAbort ? 'timed out' : 'failed'} for: "${query}"`,
       isAbort ? '' : err,
     );
     return null;
   }
 }
 
-// ───────────── Combined fetch: Vertex AI -> OpenAI -> placeholder ─────────────
+// ───────────── Combined fetch ─────────────
 
-/**
- * Fetch a wine bottle image URL. Checks the DB first (positive and negative
- * cache); falls back to Vertex AI Search and then OpenAI web search.
- * Returns the image URL and its source for attribution.
- */
 export async function fetchWineImageUrl(
   wineName: string,
   winery: string,
@@ -351,28 +277,20 @@ export async function fetchWineImageUrl(
 
   const query = await transliterateHebrew(rawQuery);
 
-  // Strategy 1: Vertex AI Search (primary, legitimate API)
-  const vertexResult = await searchViaVertexAI(query);
-  if (vertexResult) {
-    await cacheImageUrl(wineName, winery, vertexResult.url, vertexResult.source);
-    return vertexResult;
-  }
-
-  // Strategy 2: OpenAI web search (fallback, legitimate API)
-  const openaiResult = await searchViaOpenAI(query);
-  if (openaiResult) {
-    await cacheImageUrl(wineName, winery, openaiResult.url, openaiResult.source);
-    return openaiResult;
+  const result = await searchViaSerper(query);
+  if (result) {
+    await cacheImageUrl(wineName, winery, result.url, result.source);
+    return result;
   }
 
   // Retry with just the wine name for broader results
   if (containsHebrew(wineName)) {
     const transliteratedName = await transliterateHebrew(wineName);
     if (transliteratedName !== query) {
-      const retryVertex = await searchViaVertexAI(transliteratedName);
-      if (retryVertex) {
-        await cacheImageUrl(wineName, winery, retryVertex.url, retryVertex.source);
-        return retryVertex;
+      const retry = await searchViaSerper(transliteratedName);
+      if (retry) {
+        await cacheImageUrl(wineName, winery, retry.url, retry.source);
+        return retry;
       }
     }
   }
@@ -381,9 +299,6 @@ export async function fetchWineImageUrl(
   return null;
 }
 
-/**
- * Fetch wine images for multiple wines in parallel.
- */
 export async function fetchWineImagesForMany(
   wines: Array<{ name: string; winery: string }>,
 ): Promise<Map<string, WineImageResult | null>> {

@@ -28,6 +28,11 @@ function parseJson(content: string): unknown {
     if (lines[lines.length - 1]?.trim() === '```') lines.pop();
     c = lines.join('\n').trim();
   }
+  const jsonStart = c.indexOf('{');
+  const jsonEnd = c.lastIndexOf('}');
+  if (jsonStart > 0 && jsonEnd > jsonStart) {
+    c = c.slice(jsonStart, jsonEnd + 1);
+  }
   return JSON.parse(c);
 }
 

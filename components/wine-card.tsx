@@ -164,6 +164,7 @@ interface WineCardProps {
   isAddingToProfile?: boolean;
   uploadedImageUrl?: string;
   openedInfo?: { openedAt: string; wineType: string };
+  onImageFound?: (imageUrl: string, source?: string) => void;
 }
 
 export function WineCard({
@@ -178,6 +179,7 @@ export function WineCard({
   isAddingToProfile,
   uploadedImageUrl,
   openedInfo,
+  onImageFound,
 }: WineCardProps) {
   const t = useTranslations('wineCard');
   const { gender } = useUser();
@@ -187,21 +189,24 @@ export function WineCard({
   const [lazyImageSource, setLazyImageSource] = useState<string | null>(null);
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const isLoadingRef = useRef(false);
   const lazyFetchDone = useRef(false);
 
   useEffect(() => {
     setImageError(false);
     setLazyImageUrl(null);
+    isLoadingRef.current = false;
     lazyFetchDone.current = false;
   }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url]);
 
   useEffect(() => {
     const hasImage = wine.image_url || uploadedImageUrl;
     if (hasImage && !imageError) return;
-    if (lazyImageUrl || isLoadingImage || lazyFetchDone.current) return;
+    if (lazyImageUrl || isLoadingRef.current || lazyFetchDone.current) return;
     if (!wine.name) return;
 
     let cancelled = false;
+    isLoadingRef.current = true;
     setIsLoadingImage(true);
     lazyFetchDone.current = true;
     fetch(`/api/wine-image?name=${encodeURIComponent(wine.name)}&winery=${encodeURIComponent(wine.winery || '')}`)
@@ -210,13 +215,20 @@ export function WineCard({
         if (!cancelled && data.imageUrl) {
           setLazyImageUrl(data.imageUrl);
           if (data.imageSource) setLazyImageSource(data.imageSource);
+          onImageFound?.(data.imageUrl, data.imageSource);
         }
       })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setIsLoadingImage(false); });
+      .finally(() => {
+        if (!cancelled) {
+          isLoadingRef.current = false;
+          setIsLoadingImage(false);
+        }
+      });
 
-    return () => { cancelled = true; lazyFetchDone.current = false; };
-  }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url, imageError, lazyImageUrl, isLoadingImage]);
+    return () => { cancelled = true; isLoadingRef.current = false; lazyFetchDone.current = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wine.name, wine.winery, uploadedImageUrl, wine.image_url, imageError, lazyImageUrl]);
 
   const wineTypeColors = {
     red: 'bg-bordeaux-600',

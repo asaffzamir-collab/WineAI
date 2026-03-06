@@ -18,7 +18,7 @@ function sanitizeQuantity(raw: unknown): number {
 
 const CELLAR_SELECT_FULL = `
   id, quantity, purchase_price, purchase_date, notes,
-  drink_from, drink_until, slot_id, opened_at, consumed_at, is_gift,
+  drink_from, drink_until, slot_id, opened_at, consumed_at, is_gift, bottle_photo_url,
   wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, image_url, image_source)
 `;
 
@@ -134,7 +134,6 @@ export async function POST(request: Request) {
       if (wineError) throw wineError;
       wineId = newWine.id;
     }
-    // Build cellar insert — bottle_photo_url is optional (column may not exist if migration wasn't run)
     const cellarRow: Record<string, unknown> = {
       user_id: userId,
       wine_id: wineId,
@@ -179,7 +178,6 @@ export async function PATCH(request: Request) {
     if (authError) return authError;
     const supabase = await createClient();
 
-    // Build update object from allowed fields
     const updates: Record<string, unknown> = {};
     if ('bottlePhotoUrl' in body) updates.bottle_photo_url = body.bottlePhotoUrl ?? null;
     if ('purchasePrice' in body) updates.purchase_price = body.purchasePrice ?? null;
@@ -208,7 +206,6 @@ export async function PATCH(request: Request) {
           ({ error } = await supabase.from('cellar_items').update(updates).eq('id', id));
         } else {
           error = null;
-          console.warn('PATCH: columns not available in DB:', badCols.join(', '));
         }
       }
     }

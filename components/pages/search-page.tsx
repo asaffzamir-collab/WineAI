@@ -16,7 +16,7 @@ import { WineListItem } from '@/components/wine-list-item';
 import { ImageAttribution } from '@/components/ui/image-attribution';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { getRecentSearches, addRecentSearch } from '@/lib/search-history';
+import { getRecentSearches, addRecentSearch, updateRecentSearchImage } from '@/lib/search-history';
 import { getCachedMatch, setCachedMatch, clearMatchCache, invalidateAllMatchCaches } from '@/lib/match-cache';
 import { UsageLimitModal, parseUsageLimitError } from '@/components/usage-limit-modal';
 import type { WineData, ProfileMatchResult } from '@/lib/openai';
@@ -422,6 +422,11 @@ export function SearchPage({ userId }: SearchPageProps) {
     }
   };
 
+  const handleImageFound = useCallback((wine: WineData, imageUrl: string, source?: string) => {
+    updateRecentSearchImage(userId, wine.name, wine.winery, imageUrl, source);
+    setRecentSearches(getRecentSearches(userId));
+  }, [userId]);
+
   const wineForActions = (w?: WineData | null): WineData | null => w ?? wineResult;
 
   const openAddToCellarModal = (wine?: WineData | null) => {
@@ -633,6 +638,7 @@ export function SearchPage({ userId }: SearchPageProps) {
               isAddingToWishlist={isAddingToWishlist}
               isAddingToProfile={isAddingToProfile}
               uploadedImageUrl={uploadedImageUrl || undefined}
+              onImageFound={(url, src) => handleImageFound(wineResult, url, src)}
             />
           </div>
         )}
@@ -714,6 +720,7 @@ export function SearchPage({ userId }: SearchPageProps) {
                   isAddingToWishlist={isAddingToWishlist}
                   isAddingToProfile={isAddingToProfile}
                   uploadedImageUrl={undefined}
+                  onImageFound={(url, src) => handleImageFound(displayWine || selectedRecentWine, url, src)}
                 />
               )}
             </>

@@ -31,6 +31,8 @@ interface SommelierContextValue {
   clearChat: () => void;
   usageLimitInfo: { type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null;
   setUsageLimitInfo: (info: { type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null) => void;
+  lastDiscoveryWines: unknown[] | null;
+  setLastDiscoveryWines: (wines: unknown[] | null) => void;
 }
 
 const SommelierContext = createContext<SommelierContextValue | null>(null);
@@ -55,6 +57,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [usageLimitInfo, setUsageLimitInfo] = useState<{ type: 'wine_search' | 'pier_message'; current: number; limit: number; tier: string } | null>(null);
+  const [lastDiscoveryWines, setLastDiscoveryWines] = useState<unknown[] | null>(null);
   const hasFetched = useRef(false);
 
   const refreshState = useCallback(async () => {
@@ -207,6 +210,7 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
         refreshState, isLoading,
         chatMessages, sendChatMessage, isChatLoading, clearChat,
         usageLimitInfo, setUsageLimitInfo,
+        lastDiscoveryWines, setLastDiscoveryWines,
       }}
     >
       {children}

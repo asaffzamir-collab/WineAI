@@ -133,7 +133,10 @@ export async function POST(request: Request) {
                     let matchData: { match_percentage?: number; explanation?: string; positive_matches?: string[]; mismatches?: string[]; wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number }; profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number } } = {};
                     try {
                       if (Object.keys(combinedProfile).length > 0) {
-                        const raw = await matchWineToProfile(w, combinedProfile);
+                        const wt = w.wine_type || 'red';
+                        const pk = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
+                        const rp = (combinedProfile[pk] || combinedProfile.red || {}) as Record<string, unknown>;
+                        const raw = await matchWineToProfile(w, rp);
                         matchData = {
                           match_percentage: raw.match_percentage,
                           explanation: raw.explanation,
@@ -234,7 +237,8 @@ export async function POST(request: Request) {
                   }>;
                 };
 
-                const { searchWinesByText, matchWineToProfile } = await import('@/lib/openai');
+                const { searchWinesByText, matchWineToProfile, quickMatchScore } = await import('@/lib/openai');
+                const hasProfile = Object.keys(combinedProfile).length > 0;
                 const top = result.wines?.slice(0, 4) || [];
 
                 const enriched = await Promise.all(
@@ -246,7 +250,6 @@ export async function POST(request: Request) {
                       grape: w.grape,
                       wine_type: w.wine_type,
                       country: w.country,
-                      match: w.match,
                       reason: w.reason,
                       tasting_note: w.tasting_note,
                       food_pairings: w.food_pairings,
@@ -254,11 +257,15 @@ export async function POST(request: Request) {
                       mismatches: w.mismatches,
                       wine_spectrum: w.wine_spectrum,
                     };
+                    if (!hasProfile) return base;
+                    const wt = w.wine_type || 'red';
+                    const profileKey = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
+                    const relevantProfile = (combinedProfile[profileKey] || combinedProfile.red || {}) as Record<string, unknown>;
                     try {
                       const found = await searchWinesByText(`${w.name} ${w.winery}`);
                       const fullWine = found?.[0];
-                      if (fullWine && Object.keys(combinedProfile).length > 0) {
-                        const raw = await matchWineToProfile(fullWine, combinedProfile);
+                      if (fullWine) {
+                        const raw = await matchWineToProfile(fullWine, relevantProfile);
                         base.match = raw.match_percentage;
                         base.reason = raw.explanation || base.reason;
                         base.positive_matches = raw.positive_matches;
@@ -278,6 +285,15 @@ export async function POST(request: Request) {
                             temperature_celsius: fullWine.serving.temperature_celsius ? Number(fullWine.serving.temperature_celsius) : undefined,
                           };
                         }
+                      } else {
+                        const score = quickMatchScore(
+                          { name: w.name, winery: w.winery, wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
+                          w.wine_spectrum,
+                          relevantProfile,
+                        );
+                        if (score !== null) base.match = score;
+                        const ps = relevantProfile.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
+                        if (ps && typeof ps.body === 'number') base.profile_spectrum = ps;
                       }
                     } catch {}
                     return base;

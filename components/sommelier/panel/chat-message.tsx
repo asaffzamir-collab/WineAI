@@ -9,7 +9,7 @@ import type { WineData, ProfileMatchResult } from '@/lib/openai';
 import { useSommelier } from '../sommelier-context';
 import { PierHeadAvatar } from '../sommelier-trigger';
 import { AddToCellarDialog } from '@/components/add-to-cellar-dialog';
-import { invalidateAllMatchCaches } from '@/lib/match-cache';
+import { invalidateAllMatchCaches, setCachedMatch } from '@/lib/match-cache';
 import { ImageAttribution } from '@/components/ui/image-attribution';
 
 const WineCard = dynamic(
@@ -42,6 +42,7 @@ function chatWineToWineData(wine: ChatWineCard): WineData {
     } : undefined,
     winery_description: wine.reason,
     image_url: wine.image_url,
+    taste_spectrum: wine.wine_spectrum,
   };
 }
 
@@ -67,6 +68,14 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
   const [isAddingToCellar, setIsAddingToCellar] = useState(false);
   const fetched = useRef(false);
+  const matchCached = useRef(false);
+
+  useEffect(() => {
+    if (matchCached.current || !userId || wine.match == null) return;
+    matchCached.current = true;
+    const matchResult = chatWineToMatchResult(wine);
+    if (matchResult) setCachedMatch(userId, chatWineToWineData(wine), matchResult);
+  }, [wine, userId]);
 
   useEffect(() => {
     if (wine.image_url || lazyUrl || fetched.current || !wine.name) return;
@@ -92,21 +101,11 @@ function ChatWineCardComponent({ wine, index }: { wine: ChatWineCard; index: num
     if (!userId || isAddingToWishlist) return;
     setIsAddingToWishlist(true);
     try {
+      const fullWine = chatWineToWineData(wineDataWithImg);
       const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          wine: {
-            name: wine.name,
-            winery: wine.winery,
-            wine_type: wine.wine_type || 'red',
-            country: wine.country || '',
-            region: wine.region || '',
-            grapes: wine.grape ? [wine.grape] : [],
-            image_url: imgSrc || undefined,
-          },
-        }),
+        body: JSON.stringify({ userId, wine: fullWine }),
       });
       if (!res.ok) setIsAddingToWishlist(false);
     } catch { setIsAddingToWishlist(false); }

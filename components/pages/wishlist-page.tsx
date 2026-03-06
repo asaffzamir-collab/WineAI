@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Heart, Star, Trash2, ShoppingCart, Loader2, Wine, MapPin, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -165,6 +165,32 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
   const [isFetchingMatch, setIsFetchingMatch] = useState(false);
 
   const [isAddingToProfile, setIsAddingToProfile] = useState(false);
+
+  const updateLocalItem = useCallback((itemId: string, enriched: Partial<WineData>) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== itemId) return item;
+        const wine = getWine(item);
+        if (!wine) return item;
+        const updated: WineRowData = {
+          ...wine,
+          ...(enriched.vivino_rating != null ? { vivino_rating: enriched.vivino_rating } : {}),
+          ...(enriched.vivino_reviews != null ? { vivino_reviews: enriched.vivino_reviews } : {}),
+          ...(enriched.alcohol != null ? { alcohol: enriched.alcohol } : {}),
+          ...(enriched.country && !wine.country ? { country: enriched.country } : {}),
+          ...(enriched.region && !wine.region ? { region: enriched.region } : {}),
+          ...(enriched.grapes?.length && !wine.grapes?.length ? { grapes: enriched.grapes } : {}),
+          ...(enriched.tasting_notes ? { tasting_notes: enriched.tasting_notes } : {}),
+          ...(enriched.winery_description ? { ai_description: enriched.winery_description } : {}),
+          ...(enriched.image_url && !wine.image_url ? { image_url: enriched.image_url } : {}),
+          ...(enriched.serving ? { serving: enriched.serving } : {}),
+          ...(enriched.food_pairings ? { food_pairings: enriched.food_pairings } : {}),
+        };
+        return { ...item, wines: updated };
+      }),
+    );
+  }, []);
+
   const [purchaseModalItem, setPurchaseModalItem] = useState<WishlistItem | null>(null);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [purchasePriceNis, setPurchasePriceNis] = useState('');
@@ -185,38 +211,92 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
     const wine = getWine(selectedItem);
     if (!wine) return;
 
-    const wineData = toWineData(wine);
+    let wineData = toWineData(wine);
     setDetailWine(wineData);
 
-    const cached = getCachedMatch(userId, wineData);
-    if (cached) {
-      setDetailMatch(cached);
-      setIsFetchingMatch(false);
-      return;
-    }
-
-    setDetailMatch(null);
-    setIsFetchingMatch(true);
+    const sparse = !wine.vivino_rating && !wine.tasting_notes && !wine.serving && !wine.food_pairings;
 
     let cancelled = false;
-    fetch('/api/wine-match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wine: wineData, userId }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) {
-          const match = data.match ?? null;
-          setDetailMatch(match);
-          if (match) setCachedMatch(userId, wineData, match);
-        }
+
+    const fetchMatch = (wd: WineData) => {
+      const cached = getCachedMatch(userId, wd);
+      const isComplete = cached && cached.profile_spectrum && cached.wine_spectrum;
+      if (isComplete) {
+        setDetailMatch(cached);
+        setIsFetchingMatch(false);
+        return;
+      }
+      setDetailMatch(null);
+      setIsFetchingMatch(true);
+      fetch('/api/wine-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wine: wd, userId }),
       })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
+        .then((r) => r.json())
+        .then((data) => {
+          if (!cancelled) {
+            const match = data.match ?? null;
+            setDetailMatch(match);
+            if (match) setCachedMatch(userId, wd, match);
+          }
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
+    };
+
+    if (sparse) {
+      setIsFetchingMatch(true);
+      fetch('/api/wine-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: wine.name, winery: wine.winery, wineId: wine.id }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!cancelled && data.wine) {
+            wineData = { ...wineData, ...data.wine };
+            setDetailWine(wineData);
+            updateLocalItem(selectedItem.id, data.wine);
+          }
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) fetchMatch(wineData); });
+    } else {
+      fetchMatch(wineData);
+    }
 
     return () => { cancelled = true; };
   }, [selectedItem, userId]);
+
+  const enrichedRef = useRef(new Set<string>());
+  useEffect(() => {
+    const sparse = items.filter((item) => {
+      const w = getWine(item);
+      if (!w || enrichedRef.current.has(item.id)) return false;
+      return !w.vivino_rating && !w.tasting_notes && !w.serving && !w.food_pairings;
+    });
+    if (sparse.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const item of sparse) {
+        if (cancelled) break;
+        const w = getWine(item);
+        if (!w) continue;
+        enrichedRef.current.add(item.id);
+        try {
+          const res = await fetch('/api/wine-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: w.name, winery: w.winery, wineId: w.id }),
+          });
+          const data = await res.json();
+          if (!cancelled && data.wine) updateLocalItem(item.id, data.wine);
+        } catch { /* best-effort */ }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [items.length]);
 
   useEffect(() => {
     const handler = () => clearMatchCache(userId);

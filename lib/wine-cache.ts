@@ -67,6 +67,12 @@ interface WineRow {
   taste_spectrum: { body: number; tannin: number; sweetness: number; acidity: number } | null;
 }
 
+function normalizeUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://')) return url.replace('http://', 'https://');
+  return url;
+}
+
 function rowToWineData(row: WineRow): WineData {
   return {
     name: row.name,
@@ -79,7 +85,7 @@ function rowToWineData(row: WineRow): WineData {
     alcohol: row.alcohol ?? undefined,
     wine_type: (row.wine_type as WineData['wine_type']) ?? 'red',
     tasting_notes: row.tasting_notes as WineData['tasting_notes'],
-    image_url: row.image_url ?? undefined,
+    image_url: normalizeUrl(row.image_url),
     image_source: row.image_source ?? undefined,
     serving: row.serving as WineData['serving'],
     food_pairings: row.food_pairings ?? undefined,
@@ -161,7 +167,9 @@ export async function findCachedImageUrl(
     if (error || !data) return null;
     const row = data as { image_url: string | null; image_source: string | null };
     if (!row.image_url) return null;
-    return { url: row.image_url, source: row.image_source || 'web' };
+    let url = row.image_url;
+    if (url.startsWith('http://')) url = url.replace('http://', 'https://');
+    return { url, source: row.image_source || 'web' };
   } catch {
     return null;
   }
