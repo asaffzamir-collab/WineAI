@@ -16,9 +16,11 @@ interface PairingSuggestion {
   grape?: string;
   wine_type?: string;
   reason?: string;
+  from_cellar?: boolean;
 }
 
 interface EnrichedSuggestion extends PairingSuggestion {
+  cellar_item_id?: string;
   country?: string;
   match?: number;
   image_url?: string;
@@ -48,8 +50,8 @@ export async function POST(request: Request) {
     const usageBlock = await requireUsage(user.id, 'pier_message');
     if (usageBlock) return usageBlock;
 
-    const { meal } = await request.json();
-    if (!meal) return NextResponse.json({ error: 'Meal required' }, { status: 400 });
+    const { meal, occasion, mood } = await request.json();
+    if (!meal && !occasion) return NextResponse.json({ error: 'Meal or occasion required' }, { status: 400 });
 
     const { data: userProfile } = await supabase.from('user_profiles').select('preferred_language').eq('id', user.id).single();
     const lang = userProfile?.preferred_language || 'he';
@@ -62,9 +64,16 @@ export async function POST(request: Request) {
     }, {} as Record<string, unknown>) || {};
 
     const { data: cellarItems } = await supabase.from('cellar_items').select('*, wines(*)').eq('user_id', user.id);
-    const cellarWines = cellarItems?.map(item => item.wines) || [];
+    const cellarWinesEnriched = cellarItems?.map(item => ({
+      ...item.wines,
+      quantity: item.quantity,
+      drink_from: item.drink_from,
+      drink_until: item.drink_until,
+      cellar_item_id: item.id,
+    })) || [];
 
-    const result = await generateFoodPairing(meal, combinedProfile, cellarWines, lang) as {
+    const mealOrOccasion = meal || occasion || '';
+    const result = await generateFoodPairing(mealOrOccasion, combinedProfile, cellarWinesEnriched, lang, { occasion, mood }) as {
       suggestions?: PairingSuggestion[];
     };
 
@@ -153,6 +162,17 @@ export async function POST(request: Request) {
           return base;
         }),
       );
+
+      for (const e of enriched) {
+        if (e.from_cellar) {
+          const match = cellarWinesEnriched.find(cw =>
+            (cw.name && e.wine && cw.name.toLowerCase() === e.wine.toLowerCase()) ||
+            (cw.name && e.wine && e.wine.toLowerCase().includes(cw.name.toLowerCase()))
+          );
+          if (match?.cellar_item_id) e.cellar_item_id = match.cellar_item_id;
+          if (match?.image_url && !e.image_url) e.image_url = match.image_url as string;
+        }
+      }
 
       const { fetchWineImagesForMany } = await import('@/lib/wine-image');
       const missingIndices = enriched.map((w, i) => (!w.image_url ? i : -1)).filter(i => i >= 0);

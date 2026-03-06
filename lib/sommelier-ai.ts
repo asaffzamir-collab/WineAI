@@ -181,16 +181,22 @@ export async function generateFoodPairing(
   meal: string,
   profile: Record<string, unknown>,
   cellarWines: unknown[],
-  language = 'he'
+  language = 'he',
+  options?: { occasion?: string; mood?: string }
 ) {
   const hasCellar = cellarWines.length > 0;
-  const system = `You are a wine sommelier. Suggest 2-3 wines that pair well with the described meal.
-${hasCellar ? 'Prioritize wines from the user\'s cellar if they match.' : ''}
-IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel.
-Return JSON: { "suggestions": [{ "wine": "name", "winery": "winery name", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "reason": "brief pairing reason" }, ...] }
+  const occasionCtx = options?.occasion ? `\nOccasion: ${options.occasion}` : '';
+  const moodCtx = options?.mood ? `\nMood: ${options.mood}` : '';
+  const system = `You are a wine sommelier. Suggest 2-3 wines that pair well with the described meal or occasion.
+${hasCellar ? `IMPORTANT: If the user has wines in their cellar that would be a great match, prioritize those wines FIRST.
+For cellar wines, consider readiness (drink_from/drink_until dates) — prefer wines ready to drink now.
+Mark cellar wines with "from_cellar": true in your response.
+You can mix cellar wines with market suggestions if the cellar doesn't have a perfect match.` : ''}
+IMPORTANT: All recommended wines MUST be wines that are sold and available in Israel (Israeli wineries or international wines distributed in Israeli wine shops).
+Return JSON: { "suggestions": [{ "wine": "exact wine name", "winery": "winery name", "region": "region", "grape": "grape variety", "wine_type": "red"|"white"|"rose"|"sparkling", "reason": "brief pairing reason", "from_cellar": false }, ...] }
 ${langInstr(language)}`;
 
-  return await ask(system, `Meal: "${meal}"\nProfile: ${JSON.stringify(profile)}\nCellar: ${JSON.stringify(cellarWines.slice(0, 20))}`);
+  return await ask(system, `Meal: "${meal}"${occasionCtx}${moodCtx}\nProfile: ${JSON.stringify(profile)}\nCellar: ${JSON.stringify(cellarWines.slice(0, 30))}`);
 }
 
 export async function generateWineDiscovery(

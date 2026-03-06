@@ -10,7 +10,7 @@ import { ConversationFeed } from './panel/conversation-feed';
 import { DiscoveryFlow } from './discovery/discovery-flow';
 import { SmartRefinement } from './learning/smart-refinement';
 import { PalateGame } from './learning/palate-game';
-import { TonightMode } from './personalized/tonight-mode';
+// TonightMode merged into FoodPairing
 import { BuyingIntelligence } from './personalized/buying-intelligence';
 import { FoodPairing } from './personalized/food-pairing';
 import { WineDiscovery } from './personalized/wine-discovery';
@@ -107,7 +107,7 @@ export function SommelierPanel() {
       case 'discovery': return <DiscoveryFlow />;
       case 'refinement': return <SmartRefinement />;
       case 'palate-game': return <PalateGame />;
-      case 'tonight': return <TonightMode />;
+      case 'tonight': return <FoodPairing />;
       case 'buying-intel': return <BuyingIntelligence />;
       case 'food-pairing': return <FoodPairing />;
       case 'wine-discovery': return <WineDiscovery />;

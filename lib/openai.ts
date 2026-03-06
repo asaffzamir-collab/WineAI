@@ -525,9 +525,10 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
         ? result.wine_spectrum
         : { body: 50, tannin: isRedWine ? 40 : 0, sweetness: 10, acidity: 50 };
 
-    // Compute deterministic score if profile spectrum is available
+    result.wine_spectrum = wineSpec;
     if (profileSpectrum && typeof profileSpectrum.body === 'number') {
       result.match_percentage = computeMatchScore(wineSpec, profileSpectrum, isRedWine, profile, wine);
+      result.profile_spectrum = profileSpectrum;
     }
 
     return result;
