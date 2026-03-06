@@ -5,6 +5,7 @@ import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 25;
 
 function wineKey(name: string, winery: string): string {
   return `${name.trim().toLowerCase()}|${winery.trim().toLowerCase()}`;
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
 
     if (!match) {
       match = await matchWineToProfile(wineData, p, locale);
-      if (match && key && userId) {
+      if (match && match.explanation && key && userId) {
         await setDbCachedMatch(userId, key, { ...match });
       }
     }

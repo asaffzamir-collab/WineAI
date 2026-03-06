@@ -38,13 +38,20 @@ function writeMap(userId: string, map: Record<string, CacheEntry>): void {
 
 export function getCachedMatch(userId: string, wine: WineData): ProfileMatchResult | null {
   const map = readMap(userId);
-  const entry = map[wineKey(wine)];
+  const key = wineKey(wine);
+  const entry = map[key];
   if (!entry) return null;
   if (Date.now() - entry.ts > MAX_AGE_MS) return null;
+  if (!entry.match.explanation) {
+    delete map[key];
+    writeMap(userId, map);
+    return null;
+  }
   return entry.match;
 }
 
 export function setCachedMatch(userId: string, wine: WineData, match: ProfileMatchResult): void {
+  if (!match.explanation) return;
   const map = readMap(userId);
   map[wineKey(wine)] = { match, ts: Date.now() };
   writeMap(userId, map);

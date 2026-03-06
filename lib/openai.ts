@@ -31,8 +31,10 @@ async function loadOpenAIClient(): Promise<OpenAIClientLike> {
 
 /** Lazy client. OpenAI package is only loaded when this runs (at request time), never at build. */
 async function getOpenAIClient(): Promise<OpenAIClientLike> {
-  if (!_openai) _openai = await loadOpenAIClient();
-  return _openai;
+  if (_openai) return _openai;
+  const client = await loadOpenAIClient();
+  if (process.env.OPENAI_API_KEY?.trim()) _openai = client;
+  return client;
 }
 
 export interface WineData {
