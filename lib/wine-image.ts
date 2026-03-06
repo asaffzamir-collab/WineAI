@@ -86,6 +86,74 @@ async function transliterateHebrew(text: string): Promise<string> {
   }
 }
 
+/**
+ * Batch transliterate multiple Hebrew texts in a single GPT call.
+ * Falls back to individual transliteration if the batch call fails.
+ */
+async function batchTransliterateHebrew(texts: string[]): Promise<string[]> {
+  const needsTranslation = texts.map(t => containsHebrew(t));
+  if (!needsTranslation.some(Boolean)) return texts;
+
+  const hebrewTexts = texts.filter((_, i) => needsTranslation[i]);
+  if (hebrewTexts.length === 1) {
+    const result = await transliterateHebrew(hebrewTexts[0]);
+    const results = [...texts];
+    results[texts.findIndex((_, i) => needsTranslation[i])] = result;
+    return results;
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return texts;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
+    const numbered = hebrewTexts.map((t, i) => `${i + 1}. ${t}`).join('\n');
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 400,
+        temperature: 0,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Transliterate the following numbered Hebrew wine names/wineries to English. Keep grape variety names in their standard English form (e.g. שיראז→Shiraz). Return each result on its own line with the same numbering. Return ONLY the transliterations.',
+          },
+          { role: 'user', content: numbered },
+        ],
+      }),
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return texts;
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content?.trim();
+    if (!content) return texts;
+
+    const lines = content.split('\n').map((l: string) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+    if (lines.length !== hebrewTexts.length) return texts;
+
+    const results = [...texts];
+    let hebrewIdx = 0;
+    for (let i = 0; i < results.length; i++) {
+      if (needsTranslation[i]) {
+        results[i] = lines[hebrewIdx] || results[i];
+        hebrewIdx++;
+      }
+    }
+    return results;
+  } catch {
+    return texts;
+  }
+}
+
 // ───────────── Image validation ─────────────
 
 const TRUSTED_IMAGE_HOSTS = [
@@ -94,6 +162,13 @@ const TRUSTED_IMAGE_HOSTS = [
   'wineenthusiast.com',
   'jamesuckling.com',
   'winespectator.com',
+  'wine.com',
+  'totalwine.com',
+  'klwines.com',
+  'winelibrary.com',
+  'cdn.shopify.com',
+  'media.danmurphys.com.au',
+  'bnimages.com',
 ];
 
 function isTrustedImageHost(url: string): boolean {
@@ -304,10 +379,62 @@ export async function fetchWineImagesForMany(
   wines: Array<{ name: string; winery: string }>,
 ): Promise<Map<string, WineImageResult | null>> {
   const results = new Map<string, WineImageResult | null>();
-  const promises = wines.map(async (w, idx) => {
-    const result = await fetchWineImageUrl(w.name, w.winery);
-    results.set(`${idx}`, result);
-  });
-  await Promise.allSettled(promises);
+
+  // Pre-check cache + negative cache to filter out wines that don't need external fetching
+  const needFetch: { idx: number; name: string; winery: string }[] = [];
+  await Promise.all(
+    wines.map(async (w, idx) => {
+      const cached = await findCachedImageUrl(w.name, w.winery);
+      if (cached) {
+        const valid = await validateImageUrl(cached.url);
+        if (valid) {
+          results.set(`${idx}`, cached);
+          return;
+        }
+        await clearCachedImageUrl(w.name, w.winery);
+      }
+      if (isNegativelyCached(w.name, w.winery)) {
+        results.set(`${idx}`, null);
+        return;
+      }
+      needFetch.push({ idx, name: w.name, winery: w.winery });
+    }),
+  );
+
+  if (needFetch.length === 0) return results;
+
+  // Batch transliterate all Hebrew queries in a single GPT call
+  const rawQueries = needFetch.map(w => `${w.winery} ${w.name}`.trim());
+  const transliteratedQueries = await batchTransliterateHebrew(rawQueries);
+
+  // Fetch images in parallel using pre-transliterated queries
+  await Promise.allSettled(
+    needFetch.map(async (w, i) => {
+      const query = transliteratedQueries[i];
+      const result = await searchViaSerper(query);
+      if (result) {
+        await cacheImageUrl(w.name, w.winery, result.url, result.source);
+        results.set(`${w.idx}`, result);
+        return;
+      }
+
+      // Retry with just the wine name if the full query failed
+      if (containsHebrew(w.name)) {
+        const transliteratedName = await transliterateHebrew(w.name);
+        if (transliteratedName !== query) {
+          const retry = await searchViaSerper(transliteratedName);
+          if (retry) {
+            await cacheImageUrl(w.name, w.winery, retry.url, retry.source);
+            results.set(`${w.idx}`, retry);
+            return;
+          }
+        }
+      }
+
+      cacheNegativeResult(w.name, w.winery);
+      results.set(`${w.idx}`, null);
+    }),
+  );
+
   return results;
 }

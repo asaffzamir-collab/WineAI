@@ -5,34 +5,10 @@ import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 import { fetchWineImagesForMany } from '@/lib/wine-image';
+import { enrichWines, type MinimalWine } from '@/lib/enrich-wines';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-interface DiscoveredWine {
-  name: string;
-  winery: string;
-  region?: string;
-  grape?: string;
-  wine_type?: string;
-  country?: string;
-  match?: number;
-  reason?: string;
-  tasting_note?: string;
-  image_url?: string;
-  positive_matches?: string[];
-  mismatches?: string[];
-  wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
-  profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
-  vivino_rating?: number;
-  vivino_reviews?: number;
-  alcohol?: string;
-  tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
-  serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
-  food_pairings?: string[];
-  why_drink_it?: string;
-  similar_wines_note?: string;
-}
 
 export async function POST() {
   try {
@@ -57,100 +33,19 @@ export async function POST() {
       return Array.isArray(d?.liked_wines) ? d.liked_wines as string[] : [];
     }) || [];
 
-    let result: { wines?: DiscoveredWine[] };
+    let result: { wines?: MinimalWine[] };
     try {
-      result = await generateWineDiscovery(combinedProfile, likedWines, lang) as { wines?: DiscoveredWine[] };
+      result = await generateWineDiscovery(combinedProfile, likedWines, lang) as { wines?: MinimalWine[] };
     } catch (aiErr) {
       console.error('Wine discovery AI error:', aiErr);
       return NextResponse.json({ wines: [], error: 'Discovery AI temporarily unavailable' }, { status: 200 });
     }
 
-    const wines: DiscoveredWine[] = result?.wines || [];
+    const rawWines: MinimalWine[] = result?.wines || [];
+    const wines = rawWines.length > 0
+      ? await enrichWines(rawWines, typedProfiles, { language: lang })
+      : [];
 
-    const hasProfile = Object.keys(typedProfiles).length > 0;
-    if (wines.length > 0) {
-      const { searchWinesByText, matchWineToProfile, quickMatchScore } = await import('@/lib/openai');
-      await Promise.all(
-        wines.map(async (w) => {
-          const wt = w.wine_type || 'red';
-          const pk = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
-          const rp = hasProfile
-            ? (typedProfiles[pk] || typedProfiles.red || {}) as Record<string, unknown>
-            : null;
-          try {
-            const found = await searchWinesByText(`${w.name} ${w.winery || ''}`);
-            const fullWine = found?.[0];
-            if (fullWine) {
-              if (fullWine.vivino_rating) w.vivino_rating = fullWine.vivino_rating;
-              if (fullWine.vivino_reviews) w.vivino_reviews = fullWine.vivino_reviews;
-              if (fullWine.alcohol) w.alcohol = String(fullWine.alcohol);
-              if (fullWine.image_url) w.image_url = fullWine.image_url;
-              if (fullWine.tasting_notes) w.tasting_notes = fullWine.tasting_notes;
-              if (fullWine.serving) {
-                w.serving = {
-                  drink_from: fullWine.serving.drink_from,
-                  drink_until: fullWine.serving.drink_until,
-                  decant_minutes: fullWine.serving.decant_minutes,
-                  temperature_celsius: fullWine.serving.temperature_celsius ? Number(fullWine.serving.temperature_celsius) : undefined,
-                };
-              }
-              if (fullWine.food_pairings?.length) w.food_pairings = fullWine.food_pairings;
-              if (fullWine.region && !w.region) w.region = fullWine.region;
-              if (fullWine.country && !w.country) w.country = fullWine.country;
-
-              if (rp) {
-                const raw = await matchWineToProfile(fullWine, rp, lang);
-                w.match = raw.match_percentage;
-                w.reason = raw.explanation || w.reason;
-                w.positive_matches = raw.positive_matches;
-                w.mismatches = raw.mismatches;
-                w.why_drink_it = raw.why_drink_it;
-                w.similar_wines_note = raw.similar_wines_note;
-                if (raw.wine_spectrum) w.wine_spectrum = { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity };
-                if (raw.profile_spectrum) w.profile_spectrum = { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity };
-              }
-              return;
-            }
-          } catch { /* enrichment failed, fall back to quickMatchScore */ }
-
-          if (rp) {
-            try {
-              const minimalWine = {
-                name: w.name,
-                winery: w.winery || '',
-                wine_type: (w.wine_type || 'red') as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert',
-                country: w.country || '',
-                region: w.region,
-                grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [],
-                taste_spectrum: w.wine_spectrum,
-              };
-              const raw = await matchWineToProfile(minimalWine, rp, lang);
-              w.match = raw.match_percentage;
-              w.reason = raw.explanation || w.reason;
-              w.positive_matches = raw.positive_matches;
-              w.mismatches = raw.mismatches;
-              w.why_drink_it = raw.why_drink_it;
-              w.similar_wines_note = raw.similar_wines_note;
-              if (raw.wine_spectrum) w.wine_spectrum = { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity };
-              if (raw.profile_spectrum) w.profile_spectrum = { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity };
-            } catch {
-              try {
-                const score = quickMatchScore(
-                  { name: w.name, winery: w.winery || '', wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
-                  w.wine_spectrum,
-                  rp,
-                );
-                if (score !== null) w.match = score;
-                const ps = rp.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
-                if (ps && typeof ps.body === 'number') w.profile_spectrum = ps;
-              } catch { /* scoring is best-effort */ }
-            }
-          }
-        }),
-      );
-    }
-
-    // Batch-fetch images for wines still missing one
     const winesMissingImages = wines.filter((w) => !w.image_url);
     if (winesMissingImages.length > 0) {
       try {

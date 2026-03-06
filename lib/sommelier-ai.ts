@@ -5,8 +5,11 @@ interface ToolCall {
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string; tool_calls?: ToolCall[] }; finish_reason?: string }>;
 }
+interface StreamChunk {
+  choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }>;
+}
 interface OpenAIClientLike {
-  chat: { completions: { create: (opts: unknown) => Promise<ChatCompletionResponse> } };
+  chat: { completions: { create: (opts: unknown) => Promise<ChatCompletionResponse> & AsyncIterable<StreamChunk> } };
 }
 
 let _openai: OpenAIClientLike | null = null;
@@ -460,4 +463,52 @@ export async function continueChatAfterToolCall(
   } catch {
     return { message: content, wines: [], actions: [] };
   }
+}
+
+/**
+ * Streaming version of continueChatAfterToolCall.
+ * Returns an async iterable of text chunks from the LLM.
+ */
+export async function streamChatAfterToolCall(
+  originalMessages: Array<{ role: string; content: string }>,
+  toolCallId: string,
+  toolName: string,
+  toolResult: string,
+  context: {
+    profile: Record<string, unknown>;
+    language?: string;
+  }
+): Promise<AsyncIterable<string>> {
+  const client = await getClient();
+  const lang = context.language || 'he';
+
+  const messages = [
+    ...originalMessages,
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [{
+        id: toolCallId,
+        type: 'function',
+        function: { name: toolName, arguments: '{}' },
+      }],
+    },
+    {
+      role: 'tool',
+      tool_call_id: toolCallId,
+      content: toolResult,
+    },
+  ];
+
+  const stream = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages,
+    temperature: 0.7,
+    max_tokens: 2000,
+    stream: true,
+  });
+
+  void lang;
+
+  return stream as unknown as AsyncIterable<string>;
 }

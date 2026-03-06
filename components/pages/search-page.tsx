@@ -74,6 +74,11 @@ export function SearchPage({ userId }: SearchPageProps) {
   const searchMatchAbort = useRef<AbortController | null>(null);
   const [hasFullPersonalization, setHasFullPersonalization] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [suggestions, setSuggestions] = useState<{ name: string; winery: string; wine_type?: string | null; region?: string | null; country?: string | null; image_url?: string | null }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestAbort = useRef<AbortController | null>(null);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setRecentSearches(getRecentSearches(userId));
@@ -82,6 +87,52 @@ export function SearchPage({ userId }: SearchPageProps) {
       .then((data) => setHasFullPersonalization((data.likedWinesCount ?? 0) >= 2))
       .catch(() => {});
   }, [userId]);
+
+  const fetchSuggestions = useCallback((q: string) => {
+    suggestAbort.current?.abort();
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (q.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    suggestTimer.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      suggestAbort.current = ctrl;
+      try {
+        const res = await fetch(`/api/wine-suggest?q=${encodeURIComponent(q.trim())}`, { signal: ctrl.signal });
+        if (ctrl.signal.aborted) return;
+        const data = await res.json();
+        if (!ctrl.signal.aborted && data.suggestions?.length > 0) {
+          setSuggestions(data.suggestions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch {
+        if (!ctrl.signal.aborted) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      }
+    }, 250);
+  }, []);
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    fetchSuggestions(value);
+  }, [fetchSuggestions]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestBoxRef.current && !suggestBoxRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!selectedRecentWine) {
@@ -198,10 +249,18 @@ export function SearchPage({ userId }: SearchPageProps) {
         setWineCandidates(data.wines);
       } else if (data.wine) {
         setWineResult(data.wine);
-        setMatchResult(data.match ?? null);
         if (data.match) {
+          setMatchResult(data.match);
           setCachedMatch(userId, data.wine, data.match);
+        } else if (typeof data.quickScore === 'number') {
+          setMatchResult({
+            match_percentage: data.quickScore,
+            positive_matches: [],
+            mismatches: [],
+          });
+          fetchMatchInBackground(data.wine);
         } else {
+          setMatchResult(null);
           fetchMatchInBackground(data.wine);
         }
         addRecentSearch(userId, data.wine);
@@ -221,7 +280,15 @@ export function SearchPage({ userId }: SearchPageProps) {
     }
   }, [initialQ, doTextSearch]);
 
-  const handleTextSearch = () => doTextSearch(query);
+  const handleSuggestionClick = useCallback((s: { name: string; winery: string }) => {
+    const searchText = `${s.name} ${s.winery}`.trim();
+    setQuery(searchText);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    doTextSearch(searchText);
+  }, [doTextSearch]);
+
+  const handleTextSearch = () => { setShowSuggestions(false); doTextSearch(query); };
 
   const handleSelectCandidate = async (wine: WineData) => {
     setWineResult(null);
@@ -491,13 +558,18 @@ export function SearchPage({ userId }: SearchPageProps) {
       <div className="animate-page pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <PageHeader title={t('title')}>
-            <div className="relative mt-4 max-w-xl">
+            <div className="relative mt-4 max-w-xl" ref={suggestBoxRef}>
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
+                onChange={(e) => handleQueryChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTextSearch();
+                  if (e.key === 'Escape') setShowSuggestions(false);
+                }}
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                 placeholder={t('textPlaceholder')}
                 className="h-12 bg-card pe-12 ps-4 text-start"
+                autoComplete="off"
               />
               <button
                 type="button"
@@ -508,6 +580,37 @@ export function SearchPage({ userId }: SearchPageProps) {
               >
                 <Search className="h-5 w-5" strokeWidth={1.5} />
               </button>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={`${s.name}|${s.winery}|${i}`}
+                      type="button"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-accent"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSuggestionClick(s)}
+                    >
+                      {s.image_url ? (
+                        <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-ivory-300 dark:bg-charcoal-700">
+                          <img src={s.image_url} alt="" className="h-full w-full object-contain" loading="lazy" />
+                        </div>
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bordeaux-50 dark:bg-bordeaux-900/20">
+                          <Wine className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {s.winery}
+                          {s.region ? ` · ${s.region}` : ''}
+                          {s.wine_type ? ` · ${s.wine_type}` : ''}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </PageHeader>
         {/* Image Upload */}

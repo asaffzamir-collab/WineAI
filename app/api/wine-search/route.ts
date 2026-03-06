@@ -4,16 +4,19 @@ import { findCachedWines, cacheTasteSpectrum, findCachedImageUrl } from '@/lib/w
 import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
+import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
 
 async function fillCachedImages(wines: WineData[]): Promise<void> {
-  for (const w of wines) {
-    if (!w.image_url) {
-      try {
-        const cached = await findCachedImageUrl(w.name, w.winery);
-        if (cached) w.image_url = cached.url;
-      } catch { /* best-effort */ }
-    }
-  }
+  await Promise.all(
+    wines.map(async (w) => {
+      if (!w.image_url) {
+        try {
+          const cached = await findCachedImageUrl(w.name, w.winery);
+          if (cached) w.image_url = cached.url;
+        } catch { /* best-effort */ }
+      }
+    }),
+  );
 }
 
 export const dynamic = 'force-dynamic';
@@ -105,6 +108,32 @@ export async function POST(request: Request) {
         }).catch(() => {});
       }
 
+      // Compute quick deterministic scores (no GPT, instant)
+      let quickScores: Record<number, number> | undefined;
+      if (userId) {
+        try {
+          const { quickMatchScore } = await import('@/lib/openai');
+          const profiles = await getTasteProfilesForUser(userId as string);
+          if (profiles && Object.keys(profiles).length > 0) {
+            quickScores = {};
+            for (let i = 0; i < wines.length; i++) {
+              const w = wines[i];
+              const wt = w.wine_type || 'red';
+              const pk = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
+              const rp = (profiles[pk] || profiles.red) as Record<string, unknown> | undefined;
+              if (rp) {
+                const score = quickMatchScore(
+                  { name: w.name, winery: w.winery, wine_type: w.wine_type, grapes: w.grapes, region: w.region, country: w.country },
+                  w.taste_spectrum,
+                  rp,
+                );
+                if (score !== null) quickScores[i] = score;
+              }
+            }
+          }
+        } catch { /* quick scores are best-effort */ }
+      }
+
       const timing = {
         setup_ms: Math.round(tSetup - t0),
         import_ms: Math.round(tImport - tSetup),
@@ -114,9 +143,15 @@ export async function POST(request: Request) {
       };
 
       if (wines.length === 1) {
-        return NextResponse.json({ wine: wines[0], match: null, _timing: timing });
+        const qs = quickScores?.[0];
+        return NextResponse.json({
+          wine: wines[0],
+          match: null,
+          quickScore: qs ?? null,
+          _timing: timing,
+        });
       }
-      return NextResponse.json({ wines, _timing: timing });
+      return NextResponse.json({ wines, quickScores: quickScores ?? null, _timing: timing });
     }
 
     return NextResponse.json(

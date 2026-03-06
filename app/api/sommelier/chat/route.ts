@@ -7,6 +7,7 @@ import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 import { fetchWineImagesForMany } from '@/lib/wine-image';
 import { findCachedWines } from '@/lib/wine-cache';
+import { enrichWines, enrichSearchedWines, type EnrichedWine } from '@/lib/enrich-wines';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,9 +24,10 @@ export async function POST(request: Request) {
     const usageBlock = await requireUsage(user.id, 'pier_message');
     if (usageBlock) return usageBlock;
 
-    const { message, history } = (await request.json()) as {
+    const { message, history, stream: wantsStream } = (await request.json()) as {
       message: string;
       history?: ChatHistoryMessage[];
+      stream?: boolean;
     };
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
@@ -87,35 +89,11 @@ export async function POST(request: Request) {
       }
     );
 
-    interface ToolResultWine {
-      name: string;
-      winery: string;
-      region?: string;
-      grape?: string;
-      wine_type?: string;
-      country?: string;
-      match?: number;
-      reason?: string;
-      tasting_note?: string;
-      image_url?: string;
-      food_pairings?: string[];
-      alcohol?: string;
-      vivino_rating?: number;
-      vivino_reviews?: number;
-      tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
-      serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
-      positive_matches?: string[];
-      mismatches?: string[];
-      wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
-      profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
-      why_drink_it?: string;
-      similar_wines_note?: string;
-    }
     interface ToolResult {
       id: string;
       name: string;
       result: string;
-      wines: ToolResultWine[];
+      wines: EnrichedWine[];
     }
 
     if (chatResult.toolCalls && chatResult.toolCalls.length > 0) {
@@ -126,57 +104,11 @@ export async function POST(request: Request) {
               try {
                 const query = tc.arguments.query as string;
                 const cached = await findCachedWines(query);
-                const { searchWinesByText, matchWineToProfile } = await import('@/lib/openai');
+                const { searchWinesByText } = await import('@/lib/openai');
                 const wines = cached.length > 0 ? cached : await searchWinesByText(query);
                 const top = wines.slice(0, 5);
 
-                const enriched = await Promise.all(
-                  top.map(async (w) => {
-                    let matchData: { match_percentage?: number; explanation?: string; positive_matches?: string[]; mismatches?: string[]; wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number }; profile_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number } } = {};
-                    try {
-                      if (Object.keys(combinedProfile).length > 0) {
-                        const wt = w.wine_type || 'red';
-                        const pk = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
-                        const rp = (combinedProfile[pk] || combinedProfile.red || {}) as Record<string, unknown>;
-                        const raw = await matchWineToProfile(w, rp);
-                        matchData = {
-                          match_percentage: raw.match_percentage,
-                          explanation: raw.explanation,
-                          positive_matches: raw.positive_matches,
-                          mismatches: raw.mismatches,
-                          wine_spectrum: raw.wine_spectrum ? { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity } : undefined,
-                          profile_spectrum: raw.profile_spectrum ? { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity } : undefined,
-                        };
-                      }
-                    } catch {}
-                    return {
-                      name: w.name,
-                      winery: w.winery,
-                      region: w.region,
-                      grape: w.grapes?.join(', '),
-                      wine_type: w.wine_type,
-                      country: w.country,
-                      image_url: w.image_url,
-                      food_pairings: w.food_pairings,
-                      alcohol: w.alcohol != null ? String(w.alcohol) : undefined,
-                      vivino_rating: w.vivino_rating,
-                      vivino_reviews: w.vivino_reviews,
-                      tasting_notes: w.tasting_notes,
-                      serving: w.serving ? {
-                        drink_from: w.serving.drink_from,
-                        drink_until: w.serving.drink_until,
-                        decant_minutes: w.serving.decant_minutes,
-                        temperature_celsius: w.serving.temperature_celsius ? Number(w.serving.temperature_celsius) : undefined,
-                      } : undefined,
-                      match: matchData.match_percentage,
-                      reason: matchData.explanation,
-                      positive_matches: matchData.positive_matches,
-                      mismatches: matchData.mismatches,
-                      wine_spectrum: matchData.wine_spectrum as ToolResultWine['wine_spectrum'],
-                      profile_spectrum: matchData.profile_spectrum as ToolResultWine['profile_spectrum'],
-                    };
-                  }),
-                );
+                const enriched = await enrichSearchedWines(top, combinedProfile, { language: lang });
 
                 return {
                   id: tc.id,
@@ -239,91 +171,8 @@ export async function POST(request: Request) {
                   }>;
                 };
 
-                const { searchWinesByText, matchWineToProfile, quickMatchScore } = await import('@/lib/openai');
-                const hasProfile = Object.keys(combinedProfile).length > 0;
                 const top = result.wines?.slice(0, 4) || [];
-
-                const enriched = await Promise.all(
-                  top.map(async (w) => {
-                    const base: ToolResultWine = {
-                      name: w.name,
-                      winery: w.winery,
-                      region: w.region,
-                      grape: w.grape,
-                      wine_type: w.wine_type,
-                      country: w.country,
-                      reason: w.reason,
-                      tasting_note: w.tasting_note,
-                      food_pairings: w.food_pairings,
-                      positive_matches: w.positive_matches,
-                      mismatches: w.mismatches,
-                      wine_spectrum: w.wine_spectrum,
-                    };
-                    if (!hasProfile) return base;
-                    const wt = w.wine_type || 'red';
-                    const profileKey = wt === 'sparkling' || wt === 'dessert' ? 'white' : wt;
-                    const relevantProfile = (combinedProfile[profileKey] || combinedProfile.red || {}) as Record<string, unknown>;
-                    try {
-                      const found = await searchWinesByText(`${w.name} ${w.winery}`);
-                      const fullWine = found?.[0];
-                      if (fullWine) {
-                        const raw = await matchWineToProfile(fullWine, relevantProfile);
-                        base.match = raw.match_percentage;
-                        base.reason = raw.explanation || base.reason;
-                        base.positive_matches = raw.positive_matches;
-                        base.mismatches = raw.mismatches;
-                        base.why_drink_it = raw.why_drink_it;
-                        base.similar_wines_note = raw.similar_wines_note;
-                        base.wine_spectrum = raw.wine_spectrum ? { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity } : base.wine_spectrum;
-                        base.profile_spectrum = raw.profile_spectrum ? { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity } : undefined;
-                        if (fullWine.tasting_notes) base.tasting_notes = fullWine.tasting_notes as ToolResultWine['tasting_notes'];
-                        if (fullWine.vivino_rating) base.vivino_rating = fullWine.vivino_rating;
-                        if (fullWine.vivino_reviews) base.vivino_reviews = fullWine.vivino_reviews;
-                        if (fullWine.alcohol) base.alcohol = String(fullWine.alcohol);
-                        if (fullWine.image_url) base.image_url = fullWine.image_url;
-                        if (fullWine.serving) {
-                          base.serving = {
-                            drink_from: fullWine.serving.drink_from,
-                            drink_until: fullWine.serving.drink_until,
-                            decant_minutes: fullWine.serving.decant_minutes,
-                            temperature_celsius: fullWine.serving.temperature_celsius ? Number(fullWine.serving.temperature_celsius) : undefined,
-                          };
-                        }
-                      } else {
-                        try {
-                          const minimalWine = {
-                            name: w.name,
-                            winery: w.winery,
-                            wine_type: (w.wine_type || 'red') as 'red' | 'white' | 'rose' | 'sparkling' | 'dessert',
-                            country: w.country || '',
-                            region: w.region,
-                            grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [],
-                            taste_spectrum: w.wine_spectrum,
-                          };
-                          const raw = await matchWineToProfile(minimalWine, relevantProfile);
-                          base.match = raw.match_percentage;
-                          base.reason = raw.explanation || base.reason;
-                          base.positive_matches = raw.positive_matches;
-                          base.mismatches = raw.mismatches;
-                          base.why_drink_it = raw.why_drink_it;
-                          base.similar_wines_note = raw.similar_wines_note;
-                          if (raw.wine_spectrum) base.wine_spectrum = { body: raw.wine_spectrum.body, tannin: raw.wine_spectrum.tannin, sweetness: raw.wine_spectrum.sweetness, acidity: raw.wine_spectrum.acidity };
-                          if (raw.profile_spectrum) base.profile_spectrum = { body: raw.profile_spectrum.body, tannin: raw.profile_spectrum.tannin, sweetness: raw.profile_spectrum.sweetness, acidity: raw.profile_spectrum.acidity };
-                        } catch {
-                          const score = quickMatchScore(
-                            { name: w.name, winery: w.winery, wine_type: w.wine_type, grapes: w.grape ? w.grape.split(',').map(g => g.trim()) : [], region: w.region, country: w.country },
-                            w.wine_spectrum,
-                            relevantProfile,
-                          );
-                          if (score !== null) base.match = score;
-                          const ps = relevantProfile.taste_spectrum as { body: number; tannin: number; sweetness: number; acidity: number } | undefined;
-                          if (ps && typeof ps.body === 'number') base.profile_spectrum = ps;
-                        }
-                      }
-                    } catch {}
-                    return base;
-                  }),
-                );
+                const enriched = await enrichWines(top, combinedProfile, { language: lang });
 
                 return {
                   id: tc.id,
@@ -353,18 +202,19 @@ export async function POST(request: Request) {
                     reason?: string;
                   }>;
                 };
+                const pairWines = result.suggestions?.map(s => ({
+                  name: s.wine,
+                  winery: s.winery,
+                  region: s.region,
+                  grape: s.grape,
+                  wine_type: s.wine_type,
+                  reason: s.reason,
+                })) || [];
                 return {
                   id: tc.id,
                   name: tc.name,
                   result: JSON.stringify(result),
-                  wines: result.suggestions?.map(s => ({
-                    name: s.wine,
-                    winery: s.winery,
-                    region: s.region,
-                    grape: s.grape,
-                    wine_type: s.wine_type,
-                    reason: s.reason,
-                  })) || [],
+                  wines: pairWines,
                 };
               } catch {
                 return { id: tc.id, name: tc.name, result: '{}', wines: [] };
@@ -393,7 +243,6 @@ export async function POST(request: Request) {
         });
       }
 
-      const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
       const systemPrompt = `You are "Pier", a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar. Always speak as Pier — with warmth, charm, and genuine passion for wine.
 ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine names and regions can stay in original language.' : ''}`;
 
@@ -403,6 +252,72 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
         { role: 'user', content: message },
       ];
 
+      // ---- Streaming SSE response ----
+      if (wantsStream) {
+        const encoder = new TextEncoder();
+        const readable = new ReadableStream({
+          async start(controller) {
+            const send = (event: string, data: unknown) => {
+              controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+            };
+
+            // Send wines immediately
+            send('wines', allWines);
+
+            // Stream the follow-up text
+            try {
+              const { streamChatAfterToolCall } = await import('@/lib/sommelier-ai');
+              const stream = await streamChatAfterToolCall(
+                msgs,
+                toolResults[0].id,
+                toolResults[0].name,
+                toolResults.map(tr => tr.result).join('\n'),
+                { profile: combinedProfile, language: lang }
+              );
+
+              for await (const chunk of stream) {
+                const c = chunk as unknown as { choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }> };
+                const text = c.choices?.[0]?.delta?.content;
+                if (text) send('text', text);
+              }
+            } catch (streamErr) {
+              console.error('Stream error, falling back:', streamErr);
+              try {
+                const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
+                const fallback = await continueChatAfterToolCall(
+                  msgs,
+                  toolResults[0].id,
+                  toolResults[0].name,
+                  toolResults.map(tr => tr.result).join('\n'),
+                  { profile: combinedProfile, language: lang }
+                );
+                const fallbackMsg = typeof fallback === 'object' && fallback !== null
+                  ? (fallback as Record<string, unknown>).message as string || JSON.stringify(fallback)
+                  : String(fallback);
+                send('text', fallbackMsg);
+              } catch { /* last resort */ }
+            }
+
+            send('done', {});
+            controller.close();
+
+            incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+              if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+            }).catch(() => {});
+          },
+        });
+
+        return new Response(readable, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        });
+      }
+
+      // ---- Non-streaming JSON response (backward compat) ----
+      const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
       const finalResult = await continueChatAfterToolCall(
         msgs,
         toolResults[0].id,
@@ -422,6 +337,32 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
         message: finalMessage,
         wines: allWines,
         actions: [],
+      });
+    }
+
+    // No tool calls — direct response
+    if (wantsStream) {
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        start(controller) {
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+          };
+          send('text', chatResult.content);
+          send('done', {});
+          controller.close();
+
+          incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+            if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+          }).catch(() => {});
+        },
+      });
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
       });
     }
 

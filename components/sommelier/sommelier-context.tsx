@@ -193,32 +193,94 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/sommelier/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed, history }),
+        body: JSON.stringify({ message: trimmed, history, stream: true }),
       });
 
-      const data = await res.json();
-      const usageErr = parseUsageLimitError(res.status, data);
-      if (usageErr) {
-        setUsageLimitInfo(usageErr);
-        setChatMessages(prev => prev.filter(m => m.id !== streamingId));
-        setIsChatLoading(false);
-        return;
+      if (!res.ok) {
+        let data;
+        try { data = await res.json(); } catch { data = {}; }
+        const usageErr = parseUsageLimitError(res.status, data);
+        if (usageErr) {
+          setUsageLimitInfo(usageErr);
+          setChatMessages(prev => prev.filter(m => m.id !== streamingId));
+          setIsChatLoading(false);
+          return;
+        }
+        throw new Error('Chat request failed');
       }
-      if (!res.ok) throw new Error('Chat request failed');
 
-      setChatMessages(prev =>
-        prev.map(m =>
-          m.id === streamingId
-            ? {
-                ...m,
-                content: data.message || data.content || '',
-                wines: data.wines,
-                actions: data.actions,
-                isStreaming: false,
-              }
-            : m
-        )
-      );
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let textAccum = '';
+        let winesData: ChatWineCard[] | undefined;
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() || '';
+
+          for (const part of parts) {
+            const eventMatch = part.match(/^event:\s*(.+)$/m);
+            const dataMatch = part.match(/^data:\s*(.+)$/m);
+            if (!eventMatch || !dataMatch) continue;
+
+            const eventType = eventMatch[1];
+            let payload: unknown;
+            try { payload = JSON.parse(dataMatch[1]); } catch { continue; }
+
+            if (eventType === 'wines') {
+              winesData = payload as ChatWineCard[];
+              setChatMessages(prev =>
+                prev.map(m => m.id === streamingId ? { ...m, wines: winesData } : m)
+              );
+            } else if (eventType === 'text') {
+              textAccum += payload as string;
+              setChatMessages(prev =>
+                prev.map(m => m.id === streamingId ? { ...m, content: textAccum } : m)
+              );
+            } else if (eventType === 'done') {
+              setChatMessages(prev =>
+                prev.map(m =>
+                  m.id === streamingId
+                    ? { ...m, content: textAccum, wines: winesData, isStreaming: false }
+                    : m
+                )
+              );
+            }
+          }
+        }
+
+        // Ensure streaming is marked complete even if no done event was received
+        setChatMessages(prev =>
+          prev.map(m =>
+            m.id === streamingId && m.isStreaming
+              ? { ...m, content: textAccum || m.content, wines: winesData ?? m.wines, isStreaming: false }
+              : m
+          )
+        );
+      } else {
+        // Fallback: non-streaming JSON response
+        const data = await res.json();
+        setChatMessages(prev =>
+          prev.map(m =>
+            m.id === streamingId
+              ? {
+                  ...m,
+                  content: data.message || data.content || '',
+                  wines: data.wines,
+                  actions: data.actions,
+                  isStreaming: false,
+                }
+              : m
+          )
+        );
+      }
     } catch {
       setChatMessages(prev =>
         prev.map(m =>

@@ -147,9 +147,9 @@ const OPEN_WINE_DAYS: Record<string, number> = {
   red: 5, white: 3, rose: 3, sparkling: 1, dessert: 14,
 };
 
-function wineSearcherUrl(wine: { name: string; winery?: string; vintage?: number }): string {
+function winePriceSearchUrl(wine: { name: string; winery?: string; vintage?: number }): string {
   const parts = [wine.name, wine.winery, wine.vintage].filter(Boolean).join(' ');
-  return `https://www.wine-searcher.com/find/${encodeURIComponent(parts)}/1/israel`;
+  return `https://www.google.com/search?q=${encodeURIComponent(parts + ' מחיר')}`;
 }
 
 interface WineCardProps {
@@ -487,7 +487,7 @@ export function WineCard({
         {wine.name && (
           <section className="flex">
             <a
-              href={wineSearcherUrl(wine)}
+              href={winePriceSearchUrl(wine)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
@@ -528,9 +528,14 @@ export function WineCard({
               </div>
             </div>
 
-            {matchResult.explanation && (
+            {matchResult.explanation ? (
               <p className="mb-4 text-sm leading-relaxed text-stone-600 dark:text-stone-400">{matchResult.explanation}</p>
-            )}
+            ) : matchLoading ? (
+              <div className="mb-4 space-y-2 animate-pulse">
+                <div className="h-3 w-full rounded bg-ivory-300 dark:bg-charcoal-700" />
+                <div className="h-3 w-4/5 rounded bg-ivory-300 dark:bg-charcoal-700" />
+              </div>
+            ) : null}
 
             {matchResult.wine_spectrum && matchResult.profile_spectrum && (
               <MatchSpectrumChart
