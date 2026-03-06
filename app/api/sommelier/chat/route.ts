@@ -10,7 +10,7 @@ import { findCachedWines } from '@/lib/wine-cache';
 import { enrichWines, enrichSearchedWines, type EnrichedWine } from '@/lib/enrich-wines';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   try {
@@ -96,192 +96,165 @@ export async function POST(request: Request) {
       wines: EnrichedWine[];
     }
 
-    if (chatResult.toolCalls && chatResult.toolCalls.length > 0) {
-      const toolResults: ToolResult[] = await Promise.all(
-        chatResult.toolCalls.map(async (tc): Promise<ToolResult> => {
-          switch (tc.name) {
-            case 'search_wine': {
-              try {
-                const query = tc.arguments.query as string;
-                const cached = await findCachedWines(query);
-                const { searchWinesByText } = await import('@/lib/openai');
-                const wines = cached.length > 0 ? cached : await searchWinesByText(query);
-                const top = wines.slice(0, 5);
-
-                const enriched = await enrichSearchedWines(top, combinedProfile, { language: lang });
-
-                return {
-                  id: tc.id,
-                  name: tc.name,
-                  result: JSON.stringify(top),
-                  wines: enriched,
-                };
-              } catch {
-                return { id: tc.id, name: tc.name, result: '[]', wines: [] };
-              }
-            }
-
-            case 'check_cellar': {
-              const filter = tc.arguments.filter as string | undefined;
-              let filtered = cellarWines;
-              if (filter === 'ready') {
-                const now = new Date().getFullYear();
-                filtered = cellarWines.filter((w: Record<string, unknown>) => {
-                  const from = Number(w.drink_from) || 0;
-                  const until = Number(w.drink_until) || 9999;
-                  return now >= from && now <= until;
-                });
-              } else if (filter) {
-                filtered = cellarWines.filter((w: Record<string, unknown>) =>
-                  String(w.wine_type).toLowerCase() === filter.toLowerCase()
-                );
-              }
-              return {
-                id: tc.id,
-                name: tc.name,
-                result: JSON.stringify(filtered.slice(0, 20)),
-                wines: filtered.slice(0, 5).map((w: Record<string, unknown>) => ({
-                  name: w.wine_name as string,
-                  winery: w.winery as string,
-                  wine_type: w.wine_type as string,
-                  country: w.country as string,
-                  region: w.region as string,
-                })),
-              };
-            }
-
-            case 'recommend_wines': {
-              try {
-                const recentNames = cellarWines.slice(0, 10).map((w: Record<string, unknown>) => w.wine_name as string);
-                const result = await generateWineDiscovery(combinedProfile, recentNames, lang) as {
-                  wines?: Array<{
-                    name: string;
-                    winery: string;
-                    region?: string;
-                    grape?: string;
-                    wine_type?: string;
-                    country?: string;
-                    match?: number;
-                    reason?: string;
-                    tasting_note?: string;
-                    food_pairings?: string[];
-                    positive_matches?: string[];
-                    mismatches?: string[];
-                    wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
-                  }>;
-                };
-
-                const top = result.wines?.slice(0, 4) || [];
-                const enriched = await enrichWines(top, combinedProfile, { language: lang });
-
-                return {
-                  id: tc.id,
-                  name: tc.name,
-                  result: JSON.stringify(result),
-                  wines: enriched,
-                };
-              } catch {
-                return { id: tc.id, name: tc.name, result: '{}', wines: [] };
-              }
-            }
-
-            case 'pair_food': {
-              try {
-                const result = await generateFoodPairing(
-                  tc.arguments.meal as string,
-                  combinedProfile,
-                  cellarWines,
-                  lang
-                ) as {
-                  suggestions?: Array<{
-                    wine: string;
-                    winery: string;
-                    region?: string;
-                    grape?: string;
-                    wine_type?: string;
-                    reason?: string;
-                  }>;
-                };
-                const pairWines = result.suggestions?.map(s => ({
-                  name: s.wine,
-                  winery: s.winery,
-                  region: s.region,
-                  grape: s.grape,
-                  wine_type: s.wine_type,
-                  reason: s.reason,
-                })) || [];
-                return {
-                  id: tc.id,
-                  name: tc.name,
-                  result: JSON.stringify(result),
-                  wines: pairWines,
-                };
-              } catch {
-                return { id: tc.id, name: tc.name, result: '{}', wines: [] };
-              }
-            }
-
-            default:
-              return { id: tc.id, name: tc.name, result: '{}', wines: [] };
+    // ---------- helper: execute a single tool call ----------
+    const executeToolCall = async (tc: { id: string; name: string; arguments: Record<string, unknown> }): Promise<ToolResult> => {
+      switch (tc.name) {
+        case 'search_wine': {
+          try {
+            const query = tc.arguments.query as string;
+            const cached = await findCachedWines(query);
+            const { searchWinesByText } = await import('@/lib/openai');
+            const wines = cached.length > 0 ? cached : await searchWinesByText(query);
+            const top = wines.slice(0, 5);
+            const enriched = await enrichSearchedWines(top, combinedProfile, { language: lang });
+            return { id: tc.id, name: tc.name, result: JSON.stringify(top), wines: enriched };
+          } catch {
+            return { id: tc.id, name: tc.name, result: '[]', wines: [] };
           }
-        })
-      );
+        }
 
-      const allWines = toolResults.flatMap(tr => tr.wines);
+        case 'check_cellar': {
+          const filter = tc.arguments.filter as string | undefined;
+          let filtered = cellarWines;
+          if (filter === 'ready') {
+            const now = new Date().getFullYear();
+            filtered = cellarWines.filter((w: Record<string, unknown>) => {
+              const from = Number(w.drink_from) || 0;
+              const until = Number(w.drink_until) || 9999;
+              return now >= from && now <= until;
+            });
+          } else if (filter) {
+            filtered = cellarWines.filter((w: Record<string, unknown>) =>
+              String(w.wine_type).toLowerCase() === filter.toLowerCase()
+            );
+          }
+          return {
+            id: tc.id,
+            name: tc.name,
+            result: JSON.stringify(filtered.slice(0, 20)),
+            wines: filtered.slice(0, 5).map((w: Record<string, unknown>) => ({
+              name: w.wine_name as string,
+              winery: w.winery as string,
+              wine_type: w.wine_type as string,
+              country: w.country as string,
+              region: w.region as string,
+            })),
+          };
+        }
 
-      // Batch-fetch images for wines that don't already have one
-      const winesMissingImages = allWines
+        case 'recommend_wines': {
+          try {
+            const recentNames = cellarWines.slice(0, 10).map((w: Record<string, unknown>) => w.wine_name as string);
+            const result = await generateWineDiscovery(combinedProfile, recentNames, lang) as {
+              wines?: Array<{
+                name: string; winery: string; region?: string; grape?: string;
+                wine_type?: string; country?: string; match?: number; reason?: string;
+                tasting_note?: string; food_pairings?: string[];
+                positive_matches?: string[]; mismatches?: string[];
+                wine_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number };
+              }>;
+            };
+            const top = result.wines?.slice(0, 4) || [];
+            const enriched = await enrichWines(top, combinedProfile, {
+              language: lang,
+              maxFullMatch: 0,
+            });
+            return { id: tc.id, name: tc.name, result: JSON.stringify(result), wines: enriched };
+          } catch {
+            return { id: tc.id, name: tc.name, result: '{}', wines: [] };
+          }
+        }
+
+        case 'pair_food': {
+          try {
+            const result = await generateFoodPairing(
+              tc.arguments.meal as string, combinedProfile, cellarWines, lang,
+            ) as {
+              suggestions?: Array<{
+                wine: string; winery: string; region?: string;
+                grape?: string; wine_type?: string; reason?: string;
+              }>;
+            };
+            const pairWines = result.suggestions?.map(s => ({
+              name: s.wine, winery: s.winery, region: s.region,
+              grape: s.grape, wine_type: s.wine_type, reason: s.reason,
+            })) || [];
+            return { id: tc.id, name: tc.name, result: JSON.stringify(result), wines: pairWines };
+          } catch {
+            return { id: tc.id, name: tc.name, result: '{}', wines: [] };
+          }
+        }
+
+        default:
+          return { id: tc.id, name: tc.name, result: '{}', wines: [] };
+      }
+    };
+
+    // ---------- helper: batch-fetch missing wine images ----------
+    const fillMissingImages = async (allWines: EnrichedWine[]) => {
+      const missing = allWines
         .map((w, i) => ({ w, i }))
         .filter(({ w }) => !w.image_url);
-      if (winesMissingImages.length > 0) {
-        const imgResults = await fetchWineImagesForMany(
-          winesMissingImages.map(({ w }) => ({ name: w.name, winery: w.winery })),
-        );
-        winesMissingImages.forEach(({ i }, mapIdx) => {
-          const result = imgResults.get(`${mapIdx}`);
-          if (result) allWines[i].image_url = result.url;
-        });
-      }
+      if (missing.length === 0) return;
+      const imgResults = await fetchWineImagesForMany(
+        missing.map(({ w }) => ({ name: w.name, winery: w.winery })),
+      );
+      missing.forEach(({ i }, mapIdx) => {
+        const result = imgResults.get(`${mapIdx}`);
+        if (result) allWines[i].image_url = result.url;
+      });
+    };
 
-      const systemPrompt = `You are "Pier", a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar. Always speak as Pier — with warmth, charm, and genuine passion for wine.
+    // ---------- helper: system prompt for follow-up ----------
+    const followUpSystemPrompt = `You are "Pier", a warm, knowledgeable personal wine sommelier. Respond naturally based on the tool results provided. Recommend wines, explain pairings, and help with their cellar. Always speak as Pier — with warmth, charm, and genuine passion for wine.
 ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine names and regions can stay in original language.' : ''}`;
 
-      const msgs = [
-        { role: 'system', content: systemPrompt },
-        ...(history || []).slice(-10).map(h => ({ role: h.role, content: h.content })),
-        { role: 'user', content: message },
-      ];
+    const msgs = [
+      { role: 'system', content: followUpSystemPrompt },
+      ...(history || []).slice(-10).map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: message },
+    ];
 
-      // ---- Streaming SSE response ----
-      if (wantsStream) {
-        const encoder = new TextEncoder();
-        const readable = new ReadableStream({
-          async start(controller) {
-            const send = (event: string, data: unknown) => {
-              controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-            };
+    // ================================================================
+    //  STREAMING PATH: tool calls present, client wants SSE
+    //  Return Response IMMEDIATELY, process tools inside the stream.
+    // ================================================================
+    if (chatResult.toolCalls && chatResult.toolCalls.length > 0 && wantsStream) {
+      const toolCalls = chatResult.toolCalls;
+      const encoder = new TextEncoder();
 
-            // Send wines immediately
+      const readable = new ReadableStream({
+        async start(controller) {
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+          };
+          const keepalive = setInterval(() => {
+            try { controller.enqueue(encoder.encode(`: keepalive\n\n`)); } catch { /* closed */ }
+          }, 5_000);
+
+          try {
+            send('status', { phase: 'processing' });
+
+            // Execute tool calls (inside the stream so bytes flow early)
+            const toolResults: ToolResult[] = await Promise.all(
+              toolCalls.map(tc => executeToolCall(tc)),
+            );
+            const allWines = toolResults.flatMap(tr => tr.wines);
+            await fillMissingImages(allWines);
+
             send('wines', allWines);
 
-            // Stream the follow-up text
+            // Stream the follow-up text from GPT
             try {
-              const { streamChatAfterToolCall } = await import('@/lib/sommelier-ai');
-              const stream = await streamChatAfterToolCall(
+              const { streamChatText } = await import('@/lib/sommelier-ai');
+              for await (const text of streamChatText(
                 msgs,
-                toolResults[0].id,
-                toolResults[0].name,
-                toolResults.map(tr => tr.result).join('\n'),
-                { profile: combinedProfile, language: lang }
-              );
-
-              for await (const chunk of stream) {
-                const c = chunk as unknown as { choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }> };
-                const text = c.choices?.[0]?.delta?.content;
-                if (text) send('text', text);
+                toolResults.map(tr => ({ id: tr.id, name: tr.name, result: tr.result })),
+              )) {
+                send('text', text);
               }
             } catch (streamErr) {
-              console.error('Stream error, falling back:', streamErr);
+              console.error('Stream text error, falling back:', streamErr);
               try {
                 const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
                 const fallback = await continueChatAfterToolCall(
@@ -289,7 +262,7 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
                   toolResults[0].id,
                   toolResults[0].name,
                   toolResults.map(tr => tr.result).join('\n'),
-                  { profile: combinedProfile, language: lang }
+                  { profile: combinedProfile, language: lang },
                 );
                 const fallbackMsg = typeof fallback === 'object' && fallback !== null
                   ? (fallback as Record<string, unknown>).message as string || JSON.stringify(fallback)
@@ -297,33 +270,48 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
                 send('text', fallbackMsg);
               } catch { /* last resort */ }
             }
+          } catch (err) {
+            console.error('Tool processing error in stream:', err);
+            send('text', lang === 'he' ? 'מצטער, משהו השתבש. נסה שוב.' : 'Sorry, something went wrong. Please try again.');
+          } finally {
+            clearInterval(keepalive);
+          }
 
-            send('done', {});
-            controller.close();
+          send('done', {});
+          controller.close();
 
-            incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
-              if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
-            }).catch(() => {});
-          },
-        });
+          incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
+            if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
+          }).catch(() => {});
+        },
+      });
 
-        return new Response(readable, {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        });
-      }
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
 
-      // ---- Non-streaming JSON response (backward compat) ----
+    // ================================================================
+    //  NON-STREAMING PATH: tool calls present, JSON response
+    // ================================================================
+    if (chatResult.toolCalls && chatResult.toolCalls.length > 0) {
+      const toolResults: ToolResult[] = await Promise.all(
+        chatResult.toolCalls.map(tc => executeToolCall(tc)),
+      );
+      const allWines = toolResults.flatMap(tr => tr.wines);
+      await fillMissingImages(allWines);
+
       const { continueChatAfterToolCall } = await import('@/lib/sommelier-ai');
       const finalResult = await continueChatAfterToolCall(
         msgs,
         toolResults[0].id,
         toolResults[0].name,
         toolResults.map(tr => tr.result).join('\n'),
-        { profile: combinedProfile, language: lang }
+        { profile: combinedProfile, language: lang },
       );
 
       const finalMessage = typeof finalResult === 'object' && finalResult !== null
@@ -333,14 +321,12 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
       incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
         if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
       }).catch(() => {});
-      return NextResponse.json({
-        message: finalMessage,
-        wines: allWines,
-        actions: [],
-      });
+      return NextResponse.json({ message: finalMessage, wines: allWines, actions: [] });
     }
 
-    // No tool calls — direct response
+    // ================================================================
+    //  NO TOOL CALLS — direct response
+    // ================================================================
     if (wantsStream) {
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
@@ -369,11 +355,7 @@ ${lang === 'he' ? '\nIMPORTANT: Write ALL text in Hebrew (עברית). Wine name
     incrementUsage(user.id, 'pier_message').then(({ thresholdHit }) => {
       if (thresholdHit) notifyAdminUsageThreshold(user.id, 'pier_message', thresholdHit);
     }).catch(() => {});
-    return NextResponse.json({
-      message: chatResult.content,
-      wines: [],
-      actions: [],
-    });
+    return NextResponse.json({ message: chatResult.content, wines: [], actions: [] });
   } catch (error) {
     console.error('Chat error:', error);
     return NextResponse.json({ error: 'Chat failed' }, { status: 500 });

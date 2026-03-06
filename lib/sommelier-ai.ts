@@ -417,6 +417,29 @@ ${wishlistSummary}`;
   };
 }
 
+function buildToolCallMessages(
+  originalMessages: Array<{ role: string; content: string }>,
+  toolCalls: Array<{ id: string; name: string; result: string }>,
+) {
+  return [
+    ...originalMessages,
+    {
+      role: 'assistant',
+      content: null as string | null,
+      tool_calls: toolCalls.map(tc => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: { name: tc.name, arguments: '{}' },
+      })),
+    },
+    ...toolCalls.map(tc => ({
+      role: 'tool' as const,
+      tool_call_id: tc.id,
+      content: tc.result,
+    })),
+  ];
+}
+
 export async function continueChatAfterToolCall(
   originalMessages: Array<{ role: string; content: string }>,
   toolCallId: string,
@@ -428,25 +451,10 @@ export async function continueChatAfterToolCall(
   }
 ) {
   const client = await getClient();
-  const lang = context.language || 'he';
 
-  const messages = [
-    ...originalMessages,
-    {
-      role: 'assistant',
-      content: null,
-      tool_calls: [{
-        id: toolCallId,
-        type: 'function',
-        function: { name: toolName, arguments: '{}' },
-      }],
-    },
-    {
-      role: 'tool',
-      tool_call_id: toolCallId,
-      content: toolResult,
-    },
-  ];
+  const messages = buildToolCallMessages(originalMessages, [
+    { id: toolCallId, name: toolName, result: toolResult },
+  ]);
 
   const res: ChatCompletionResponse = await client.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -454,6 +462,8 @@ export async function continueChatAfterToolCall(
     temperature: 0.7,
     max_tokens: 2000,
   });
+
+  void context.language;
 
   const content = res.choices?.[0]?.message?.content;
   if (!content) throw new Error('Empty AI response after tool call');
@@ -466,49 +476,31 @@ export async function continueChatAfterToolCall(
 }
 
 /**
- * Streaming version of continueChatAfterToolCall.
- * Returns an async iterable of text chunks from the LLM.
+ * Streaming follow-up after tool calls.
+ * Async generator that yields text chunks from GPT as they arrive.
  */
-export async function streamChatAfterToolCall(
+export async function* streamChatText(
   originalMessages: Array<{ role: string; content: string }>,
-  toolCallId: string,
-  toolName: string,
-  toolResult: string,
-  context: {
-    profile: Record<string, unknown>;
-    language?: string;
-  }
-): Promise<AsyncIterable<string>> {
-  const client = await getClient();
-  const lang = context.language || 'he';
+  toolCalls: Array<{ id: string; name: string; result: string }>,
+): AsyncGenerator<string> {
+  const key = process.env.OPENAI_API_KEY?.trim();
+  if (!key) throw new Error('OPENAI_API_KEY is not set.');
+  const { default: OpenAI } = await import('openai');
+  const client = new OpenAI({ apiKey: key });
 
-  const messages = [
-    ...originalMessages,
-    {
-      role: 'assistant',
-      content: null,
-      tool_calls: [{
-        id: toolCallId,
-        type: 'function',
-        function: { name: toolName, arguments: '{}' },
-      }],
-    },
-    {
-      role: 'tool',
-      tool_call_id: toolCallId,
-      content: toolResult,
-    },
-  ];
+  const messages = buildToolCallMessages(originalMessages, toolCalls);
 
   const stream = await client.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    messages: messages as any,
     temperature: 0.7,
     max_tokens: 2000,
     stream: true,
   });
 
-  void lang;
-
-  return stream as unknown as AsyncIterable<string>;
+  for await (const chunk of stream) {
+    const text = chunk.choices?.[0]?.delta?.content;
+    if (text) yield text;
+  }
 }

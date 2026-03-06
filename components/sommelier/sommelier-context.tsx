@@ -234,7 +234,9 @@ export function SommelierProvider({ children }: { children: React.ReactNode }) {
             let payload: unknown;
             try { payload = JSON.parse(dataMatch[1]); } catch { continue; }
 
-            if (eventType === 'wines') {
+            if (eventType === 'status') {
+              // Server is processing tool calls; ignore silently (keepalive keeps connection alive)
+            } else if (eventType === 'wines') {
               winesData = payload as ChatWineCard[];
               setChatMessages(prev =>
                 prev.map(m => m.id === streamingId ? { ...m, wines: winesData } : m)
