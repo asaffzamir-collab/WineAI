@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       supabase.from('taste_profiles').select('profile_data, wine_type').eq('user_id', user.id),
       supabase
         .from('cellar_items')
-        .select('wine_name, winery, wine_type, country, region, grapes, purchase_price, drink_from, drink_until, quantity')
+        .select('*, wines(*)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50),
@@ -71,7 +71,21 @@ export async function POST(request: Request) {
       if (pd && Array.isArray(pd.liked_wines)) likedWinesCount += pd.liked_wines.length;
     }
 
-    const cellarWines = cellarResult.data || [];
+    const cellarWines = (cellarResult.data || []).map((item: Record<string, unknown>) => {
+      const w = (item.wines || {}) as Record<string, unknown>;
+      return {
+        wine_name: w.name,
+        winery: w.winery,
+        wine_type: w.wine_type,
+        country: w.country,
+        region: w.region,
+        grapes: w.grapes,
+        purchase_price: item.purchase_price,
+        drink_from: item.drink_from,
+        drink_until: item.drink_until,
+        quantity: item.quantity,
+      };
+    });
     const wishlist = wishlistResult.data || [];
     const sommelierProfile = (sommelierProfileResult.data as Record<string, unknown>) || {};
 
