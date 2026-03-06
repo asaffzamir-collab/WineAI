@@ -58,7 +58,7 @@ export default async function Page() {
       .from('wishlist_items')
       .select(`
         id, priority, notes,
-        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings)
+        wines (id, name, winery, wine_type, country, region, grapes, vivino_rating, vivino_reviews, alcohol, tasting_notes, ai_description, image_url, serving, food_pairings, taste_spectrum)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

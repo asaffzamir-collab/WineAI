@@ -48,6 +48,7 @@ interface WineRowData {
     temperature_celsius?: string;
   } | null;
   food_pairings?: string[] | null;
+  taste_spectrum?: { body: number; tannin: number; sweetness: number; acidity: number } | null;
 }
 
 interface WishlistItem {
@@ -88,6 +89,7 @@ function toWineData(wine: WineRowData): WineData {
     image_url: wine.image_url,
     serving: wine.serving || undefined,
     food_pairings: wine.food_pairings || undefined,
+    taste_spectrum: wine.taste_spectrum || undefined,
   };
 }
 
@@ -220,8 +222,7 @@ export function WishlistPage({ userId, initialItems }: WishlistPageProps) {
 
     const fetchMatch = (wd: WineData) => {
       const cached = getCachedMatch(userId, wd);
-      const isComplete = cached && cached.profile_spectrum && cached.wine_spectrum;
-      if (isComplete) {
+      if (cached && cached.explanation) {
         setDetailMatch(cached);
         setIsFetchingMatch(false);
         return;

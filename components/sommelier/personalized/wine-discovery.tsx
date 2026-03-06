@@ -17,12 +17,12 @@ const WineCard = dynamic(
 interface DiscoveredWine {
   name: string;
   winery?: string;
-  region: string;
-  grape: string;
+  region?: string;
+  grape?: string;
   wine_type?: string;
   country?: string;
-  match: number;
-  reason: string;
+  match?: number;
+  reason?: string;
   tasting_note?: string;
   image_url?: string;
   food_pairings?: string[];
@@ -30,6 +30,13 @@ interface DiscoveredWine {
   mismatches?: string[];
   wine_spectrum?: TasteSpectrum;
   profile_spectrum?: TasteSpectrum;
+  vivino_rating?: number;
+  vivino_reviews?: number;
+  alcohol?: string;
+  tasting_notes?: { nose?: string[]; palate?: string[]; finish?: string };
+  serving?: { drink_from?: number; drink_until?: number; decant_minutes?: number; temperature_celsius?: number };
+  why_drink_it?: string;
+  similar_wines_note?: string;
 }
 
 function discoveredToWineData(w: DiscoveredWine): WineData {
@@ -40,15 +47,27 @@ function discoveredToWineData(w: DiscoveredWine): WineData {
     country: w.country || 'Israel',
     region: w.region,
     grapes: w.grape ? [w.grape] : [],
+    vivino_rating: w.vivino_rating,
+    vivino_reviews: w.vivino_reviews,
+    alcohol: w.alcohol ? Number(w.alcohol) : undefined,
     winery_description: w.reason,
-    tasting_notes: w.tasting_note ? { nose: [], palate: [], finish: w.tasting_note } : undefined,
+    tasting_notes: w.tasting_notes
+      ? { nose: w.tasting_notes.nose || [], palate: w.tasting_notes.palate || [], finish: w.tasting_notes.finish || '' }
+      : w.tasting_note ? { nose: [], palate: [], finish: w.tasting_note } : undefined,
+    serving: w.serving ? {
+      drink_from: w.serving.drink_from,
+      drink_until: w.serving.drink_until,
+      decant_minutes: w.serving.decant_minutes,
+      temperature_celsius: w.serving.temperature_celsius != null ? String(w.serving.temperature_celsius) : undefined,
+    } : undefined,
     food_pairings: w.food_pairings,
     taste_spectrum: w.wine_spectrum,
     ...(w.image_url ? { image_url: w.image_url } : {}),
   };
 }
 
-function discoveredToMatchResult(w: DiscoveredWine): ProfileMatchResult {
+function discoveredToMatchResult(w: DiscoveredWine): ProfileMatchResult | undefined {
+  if (w.match == null) return undefined;
   return {
     match_percentage: w.match,
     explanation: w.reason,
@@ -56,6 +75,8 @@ function discoveredToMatchResult(w: DiscoveredWine): ProfileMatchResult {
     mismatches: w.mismatches || [],
     wine_spectrum: w.wine_spectrum,
     profile_spectrum: w.profile_spectrum,
+    why_drink_it: w.why_drink_it,
+    similar_wines_note: w.similar_wines_note,
   };
 }
 
@@ -73,8 +94,9 @@ export function WineDiscovery() {
     setLastDiscoveryWines(wineList);
     if (userId) {
       for (const w of wineList) {
-        if (w.match != null) {
-          setCachedMatch(userId, discoveredToWineData(w), discoveredToMatchResult(w));
+        const matchResult = discoveredToMatchResult(w);
+        if (matchResult) {
+          setCachedMatch(userId, discoveredToWineData(w), matchResult);
         }
       }
     }
