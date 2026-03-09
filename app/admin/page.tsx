@@ -1,15 +1,7 @@
-import { redirect } from 'next/navigation';
-import { requireAdmin } from '@/lib/admin';
-import { AdminPage } from '@/components/pages/admin-page';
+import { AdminDashboardPage } from '@/components/admin/admin-dashboard-page';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
-  const admin = await requireAdmin();
-
-  if (!admin) {
-    redirect('/');
-  }
-
-  return <AdminPage adminEmail={admin.email || ''} />;
+export default function Page() {
+  return <AdminDashboardPage />;
 }

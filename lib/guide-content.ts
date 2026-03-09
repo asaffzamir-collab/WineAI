@@ -1,4 +1,5 @@
 import type { ChangelogEntry } from './changelog';
+import { trackApiUsage } from '@/lib/track-api-usage';
 
 export interface FaqItem {
   question: string;
@@ -38,7 +39,7 @@ CHANGELOG:
 ${changelogSummary}
 
 APP FEATURES (IDs: ${FEATURE_IDS.join(', ')}):
-- search: Wine search by text or camera label scan, AI identification, personal match scores, tasting notes, Vivino ratings
+- search: Wine search by text or photo of the front of the wine bottle, AI identification, personal match scores, tasting notes, Vivino ratings
 - sommelier: "Pier" AI personal sommelier — chat conversations, food pairing, wine recommendations, buying intelligence, wine for tonight
 - cellar: Wine cellar management with list view, customizable 3D wine rack, readiness heatmap, cellar insights & gap analysis
 - wishlist: Save wines to try later, quick add from search or sommelier
@@ -55,7 +56,8 @@ GENERATE in strict JSON:
 }
 
 RULES:
-- Generate exactly 6 FAQ items covering: how the taste profile works, camera scanning, what to ask the sommelier, cellar organization, data privacy, language switching.
+- Generate exactly 6 FAQ items covering: how the taste profile works, photographing a wine bottle for identification, what to ask the sommelier, cellar organization, data privacy, language switching.
+- IMPORTANT: The app identifies wines by photographing the front of the wine bottle (NOT the label). Always refer to "the front of the wine bottle" and never say "wine label" or "label scan".
 - FAQ answers should reflect the LATEST capabilities from the changelog.
 - Generate exactly 5 feature items (one per ID above).
 - Feature descriptions should be 1-2 sentences highlighting the latest improvements.
@@ -99,6 +101,7 @@ export async function regenerateGuideContent(
 
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content?.trim();
+    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'guide_regeneration', tokensIn: Math.ceil(buildPrompt(entries).length / 3), tokensOut: Math.ceil((text?.length || 0) / 3) });
     if (!text) return null;
 
     const parsed = JSON.parse(text) as GuideContent;

@@ -1,4 +1,6 @@
 // No static import of 'openai' — package is loaded only when key exists, never at build time
+import { trackApiUsage } from '@/lib/track-api-usage';
+
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string } }>;
 }
@@ -194,6 +196,7 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
   try {
     console.log('Searching wines by text (multi):', query);
 
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -205,6 +208,7 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_text', tokensIn: Math.ceil(query.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) {
       console.error('No content in OpenAI text search response');
       return [];
@@ -254,6 +258,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
   try {
     console.log('Searching wine by image, mime type:', mimeType, 'base64 length:', base64Image.length);
     
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -280,6 +285,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_image', tokensIn: 1000, tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     console.log('OpenAI image response (first 300 chars):', content?.substring(0, 300));
     
     if (!content) {
@@ -457,6 +463,7 @@ Reference these numbers when describing alignment or gaps in your analysis.`;
   const { taste_spectrum: _strip, ...profileForPrompt } = profile;
 
   try {
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -507,6 +514,7 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_match', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) {
       return {
         match_percentage: 50,
@@ -551,6 +559,7 @@ export async function generateTasteProfile(onboardingAnswers: Record<string, unk
     ? '\nWhen referring to the user in generated text, address them directly as "אתה" (you). NEVER use "המשתמש" (the user).'
     : '\nWhen referring to the user in generated text, address them directly as "you". NEVER use "the user".';
   try {
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -603,6 +612,7 @@ Return this structure for each wine type:
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'onboarding_profile', tokensIn: Math.ceil(JSON.stringify(onboardingAnswers).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const result = JSON.parse(content) as Record<string, Record<string, unknown>>;
@@ -634,6 +644,7 @@ export async function updateTasteProfileFromWine(
     ? '\nWhen referring to the user in generated text, address them directly as "אתה" (you). NEVER use "המשתמש" (the user).'
     : '\nWhen referring to the user in generated text, address them directly as "you". NEVER use "the user".';
   try {
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -692,6 +703,7 @@ Update their profile to reflect that they enjoy this wine's characteristics.`,
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'profile_update_wine', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const result = parseJsonResponse(content) as Record<string, unknown>;
@@ -715,6 +727,7 @@ export async function generateSpectrumFromProfile(
   wineType: string
 ): Promise<{ body: number; tannin: number; sweetness: number; acidity: number } | null> {
   try {
+    const startTime = Date.now();
     const response: ChatCompletionResponse = await (await getOpenAIClient()).chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -751,6 +764,7 @@ Be precise and derive values from the text descriptions provided.`,
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'spectrum_backfill', tokensIn: Math.ceil(JSON.stringify(profileData).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const parsed = parseJsonResponse(content) as { body: number; tannin: number; sweetness: number; acidity: number };

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { trackApiUsage } from '@/lib/track-api-usage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
     });
 
     const content = response.choices?.[0]?.message?.content;
+    trackApiUsage({ userId, service: 'openai', model: 'gpt-4o-mini', feature: 'profile_translate', tokensIn: Math.ceil(combinedText.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3) });
     if (!content) {
       return NextResponse.json({ error: 'Translation returned empty' }, { status: 500 });
     }
