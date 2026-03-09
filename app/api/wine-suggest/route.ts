@@ -18,12 +18,12 @@ export async function GET(request: Request) {
     }
 
     const supabase = await createClient();
-    const normalized = q.toLowerCase();
+    const escaped = q.toLowerCase().replace(/[%_\\,.()"']/g, '');
 
     const { data, error } = await supabase
       .from('wines')
       .select('name, winery, wine_type, region, country, image_url')
-      .or(`name.ilike.%${normalized}%,winery.ilike.%${normalized}%`)
+      .or(`name.ilike.%${escaped}%,winery.ilike.%${escaped}%`)
       .order('vivino_rating', { ascending: false, nullsFirst: false })
       .limit(8);
 

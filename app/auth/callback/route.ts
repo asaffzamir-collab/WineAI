@@ -41,7 +41,10 @@ async function exchangeCodeWithVerifier(
     headers: { 'Content-Type': 'application/json', apikey: anonKey },
     body: JSON.stringify({ auth_code: code, code_verifier: codeVerifier }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error('[auth/callback] Token exchange failed:', res.status, await res.text().catch(() => ''));
+    return null;
+  }
   const data = (await res.json()) as { access_token?: string; refresh_token?: string };
   if (data.access_token && data.refresh_token) {
     return { access_token: data.access_token, refresh_token: data.refresh_token };
@@ -49,10 +52,21 @@ async function exchangeCodeWithVerifier(
   return null;
 }
 
+function redirectWithError(request: NextRequest, err: string, desc: string) {
+  console.error(`[auth/callback] ${err}:`, desc);
+  return NextResponse.redirect(
+    new URL(
+      `/auth?error=${encodeURIComponent(err)}&error_description=${encodeURIComponent(desc)}`,
+      request.url
+    )
+  );
+}
+
 /**
  * Auth callback route handler (server).
- * Exchanges the auth code for a session. Reads PKCE verifier from cookies;
- * if the client cannot find it, we read it from the request and call the token API directly.
+ * Exchanges the auth code for a session. The PKCE verifier is read from cookies
+ * (set by @supabase/ssr signInWithOAuth). Falls back to the DB-based PKCE store
+ * for the legacy server-side flow.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -60,29 +74,24 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description') ?? '';
 
-  const redirectToError = (err: string, desc: string) =>
-    NextResponse.redirect(
-      new URL(
-        `/auth/auth-code-error?error=${err}&error_description=${encodeURIComponent(desc)}`,
-        request.url
-      )
-    );
-
   if (error) {
-    return redirectToError(error, errorDescription);
+    return redirectWithError(request, error, errorDescription);
   }
 
   if (!code) {
+    console.error('[auth/callback] No auth code in callback URL');
     return NextResponse.redirect(new URL('/auth', request.url));
   }
 
   const supabase = await createClient();
   let exchangeError: Error | null = null;
+
   const result = await supabase.auth.exchangeCodeForSession(code);
   if (result.error) exchangeError = result.error;
 
-  // If PKCE verifier not in storage: get from DB. pkce_id comes from state (echoed by Supabase) or URL or cookie
+  // Fallback: if PKCE verifier wasn't in cookies, try DB store
   if (exchangeError?.message?.includes('PKCE code verifier')) {
+    console.warn('[auth/callback] Cookie PKCE verifier missing, trying DB fallback');
     const pkceIdFromUrl = searchParams.get('state') ?? searchParams.get('pkce_id');
     const codeVerifier = await getCodeVerifier(request, pkceIdFromUrl);
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -95,26 +104,22 @@ export async function GET(request: NextRequest) {
           refresh_token: session.refresh_token,
         });
         if (!setErr) exchangeError = null;
+        else console.error('[auth/callback] setSession failed:', setErr.message);
       }
+    } else {
+      console.error('[auth/callback] DB fallback failed: no verifier found');
     }
   }
 
   if (exchangeError) {
-    const hasRetried = searchParams.get('retry') === '1';
-    if (exchangeError.message.includes('PKCE code verifier') && !hasRetried) {
-      const retryUrl = new URL(request.url);
-      retryUrl.searchParams.set('retry', '1');
-      return NextResponse.redirect(retryUrl);
-    }
-    console.error('Auth callback exchange error:', exchangeError);
-    return redirectToError('exchange_failed', exchangeError.message);
+    return redirectWithError(request, 'exchange_failed', exchangeError.message);
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return redirectToError('no_user', 'Could not retrieve user information');
+    return redirectWithError(request, 'no_user', 'Could not retrieve user information');
   }
 
   let { data: profile, error: profileError } = await supabase

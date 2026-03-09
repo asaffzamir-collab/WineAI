@@ -11,17 +11,19 @@ export default function PrivacyPolicy() {
         </Link>
 
         <h1 className="heading-serif text-3xl text-bordeaux-600 dark:text-ivory-200">Privacy Policy</h1>
-        <p className="text-sm text-stone-500">Last updated: February 2026</p>
+        <p className="text-sm text-stone-500">Last updated: March 2026</p>
 
         <section className="space-y-3">
           <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">What we collect</h2>
           <p>WineJourney collects the minimum data needed to provide you with a personalized wine experience:</p>
           <ul className="list-disc space-y-1 ps-6">
             <li>Your email address (for authentication)</li>
-            <li>Display name (optional, for personalization)</li>
+            <li>Display name, country, birthday, and gender (optional, for personalization)</li>
             <li>Wine taste preferences (from the onboarding quiz and wines you like)</li>
-            <li>Your cellar and wishlist data</li>
+            <li>Your cellar, wishlist, and consumed-wines data</li>
             <li>Wine search queries and uploaded images (processed by OpenAI for identification)</li>
+            <li>Sommelier conversation history (your chats with Pier, the AI sommelier)</li>
+            <li>Push notification subscription data (endpoint and encryption keys, if you enable notifications)</li>
           </ul>
         </section>
 
@@ -59,6 +61,7 @@ export default function PrivacyPolicy() {
             <li><strong>Google</strong> — OAuth sign-in (optional)</li>
             <li><strong>Sentry</strong> — error tracking and diagnostics (no personal data is sent; PII is stripped before transmission)</li>
             <li><strong>Upstash</strong> — rate limiting infrastructure (processes IP-based rate limit keys only)</li>
+            <li><strong>Serper</strong> — image search API used to find wine bottle images from publicly available web sources</li>
             <li><strong>Resend</strong> — transactional email delivery for admin notifications</li>
             <li><strong>Vivino</strong> — external links for wine verification (we link to Vivino search pages so you can verify wine details; we do not collect data from Vivino)</li>
             <li><strong>Wine-Searcher</strong> — external links to find wine prices and stores</li>
@@ -66,8 +69,30 @@ export default function PrivacyPolicy() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Data retention</h2>
+          <p>Your account data (profile, cellar, wishlist, taste profiles, and conversation history) is retained as long as your account is active. When you delete your account via the Settings page, all associated data is permanently removed from our systems. Temporary data such as PKCE authentication verifiers is automatically purged after 15 minutes. Wine match cache entries may persist for up to 30 days.</p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Data processing location</h2>
+          <p>Your data is processed and stored using cloud infrastructure provided by Supabase (AWS), Vercel, and OpenAI. These services may process data in multiple regions, including the United States and the European Union. By using WineJourney, you consent to the transfer and processing of your data in these locations.</p>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Your rights</h2>
-          <p>You can delete your account and all associated data at any time from the Settings page. You can also export your cellar and wishlist data as a JSON file from Settings. For any additional data-related requests, contact us at <a href="mailto:asaffz@winejourney.co" className="text-bordeaux-400 underline">asaffz@winejourney.co</a>.</p>
+          <p>Depending on your jurisdiction, you may have rights under data protection laws such as the GDPR (EU) or CCPA (California). These may include the right to access, correct, delete, or export your personal data, and the right to object to or restrict certain processing.</p>
+          <p>You can exercise many of these rights directly within the app:</p>
+          <ul className="list-disc space-y-1 ps-6">
+            <li><strong>Delete your account</strong> and all associated data from the Settings page</li>
+            <li><strong>Export your data</strong> as a JSON file from Settings</li>
+            <li><strong>Update your personal information</strong> from Settings</li>
+          </ul>
+          <p>For any additional data-related requests, contact us at <a href="mailto:asaffz@winejourney.co" className="text-bordeaux-400 underline">asaffz@winejourney.co</a>.</p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="heading-serif text-xl text-bordeaux-600 dark:text-ivory-200">Children&apos;s privacy</h2>
+          <p>WineJourney is intended for users of legal drinking age in their jurisdiction. We do not knowingly collect personal data from anyone under the legal drinking age. If you believe we have collected data from a minor, please contact us and we will promptly delete it.</p>
         </section>
 
         <section className="space-y-3">

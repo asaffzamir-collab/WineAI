@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     const apiKey = request.headers.get('x-api-key') ?? '';
-    const expected = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+    const expected = process.env.PUSH_API_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (!expected || !timingSafeCompare(apiKey, expected)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

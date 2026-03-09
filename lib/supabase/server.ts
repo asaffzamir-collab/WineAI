@@ -49,7 +49,7 @@ export async function createClient() {
         name: COOKIE_NAME,
         path: '/',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 400,
+        maxAge: 60 * 60 * 24 * 90,
       },
     }
   );
@@ -59,21 +59,13 @@ export async function createClient() {
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  console.log('[createAdminClient] Checking environment variables');
-  console.log('[createAdminClient] Has URL:', !!url);
-  console.log('[createAdminClient] Has Service Key:', !!serviceKey);
-  console.log('[createAdminClient] Service Key length:', serviceKey?.length || 0);
-  
+
   if (!url || !serviceKey) {
-    const error = new Error(
+    throw new Error(
       'Missing Supabase env: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables.'
     );
-    console.error('[createAdminClient] Error:', error.message);
-    throw error;
   }
-  
-  console.log('[createAdminClient] Creating admin client');
+
   return createSupabaseClient(
     url,
     serviceKey,

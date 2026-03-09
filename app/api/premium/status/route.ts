@@ -10,7 +10,7 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json(
-        { paywallActive: false, tier: 'free', isPremium: true },
+        { paywallActive: false, tier: 'free', isPremium: false },
       );
     }
 
@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json(status);
   } catch {
     return NextResponse.json(
-      { paywallActive: false, tier: 'free', isPremium: true },
+      { paywallActive: false, tier: 'free', isPremium: false },
     );
   }
 }

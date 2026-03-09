@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Search,
   RefreshCw,
@@ -22,8 +24,6 @@ import {
   GlassWater,
   Heart,
   Users,
-  Calendar,
-  Clock,
   DollarSign,
   Activity,
   ArrowUpDown,
@@ -85,25 +85,11 @@ type ConfirmAction = {
   userEmail: string;
 };
 
+type SpecialFilter = 'active' | 'onboarded' | 'premium' | 'new7d' | 'new30d' | 'exceeded' | 'critical' | 'warning' | null;
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const SEGMENTS: { key: Segment | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'power', label: 'Power' },
-  { key: 'regular', label: 'Regular' },
-  { key: 'light', label: 'Light' },
-  { key: 'dormant', label: 'Dormant' },
-];
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'engagement', label: 'Engagement score' },
-  { key: 'lastActive', label: 'Last active' },
-  { key: 'joined', label: 'Join date' },
-  { key: 'wineSearches', label: 'Wine searches' },
-  { key: 'cellar', label: 'Cellar size' },
-];
 
 const SEGMENT_STYLES: Record<Segment, { dot: string; bg: string; text: string; ring: string }> = {
   power: {
@@ -150,21 +136,13 @@ const TIER_BADGE_STYLES: Record<TierStatus['wineSearchStatus'], string> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDate(dateStr: string | null): string {
+function formatDateLocale(dateStr: string | null, locale: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-GB', {
+  return new Date(dateStr).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-}
-
-function relativeTime(days: number): string {
-  if (days === 0) return 'Today';
-  if (days === 1) return '1 day ago';
-  if (days < 30) return `${days} days ago`;
-  if (days < 60) return '1 month ago';
-  return `${Math.floor(days / 30)} months ago`;
 }
 
 function worstStatus(
@@ -173,11 +151,6 @@ function worstStatus(
 ): TierStatus['wineSearchStatus'] {
   const order: TierStatus['wineSearchStatus'][] = ['ok', 'warning', 'critical', 'exceeded'];
   return order[Math.max(order.indexOf(a), order.indexOf(b))];
-}
-
-function tierBadgeLabel(pct: number, status: TierStatus['wineSearchStatus']): string {
-  if (status === 'exceeded') return 'EXCEEDED';
-  return `${pct}% of tier`;
 }
 
 function sortUsers(users: UserRow[], key: SortKey): UserRow[] {
@@ -197,6 +170,35 @@ function sortUsers(users: UserRow[], key: SortKey): UserRow[] {
       return sorted.sort((a, b) => b.cellarCount - a.cellarCount);
     default:
       return sorted;
+  }
+}
+
+function matchSpecialFilter(u: UserRow, filter: SpecialFilter): boolean {
+  if (!filter) return true;
+  const now = new Date();
+  switch (filter) {
+    case 'active':
+      return u.wineSearches > 0 || u.pierMessages > 0;
+    case 'onboarded':
+      return u.onboardingCompleted;
+    case 'premium':
+      return u.isPremium;
+    case 'new7d':
+      return (now.getTime() - new Date(u.createdAt).getTime()) <= 7 * 24 * 60 * 60 * 1000;
+    case 'new30d':
+      return (now.getTime() - new Date(u.createdAt).getTime()) <= 30 * 24 * 60 * 60 * 1000;
+    case 'exceeded': {
+      const ws = worstStatus(u.tierStatus.wineSearchStatus, u.tierStatus.pierMessageStatus);
+      return ws === 'exceeded';
+    }
+    case 'critical': {
+      const ws2 = worstStatus(u.tierStatus.wineSearchStatus, u.tierStatus.pierMessageStatus);
+      return ws2 === 'critical' || ws2 === 'exceeded';
+    }
+    case 'warning': {
+      const ws3 = worstStatus(u.tierStatus.wineSearchStatus, u.tierStatus.pierMessageStatus);
+      return ws3 !== 'ok';
+    }
   }
 }
 
@@ -231,7 +233,7 @@ function UsageBar({
         <span className="text-stone-600 dark:text-stone-400">{label}</span>
         <span className={`font-medium ${TIER_BADGE_STYLES[status].split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>
           {pct}%
-          {status === 'exceeded' && ' — EXCEEDED'}
+          {status === 'exceeded' && ` — ${status.toUpperCase()}`}
         </span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-stone-200 dark:bg-charcoal-700">
@@ -273,9 +275,31 @@ function UserCard({
   onAction: (action: string, user: UserRow) => void;
   actionLoadingId: string | null;
 }) {
+  const t = useTranslations('admin');
+  const locale = useLocale();
   const s = SEGMENT_STYLES[user.segment];
   const worst = worstStatus(user.tierStatus.wineSearchStatus, user.tierStatus.pierMessageStatus);
   const showTierWarning = worst !== 'ok';
+
+  const relativeTime = (days: number): string => {
+    if (days === 0) return t('relativeToday');
+    if (days === 1) return t('relative1DayAgo');
+    if (days < 30) return t('relativeDaysAgo', { count: days });
+    if (days < 60) return t('relative1MonthAgo');
+    return t('relativeMonthsAgo', { count: Math.floor(days / 30) });
+  };
+
+  const tierBadgeLabel = (pct: number, status: TierStatus['wineSearchStatus']): string => {
+    if (status === 'exceeded') return t('tierExceeded');
+    return t('tierPctOfTier', { pct });
+  };
+
+  const segmentLabel = {
+    power: t('segmentPower'),
+    regular: t('segmentRegular'),
+    light: t('segmentLight'),
+    dormant: t('segmentDormant'),
+  }[user.segment];
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
@@ -286,7 +310,6 @@ function UserCard({
           className="flex w-full items-center gap-3 p-4 text-left"
           onClick={onToggleExpand}
         >
-          {/* Left: name + badges */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="truncate text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">
@@ -294,23 +317,22 @@ function UserCard({
               </p>
               {user.isAdmin && (
                 <span className="shrink-0 rounded-full bg-copper-50 px-2 py-0.5 text-[10px] font-semibold text-copper-600 dark:bg-copper-700/20 dark:text-copper-400">
-                  Admin
+                  {t('badgeAdmin')}
                 </span>
               )}
               {user.isPremium && (
                 <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
-                  Premium
+                  {t('badgePremium')}
                 </span>
               )}
             </div>
 
             <p className="truncate text-xs text-stone-500 dark:text-stone-400">{user.email}</p>
 
-            {/* Segment + key metrics */}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                {user.segment.charAt(0).toUpperCase() + user.segment.slice(1)}
+                {segmentLabel}
               </span>
 
               <span className="inline-flex items-center gap-1 rounded-full bg-bordeaux-50 px-2 py-0.5 text-[11px] text-bordeaux-500 dark:bg-bordeaux-900/20 dark:text-bordeaux-300">
@@ -336,20 +358,15 @@ function UserCard({
               )}
             </div>
 
-            {/* Meta row */}
             <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-stone-400 dark:text-stone-500">
-              <span>Joined {formatDate(user.createdAt)}</span>
+              <span>{t('joinedDate', { date: formatDateLocale(user.createdAt, locale) })}</span>
               <span className="text-stone-300 dark:text-charcoal-600">·</span>
-              <span>
-                Active {relativeTime(user.daysSinceLastActive)}
-              </span>
+              <span>{t('activeAgo', { time: relativeTime(user.daysSinceLastActive) })}</span>
             </div>
           </div>
 
-          {/* Engagement badge */}
           <EngagementBadge score={user.engagementScore} segment={user.segment} />
 
-          {/* Chevron */}
           <ChevronDown
             className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-200 ${
               isExpanded ? 'rotate-180' : ''
@@ -368,41 +385,41 @@ function UserCard({
               {/* Profile summary */}
               <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-3">
                 <div>
-                  <span className="text-stone-400">Name</span>
+                  <span className="text-stone-400">{t('profileName')}</span>
                   <p className="font-medium text-foreground">{user.displayName || '—'}</p>
                 </div>
                 <div>
-                  <span className="text-stone-400">Email</span>
+                  <span className="text-stone-400">{t('profileEmail')}</span>
                   <p className="font-medium text-foreground truncate">{user.email}</p>
                 </div>
                 <div>
-                  <span className="text-stone-400">Tier</span>
+                  <span className="text-stone-400">{t('profileTier')}</span>
                   <p className="font-medium text-foreground capitalize">{user.tierStatus.tier || 'free'}</p>
                 </div>
                 <div>
-                  <span className="text-stone-400">Joined</span>
-                  <p className="font-medium text-foreground">{formatDate(user.createdAt)}</p>
+                  <span className="text-stone-400">{t('profileJoined')}</span>
+                  <p className="font-medium text-foreground">{formatDateLocale(user.createdAt, locale)}</p>
                 </div>
                 <div>
-                  <span className="text-stone-400">Last active</span>
-                  <p className="font-medium text-foreground">{formatDate(user.lastActiveAt)}</p>
+                  <span className="text-stone-400">{t('profileLastActive')}</span>
+                  <p className="font-medium text-foreground">{formatDateLocale(user.lastActiveAt, locale)}</p>
                 </div>
                 <div>
-                  <span className="text-stone-400">Sommelier phase</span>
+                  <span className="text-stone-400">{t('profileSommelierPhase')}</span>
                   <p className="font-medium text-foreground capitalize">{user.sommelierPhase || '—'}</p>
                 </div>
               </div>
 
               {/* Tier usage bars */}
               <div className="mb-4 space-y-2 rounded-xl bg-ivory-100 p-3 dark:bg-charcoal-800">
-                <p className="text-xs font-semibold text-stone-600 dark:text-stone-300">Tier Usage</p>
+                <p className="text-xs font-semibold text-stone-600 dark:text-stone-300">{t('tierUsage')}</p>
                 <UsageBar
-                  label="Wine Searches"
+                  label={t('wineSearches')}
                   pct={user.tierStatus.wineSearchPct}
                   status={user.tierStatus.wineSearchStatus}
                 />
                 <UsageBar
-                  label="Pier Messages"
+                  label={t('pierMessages')}
                   pct={user.tierStatus.pierMessagePct}
                   status={user.tierStatus.pierMessageStatus}
                 />
@@ -410,20 +427,20 @@ function UserCard({
 
               {/* Activity metrics grid */}
               <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <MetricCell icon={Search} label="Searches (mo)" value={user.wineSearches} />
-                <MetricCell icon={MessageSquare} label="Pier msgs (mo)" value={user.pierMessages} />
-                <MetricCell icon={Wine} label="Cellar" value={user.cellarCount} />
-                <MetricCell icon={Heart} label="Wishlist" value={user.wishlistCount} />
-                <MetricCell icon={GlassWater} label="Tastings" value={user.tastingCount} />
-                <MetricCell icon={BookOpen} label="Conversations" value={user.conversationCount} />
-                <MetricCell icon={Activity} label="All-time searches" value={user.totalSearchesAllTime} />
-                <MetricCell icon={Activity} label="All-time msgs" value={user.totalMessagesAllTime} />
+                <MetricCell icon={Search} label={t('metricSearchesMo')} value={user.wineSearches} />
+                <MetricCell icon={MessageSquare} label={t('metricPierMsgsMo')} value={user.pierMessages} />
+                <MetricCell icon={Wine} label={t('metricCellar')} value={user.cellarCount} />
+                <MetricCell icon={Heart} label={t('metricWishlist')} value={user.wishlistCount} />
+                <MetricCell icon={GlassWater} label={t('metricTastings')} value={user.tastingCount} />
+                <MetricCell icon={BookOpen} label={t('metricConversations')} value={user.conversationCount} />
+                <MetricCell icon={Activity} label={t('metricAllTimeSearches')} value={user.totalSearchesAllTime} />
+                <MetricCell icon={Activity} label={t('metricAllTimeMsgs')} value={user.totalMessagesAllTime} />
               </div>
 
               {/* API Cost */}
               <div className="mb-4 flex items-center gap-2 text-xs">
                 <DollarSign className="h-4 w-4 text-stone-400" />
-                <span className="text-stone-500 dark:text-stone-400">API cost this month:</span>
+                <span className="text-stone-500 dark:text-stone-400">{t('apiCostThisMonth')}</span>
                 <span className="font-semibold text-bordeaux-600 dark:text-ivory-200">
                   ${user.apiCostThisMonth.toFixed(2)}
                 </span>
@@ -447,7 +464,7 @@ function UserCard({
                   ) : (
                     <ShieldCheck className="h-3.5 w-3.5" />
                   )}
-                  {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                  {user.isAdmin ? t('removeAdmin') : t('makeAdmin')}
                 </button>
 
                 <button
@@ -464,7 +481,7 @@ function UserCard({
                   ) : (
                     <Crown className="h-3.5 w-3.5" />
                   )}
-                  {user.isPremium ? 'Remove Premium' : 'Grant Premium'}
+                  {user.isPremium ? t('removePremium') : t('grantPremium')}
                 </button>
 
                 <button
@@ -472,7 +489,7 @@ function UserCard({
                   className="inline-flex items-center gap-1.5 rounded-lg bg-ivory-100 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-ivory-200 transition-colors dark:bg-charcoal-700 dark:text-stone-300 dark:hover:bg-charcoal-600"
                 >
                   <KeyRound className="h-3.5 w-3.5" />
-                  Reset Password
+                  {t('resetPassword')}
                 </button>
 
                 <button
@@ -480,7 +497,7 @@ function UserCard({
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
                 >
                   <Eraser className="h-3.5 w-3.5" />
-                  Erase Data
+                  {t('eraseData')}
                 </button>
 
                 {!user.isAdmin && (
@@ -489,7 +506,7 @@ function UserCard({
                     className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete User
+                    {t('deleteUser')}
                   </button>
                 )}
               </div>
@@ -506,10 +523,18 @@ function UserCard({
 // ---------------------------------------------------------------------------
 
 export function AdminUsersPage() {
+  const t = useTranslations('admin');
+  const searchParams = useSearchParams();
+
+  const initialSegment = (searchParams.get('segment') as Segment | null) || null;
+  const initialFilter = (searchParams.get('filter') as SpecialFilter) || null;
+  const initialSearch = searchParams.get('search') || '';
+
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [segmentFilter, setSegmentFilter] = useState<Segment | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [segmentFilter, setSegmentFilter] = useState<Segment | 'all'>(initialSegment || 'all');
+  const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(initialFilter);
   const [sortKey, setSortKey] = useState<SortKey>('engagement');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -521,6 +546,22 @@ export function AdminUsersPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
+  const SEGMENTS: { key: Segment | 'all'; label: string }[] = useMemo(() => [
+    { key: 'all', label: t('segmentAll') },
+    { key: 'power', label: t('segmentPower') },
+    { key: 'regular', label: t('segmentRegular') },
+    { key: 'light', label: t('segmentLight') },
+    { key: 'dormant', label: t('segmentDormant') },
+  ], [t]);
+
+  const SORT_OPTIONS: { key: SortKey; label: string }[] = useMemo(() => [
+    { key: 'engagement', label: t('sortEngagement') },
+    { key: 'lastActive', label: t('sortLastActive') },
+    { key: 'joined', label: t('sortJoined') },
+    { key: 'wineSearches', label: t('sortWineSearches') },
+    { key: 'cellar', label: t('sortCellar') },
+  ], [t]);
+
   // ---- Fetch ----
   const fetchUsers = useCallback(async () => {
     try {
@@ -529,11 +570,11 @@ export function AdminUsersPage() {
       const data = await res.json();
       setUsers(data.users || []);
     } catch {
-      setToastMessage('Failed to load users');
+      setToastMessage(t('failedLoadUsers'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchUsers();
@@ -542,8 +583,8 @@ export function AdminUsersPage() {
   // ---- Toast auto-dismiss ----
   useEffect(() => {
     if (toastMessage) {
-      const t = setTimeout(() => setToastMessage(null), 3000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
     }
   }, [toastMessage]);
 
@@ -552,6 +593,9 @@ export function AdminUsersPage() {
     let list = users;
     if (segmentFilter !== 'all') {
       list = list.filter((u) => u.segment === segmentFilter);
+    }
+    if (specialFilter) {
+      list = list.filter((u) => matchSpecialFilter(u, specialFilter));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -562,7 +606,7 @@ export function AdminUsersPage() {
       );
     }
     return sortUsers(list, sortKey);
-  }, [users, segmentFilter, searchQuery, sortKey]);
+  }, [users, segmentFilter, specialFilter, searchQuery, sortKey]);
 
   // ---- Segment counts ----
   const segmentCounts = useMemo(() => {
@@ -591,15 +635,15 @@ export function AdminUsersPage() {
           });
           if (!res.ok) {
             const d = await res.json().catch(() => ({}));
-            setToastMessage(d.error || 'Action failed');
+            setToastMessage(d.error || t('actionFailed'));
             return;
           }
           setUsers((prev) =>
             prev.map((u) => (u.id === user.id ? { ...u, isAdmin: !user.isAdmin } : u)),
           );
-          setToastMessage(!user.isAdmin ? 'Admin granted' : 'Admin revoked');
+          setToastMessage(!user.isAdmin ? t('adminGranted') : t('adminRevoked'));
         } catch {
-          setToastMessage('Action failed');
+          setToastMessage(t('actionFailed'));
         } finally {
           setActionLoadingId(null);
         }
@@ -612,7 +656,7 @@ export function AdminUsersPage() {
             method: 'POST',
           });
           if (!res.ok) {
-            setToastMessage('Action failed');
+            setToastMessage(t('actionFailed'));
             return;
           }
           const data = await res.json();
@@ -624,16 +668,16 @@ export function AdminUsersPage() {
             ),
           );
           setToastMessage(
-            data.subscription_tier === 'premium' ? 'Premium granted' : 'Premium revoked',
+            data.subscription_tier === 'premium' ? t('premiumGranted') : t('premiumRevoked'),
           );
         } catch {
-          setToastMessage('Action failed');
+          setToastMessage(t('actionFailed'));
         } finally {
           setActionLoadingId(null);
         }
       }
     },
-    [],
+    [t],
   );
 
   const handleConfirm = useCallback(async () => {
@@ -647,7 +691,7 @@ export function AdminUsersPage() {
         if (!res.ok) throw new Error('Failed');
         setUsers((prev) => prev.filter((u) => u.id !== confirmAction.userId));
         setExpandedId(null);
-        setToastMessage('User deleted');
+        setToastMessage(t('userDeleted'));
       } else if (confirmAction.type === 'erase') {
         const res = await fetch(`/api/admin/users/${confirmAction.userId}/erase-data`, {
           method: 'POST',
@@ -660,7 +704,7 @@ export function AdminUsersPage() {
               : u,
           ),
         );
-        setToastMessage('User data erased');
+        setToastMessage(t('dataErased'));
       } else if (confirmAction.type === 'reset') {
         const res = await fetch(
           `/api/admin/users/${confirmAction.userId}/reset-password`,
@@ -673,11 +717,11 @@ export function AdminUsersPage() {
         return;
       }
     } catch {
-      setToastMessage('Action failed');
+      setToastMessage(t('actionFailed'));
     }
     setConfirmLoading(false);
     setConfirmAction(null);
-  }, [confirmAction]);
+  }, [confirmAction, t]);
 
   const copyPassword = useCallback(async () => {
     if (!newPassword) return;
@@ -692,16 +736,42 @@ export function AdminUsersPage() {
     setCopied(false);
   }, []);
 
+  const clearSpecialFilter = useCallback(() => {
+    setSpecialFilter(null);
+  }, []);
+
   // ---- Render ----
   return (
     <div className="space-y-4">
+      {/* Special filter indicator */}
+      {specialFilter && (
+        <div className="flex items-center gap-2 rounded-lg bg-bordeaux-50 px-3 py-2 text-sm dark:bg-bordeaux-900/20">
+          <span className="text-bordeaux-700 dark:text-bordeaux-300 font-medium">
+            {specialFilter === 'active' && t('activeThisMonth')}
+            {specialFilter === 'onboarded' && t('onboardedPct')}
+            {specialFilter === 'premium' && t('premiumUsers')}
+            {specialFilter === 'new7d' && t('new7d')}
+            {specialFilter === 'new30d' && t('new30d')}
+            {specialFilter === 'exceeded' && t('usersExceededTier')}
+            {specialFilter === 'critical' && t('usersCritical')}
+            {specialFilter === 'warning' && t('usersWarning')}
+          </span>
+          <button
+            onClick={clearSpecialFilter}
+            className="ms-auto text-xs text-bordeaux-500 hover:text-bordeaux-700 dark:text-bordeaux-400 dark:hover:text-bordeaux-200"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
           <Input
             type="text"
-            placeholder="Search by name or email…"
+            placeholder={t('searchByNameOrEmail')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="ps-10"
@@ -787,7 +857,7 @@ export function AdminUsersPage() {
             >
               {label}
               <span
-                className={`ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold leading-none ${
+                className={`ms-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold leading-none ${
                   isActive
                     ? segStyle
                       ? 'bg-white/50 text-inherit'
@@ -811,7 +881,7 @@ export function AdminUsersPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="mx-auto mb-2 h-8 w-8 text-stone-300" />
-            <p className="text-sm text-stone-500">No users found</p>
+            <p className="text-sm text-stone-500">{t('noUsersFound')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -840,17 +910,14 @@ export function AdminUsersPage() {
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
               <h3 className="text-lg font-semibold text-bordeaux-600 dark:text-ivory-200">
-                {confirmAction.type === 'delete' && 'Delete User'}
-                {confirmAction.type === 'erase' && 'Erase User Data'}
-                {confirmAction.type === 'reset' && 'Reset Password'}
+                {confirmAction.type === 'delete' && t('confirmDeleteUser')}
+                {confirmAction.type === 'erase' && t('confirmEraseUserData')}
+                {confirmAction.type === 'reset' && t('confirmResetPassword')}
               </h3>
               <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
-                {confirmAction.type === 'delete' &&
-                  `Are you sure you want to permanently delete ${confirmAction.userEmail}? This cannot be undone.`}
-                {confirmAction.type === 'erase' &&
-                  `This will erase all data for ${confirmAction.userEmail} including cellar, wishlist, tastings, and taste profile. The account will remain active.`}
-                {confirmAction.type === 'reset' &&
-                  `This will generate a new password for ${confirmAction.userEmail}. The user will need the new password to log in.`}
+                {confirmAction.type === 'delete' && t('confirmDeleteText', { email: confirmAction.userEmail })}
+                {confirmAction.type === 'erase' && t('confirmEraseText', { email: confirmAction.userEmail })}
+                {confirmAction.type === 'reset' && t('confirmResetText', { email: confirmAction.userEmail })}
               </p>
               <div className="mt-6 flex gap-3">
                 <Button
@@ -859,7 +926,7 @@ export function AdminUsersPage() {
                   onClick={() => setConfirmAction(null)}
                   disabled={confirmLoading}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant={confirmAction.type === 'delete' ? 'destructive' : 'default'}
@@ -874,7 +941,7 @@ export function AdminUsersPage() {
                   {confirmLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Confirm'
+                    t('confirm')
                   )}
                 </Button>
               </div>
@@ -892,10 +959,10 @@ export function AdminUsersPage() {
                 <KeyRound className="h-6 w-6 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-bordeaux-600 dark:text-ivory-200">
-                Password Reset Successful
+                {t('passwordResetSuccessful')}
               </h3>
               <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
-                New password for {confirmAction?.userEmail}:
+                {t('newPasswordFor', { email: confirmAction?.userEmail || '' })}
               </p>
               <div className="mt-4 flex items-center gap-2">
                 <code className="flex-1 rounded-lg bg-charcoal-800 px-3 py-2 text-sm font-mono text-green-400 select-all">
@@ -916,7 +983,7 @@ export function AdminUsersPage() {
                 className="mt-4 w-full bg-bordeaux-600 text-white hover:bg-bordeaux-700"
                 onClick={closePasswordModal}
               >
-                Done
+                {t('done')}
               </Button>
             </CardContent>
           </Card>

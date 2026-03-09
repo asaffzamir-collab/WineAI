@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 
 type AuthMode = 'login' | 'register';
 
-export function AuthPage() {
+export function AuthPage({ initialError }: { initialError?: string | null }) {
   const t = useTranslations('auth');
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,9 +231,25 @@ export function AuthPage() {
               variant="outline"
               className="w-full"
               disabled={isLoading}
-              onClick={() => {
+              onClick={async () => {
                 setError(null);
-                window.location.href = '/auth/signin?provider=google';
+                setIsLoading(true);
+                try {
+                  const supabase = createClient();
+                  const { error: oauthError } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${window.location.origin}/auth/callback`,
+                    },
+                  });
+                  if (oauthError) {
+                    setError(oauthError.message);
+                    setIsLoading(false);
+                  }
+                } catch {
+                  setError(t('genericError'));
+                  setIsLoading(false);
+                }
               }}
             >
               <svg className="h-5 w-5 me-2" viewBox="0 0 24 24" aria-hidden="true">

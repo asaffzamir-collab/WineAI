@@ -128,7 +128,7 @@ export const changelog: ChangelogEntry[] = [
     title: 'Wine Scanning and Search',
     titleHe: 'סריקה וחיפוש יין',
     highlights: [
-      { text: 'Scan wine labels with your camera for instant identification', textHe: 'סרוק תוויות יין עם המצלמה לזיהוי מיידי', tag: 'new' },
+      { text: 'Snap the front of a wine bottle with your camera for instant identification', textHe: 'צלם את חזית בקבוק היין עם המצלמה לזיהוי מיידי', tag: 'new' },
       { text: 'Search wines by name with detailed tasting notes and ratings', textHe: 'חפש יינות לפי שם עם פרטי טעימה ודירוגים', tag: 'new' },
       { text: 'Personal match score shows how well a wine fits your taste', textHe: 'ציון התאמה אישי מראה כמה יין מתאים לטעם שלך', tag: 'new' },
       { text: 'Wishlist to save wines you want to try', textHe: 'רשימת משאלות לשמירת יינות שרוצים לנסות', tag: 'new' },

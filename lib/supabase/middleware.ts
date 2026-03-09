@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
         name: COOKIE_NAME,
         path: '/',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 400,
+        maxAge: 60 * 60 * 24 * 90,
       },
     }
   );

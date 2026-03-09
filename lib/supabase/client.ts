@@ -16,7 +16,7 @@ export function createClient() {
       path: '/',
       sameSite: 'lax',
       secure: typeof window !== 'undefined' && window.location?.protocol === 'https:',
-      maxAge: 60 * 60 * 24 * 400,
+      maxAge: 60 * 60 * 24 * 90,
     },
   });
 }

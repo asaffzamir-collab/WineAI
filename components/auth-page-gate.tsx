@@ -1,14 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AuthPage } from '@/components/pages/auth-page';
 import { Wine, Loader2 } from 'lucide-react';
 
 export function AuthPageGate() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
+
+  const callbackError = searchParams.get('error');
+  const callbackErrorDesc = searchParams.get('error_description');
+  const initialError = callbackError
+    ? callbackErrorDesc || callbackError
+    : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -38,5 +45,5 @@ export function AuthPageGate() {
       </div>
     );
   }
-  return <AuthPage />;
+  return <AuthPage initialError={initialError} />;
 }

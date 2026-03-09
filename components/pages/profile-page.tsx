@@ -172,23 +172,26 @@ function SpectrumBar({
 
 function TasteSpectrumChart({
   spectrum,
+  wineType,
   t,
   g,
   expandedInfos,
   toggleInfo,
 }: {
   spectrum: TasteSpectrum;
+  wineType: string;
   t: (key: string, params?: Record<string, string>) => string;
   g: { gender: string };
   expandedInfos: Set<string>;
   toggleInfo: (key: string) => void;
 }) {
-  const axes: { key: string; value: number; leftKey: string; rightKey: string; hintKey: string; explainKey: string }[] = [
+  const allAxes: { key: string; value: number; leftKey: string; rightKey: string; hintKey: string; explainKey: string }[] = [
     { key: 'body', value: spectrum.body, leftKey: 'spectrumBodyLeft', rightKey: 'spectrumBodyRight', hintKey: 'spectrumBodyHint', explainKey: 'spectrumBodyExplain' },
     { key: 'tannin', value: spectrum.tannin, leftKey: 'spectrumTanninLeft', rightKey: 'spectrumTanninRight', hintKey: 'spectrumTanninHint', explainKey: 'spectrumTanninExplain' },
     { key: 'sweetness', value: spectrum.sweetness, leftKey: 'spectrumSweetnessLeft', rightKey: 'spectrumSweetnessRight', hintKey: 'spectrumSweetnessHint', explainKey: 'spectrumSweetnessExplain' },
     { key: 'acidity', value: spectrum.acidity, leftKey: 'spectrumAcidityLeft', rightKey: 'spectrumAcidityRight', hintKey: 'spectrumAcidityHint', explainKey: 'spectrumAcidityExplain' },
   ];
+  const axes = wineType === 'red' ? allAxes : allAxes.filter((a) => a.key !== 'tannin');
 
   return (
     <section className="rounded-2xl border border-bordeaux-100 bg-white p-5 shadow-soft dark:border-charcoal-700 dark:bg-charcoal-800">
@@ -271,6 +274,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
   const [expandedInfos, setExpandedInfos] = useState<Set<string>>(new Set());
   const fetchingRef = useRef(false);
   const backfillRequestedRef = useRef<Set<string>>(new Set());
+  const enrichedWinesRef = useRef<Map<string, WineData>>(new Map());
 
   const toggleInfo = useCallback((key: string) => {
     setExpandedInfos((prev) => {
@@ -352,33 +356,52 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
     setDisplayWine(null);
     setDisplayMatch(null);
 
-    if (hasFullWineData(selectedWine)) {
-      const wineForCache = selectedWine as unknown as WineData;
-      setDisplayWine(selectedWine);
+    const wineKey = `${String(selectedWine.name).trim()}|${String(selectedWine.winery).trim()}`;
 
-      const cached = getCachedMatch(userId, wineForCache);
+    const showWineWithCachedMatch = (wine: WineData): boolean => {
+      setDisplayWine(wine as unknown as Record<string, unknown>);
+      const cached = getCachedMatch(userId, wine);
       if (cached) {
         setDisplayMatch(cached);
         setIsFetchingMatch(false);
-        return;
+        return true;
       }
+      return false;
+    };
 
+    const fetchMatchOnly = (wine: WineData) => {
       setIsFetchingMatch(true);
       fetch('/api/wine-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wine: selectedWine, userId }),
+        body: JSON.stringify({ wine, userId }),
       })
         .then((r) => r.json())
         .then((data) => {
           if (!cancelled) {
             const match = data.match ?? null;
             setDisplayMatch(match);
-            if (match) setCachedMatch(userId, wineForCache, match);
+            if (match) setCachedMatch(userId, wine, match);
           }
         })
         .catch(() => {})
         .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
+    };
+
+    // Check if we previously enriched this wine (avoids re-fetching on repeated clicks)
+    const enriched = enrichedWinesRef.current.get(wineKey);
+    if (enriched) {
+      if (!showWineWithCachedMatch(enriched)) {
+        fetchMatchOnly(enriched);
+      }
+      return () => { cancelled = true; };
+    }
+
+    if (hasFullWineData(selectedWine)) {
+      const wineForCache = selectedWine as unknown as WineData;
+      if (!showWineWithCachedMatch(wineForCache)) {
+        fetchMatchOnly(wineForCache);
+      }
       return () => { cancelled = true; };
     }
 
@@ -394,37 +417,24 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
       .then((data) => {
         if (cancelled) return;
         if (data.wine) {
+          enrichedWinesRef.current.set(wineKey, data.wine);
           setDisplayWine(data.wine);
           const match = data.match ?? null;
           setDisplayMatch(match);
           if (match && data.wine) setCachedMatch(userId, data.wine, match);
-          setIsFetchingMatch(false);
+          if (!match) {
+            fetchMatchOnly(data.wine);
+          } else {
+            setIsFetchingMatch(false);
+          }
         } else if (Array.isArray(data.wines) && data.wines.length > 0) {
           const bestWine = data.wines[0];
+          enrichedWinesRef.current.set(wineKey, bestWine);
           setDisplayWine(bestWine);
 
-          const cached = getCachedMatch(userId, bestWine);
-          if (cached) {
-            setDisplayMatch(cached);
-            setIsFetchingMatch(false);
-            return;
+          if (!showWineWithCachedMatch(bestWine)) {
+            fetchMatchOnly(bestWine);
           }
-
-          fetch('/api/wine-match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wine: bestWine, userId }),
-          })
-            .then((r2) => r2.json())
-            .then((matchData) => {
-              if (!cancelled) {
-                const match = matchData.match ?? null;
-                setDisplayMatch(match);
-                if (match) setCachedMatch(userId, bestWine, match);
-              }
-            })
-            .catch(() => {})
-            .finally(() => { if (!cancelled) setIsFetchingMatch(false); });
         } else {
           setDisplayWine(selectedWine);
           setIsFetchingMatch(false);
@@ -446,7 +456,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
       if (document.visibilityState === 'visible') refreshProfiles();
     };
     const handleFocus = () => refreshProfiles();
-    const handleProfileUpdate = () => { clearMatchCache(userId); refreshProfiles(); };
+    const handleProfileUpdate = () => { clearMatchCache(userId); enrichedWinesRef.current.clear(); refreshProfiles(); };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('wine-profile-updated', handleProfileUpdate);
@@ -570,6 +580,7 @@ export function ProfilePage({ userId, profiles: initialProfiles, firstName }: Pr
                         {profile.taste_spectrum && (
                           <TasteSpectrumChart
                             spectrum={profile.taste_spectrum}
+                            wineType={type}
                             t={t}
                             g={g}
                             expandedInfos={expandedInfos}

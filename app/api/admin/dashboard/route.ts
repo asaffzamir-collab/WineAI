@@ -1,17 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdmin } from '@/lib/admin';
 import { TIER_LIMITS, type PricingTier } from '@/lib/usage';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+function monthStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export async function GET(req: NextRequest) {
   const { error } = await verifyAdmin();
   if (error) return error;
 
   const supabase = createAdminClient();
   const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const fromParam = req.nextUrl.searchParams.get('from');
+  const toParam = req.nextUrl.searchParams.get('to');
+
+  const rangeFrom = fromParam ? new Date(fromParam) : new Date(now.getFullYear(), now.getMonth(), 1);
+  const rangeTo = toParam ? new Date(toParam) : now;
+
+  const currentMonth = monthStr(rangeFrom);
+  const rangeFromISO = rangeFrom.toISOString();
+  const rangeToISO = rangeTo.toISOString();
+
+  const prevDuration = rangeTo.getTime() - rangeFrom.getTime();
+  const prevFrom = new Date(rangeFrom.getTime() - prevDuration);
+  const prevTo = rangeFrom;
+  const prevMonth = monthStr(prevFrom);
+
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -23,16 +42,11 @@ export async function GET() {
 
   const { data: monthlyUsage } = await supabase.from('monthly_usage').select('user_id, wine_searches, pier_messages').eq('month', currentMonth);
 
-  const monthStart = `${currentMonth}-01T00:00:00Z`;
-  const { data: apiUsage } = await supabase.from('api_usage_log').select('service, model, feature, estimated_cost_usd, tokens_in, tokens_out, user_id').gte('created_at', monthStart);
+  const { data: apiUsage } = await supabase.from('api_usage_log').select('service, model, feature, estimated_cost_usd, tokens_in, tokens_out, user_id').gte('created_at', rangeFromISO).lte('created_at', rangeToISO);
 
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-  const lastMonthStart = `${lastMonthStr}-01T00:00:00Z`;
-  const lastMonthEnd = `${currentMonth}-01T00:00:00Z`;
-  const { data: lastMonthApiUsage } = await supabase.from('api_usage_log').select('estimated_cost_usd').gte('created_at', lastMonthStart).lt('created_at', lastMonthEnd);
+  const { data: prevApiUsage } = await supabase.from('api_usage_log').select('estimated_cost_usd').gte('created_at', prevFrom.toISOString()).lt('created_at', prevTo.toISOString());
 
-  const { data: lastMonthUsage } = await supabase.from('monthly_usage').select('user_id').eq('month', lastMonthStr);
+  const { data: prevMonthUsage } = await supabase.from('monthly_usage').select('user_id').eq('month', prevMonth);
 
   const totalUsers = users.length;
   const adminCount = (profiles || []).filter((p: Record<string, unknown>) => p.is_admin).length;
@@ -43,7 +57,7 @@ export async function GET() {
 
   const activeUserIds = new Set((monthlyUsage || []).map((u: Record<string, unknown>) => u.user_id));
   const activeThisMonth = activeUserIds.size;
-  const activeLastMonth = new Set((lastMonthUsage || []).map((u: Record<string, unknown>) => u.user_id)).size;
+  const activeLastMonth = new Set((prevMonthUsage || []).map((u: Record<string, unknown>) => u.user_id)).size;
 
   let totalSearches = 0;
   let totalPierMessages = 0;
@@ -54,6 +68,7 @@ export async function GET() {
 
   let totalCostThisMonth = 0;
   const costByService: Record<string, number> = {};
+  const countByService: Record<string, number> = {};
   const costByModel: Record<string, number> = {};
   const costByFeature: Record<string, number> = {};
   const costByUser: Record<string, number> = {};
@@ -62,12 +77,13 @@ export async function GET() {
     const cost = Number(row.estimated_cost_usd) || 0;
     totalCostThisMonth += cost;
     costByService[row.service] = (costByService[row.service] || 0) + cost;
+    countByService[row.service] = (countByService[row.service] || 0) + 1;
     if (row.model) costByModel[row.model] = (costByModel[row.model] || 0) + cost;
     costByFeature[row.feature] = (costByFeature[row.feature] || 0) + cost;
     if (row.user_id) costByUser[row.user_id] = (costByUser[row.user_id] || 0) + cost;
   }
 
-  const totalCostLastMonth = (lastMonthApiUsage || []).reduce((sum: number, r: Record<string, unknown>) => sum + (Number(r.estimated_cost_usd) || 0), 0);
+  const totalCostLastMonth = (prevApiUsage || []).reduce((sum: number, r: Record<string, unknown>) => sum + (Number(r.estimated_cost_usd) || 0), 0);
 
   const topCostUsers = Object.entries(costByUser)
     .sort(([, a], [, b]) => b - a)
@@ -210,6 +226,7 @@ export async function GET() {
       totalCostLastMonth: Math.round(totalCostLastMonth * 100) / 100,
       costPerActiveUser: activeThisMonth > 0 ? Math.round((totalCostThisMonth / activeThisMonth) * 100) / 100 : 0,
       byService: costByService,
+      countByService,
       byModel: Object.fromEntries(Object.entries(costByModel).map(([k, v]) => [k, Math.round(v * 100) / 100])),
       byFeature: Object.fromEntries(
         Object.entries(costByFeature).sort(([, a], [, b]) => b - a).slice(0, 10).map(([k, v]) => [k, Math.round(v * 1000) / 1000])

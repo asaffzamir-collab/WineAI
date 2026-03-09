@@ -492,6 +492,14 @@ export function SearchPage({ userId }: SearchPageProps) {
   const handleImageFound = useCallback((wine: WineData, imageUrl: string, source?: string) => {
     updateRecentSearchImage(userId, wine.name, wine.winery, imageUrl, source);
     setRecentSearches(getRecentSearches(userId));
+
+    const patch = (prev: WineData | null): WineData | null => {
+      if (!prev || prev.image_url) return prev;
+      if (prev.name !== wine.name || prev.winery !== wine.winery) return prev;
+      return { ...prev, image_url: imageUrl, image_source: source };
+    };
+    setWineResult(patch);
+    setDisplayWine(patch);
   }, [userId]);
 
   const wineForActions = (w?: WineData | null): WineData | null => w ?? wineResult;
