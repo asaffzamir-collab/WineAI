@@ -43,7 +43,7 @@ export async function generateConversationTitle(
     });
 
     const title = res.choices?.[0]?.message?.content?.trim();
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'conversation_title', tokensIn: Math.ceil(snippet.length / 3), tokensOut: Math.ceil((title?.length || 0) / 3) });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'conversation_title', tokensIn: Math.ceil(snippet.length / 3), tokensOut: Math.ceil((title?.length || 0) / 3) });
     return title || null;
   } catch (err) {
     console.warn('Failed to generate conversation title:', err);

@@ -54,7 +54,7 @@ async function ask(systemPrompt: string, userPrompt: string, opts?: { temperatur
     max_tokens: opts?.maxTokens ?? 2000,
   });
   const content = res.choices?.[0]?.message?.content;
-  trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'sommelier_ask', tokensIn: Math.ceil((systemPrompt.length + userPrompt.length) / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+  await trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'sommelier_ask', tokensIn: Math.ceil((systemPrompt.length + userPrompt.length) / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
   if (!content) throw new Error('Empty AI response');
   return parseJson(content);
 }
@@ -403,7 +403,7 @@ ${wishlistSummary}`;
   });
 
   const choice = res.choices?.[0];
-  trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'sommelier_chat', tokensIn: Math.ceil(JSON.stringify(messages).length / 4), tokensOut: Math.ceil((choice?.message?.content?.length || 0) / 3), durationMs: Date.now() - startTime });
+  await trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'sommelier_chat', tokensIn: Math.ceil(JSON.stringify(messages).length / 4), tokensOut: Math.ceil((choice?.message?.content?.length || 0) / 3), durationMs: Date.now() - startTime });
   if (!choice?.message) throw new Error('Empty AI response');
 
   if (choice.message.tool_calls?.length) {
@@ -473,7 +473,7 @@ export async function continueChatAfterToolCall(
   void context.language;
 
   const content = res.choices?.[0]?.message?.content;
-  trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'sommelier_chat_tool', tokensIn: Math.ceil(JSON.stringify(messages).length / 4), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+  await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'sommelier_chat_tool', tokensIn: Math.ceil(JSON.stringify(messages).length / 4), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
   if (!content) throw new Error('Empty AI response after tool call');
 
   try {
@@ -516,5 +516,5 @@ export async function* streamChatText(
       totalChars += text.length;
     }
   }
-  trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'sommelier_chat_stream', tokensIn: Math.ceil(JSON.stringify(originalMessages).length / 4), tokensOut: Math.ceil(totalChars / 3), durationMs: Date.now() - startTime });
+  void trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'sommelier_chat_stream', tokensIn: Math.ceil(JSON.stringify(originalMessages).length / 4), tokensOut: Math.ceil(totalChars / 3), durationMs: Date.now() - startTime });
 }

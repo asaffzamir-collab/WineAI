@@ -36,14 +36,14 @@ export function AdminLayoutShell({
               </div>
               <div>
                 <h1 className="heading-serif text-xl text-white">{t('title')}</h1>
-                <p className="text-xs text-charcoal-300">{adminEmail}</p>
+                <p className="text-xs text-white/60">{adminEmail}</p>
               </div>
             </div>
             <Link href="/settings">
               <Button
                 variant="outline"
                 size="sm"
-                className="border-charcoal-500 bg-charcoal-600 text-charcoal-100 hover:bg-charcoal-500 hover:text-white"
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20"
               >
                 <ArrowLeft className="h-4 w-4 me-1.5" />
                 {t('backToSettings')}
@@ -59,7 +59,7 @@ export function AdminLayoutShell({
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive(href)
                     ? 'bg-charcoal-600 text-white'
-                    : 'text-charcoal-300 hover:bg-charcoal-700 hover:text-charcoal-100'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <Icon className="h-4 w-4" />

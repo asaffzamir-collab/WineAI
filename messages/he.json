@@ -663,7 +663,22 @@
     "confirmEraseText": "פעולה זו תמחק את כל הנתונים של {email} כולל מרתף, משאלות, טעימות ופרופיל טעם. החשבון יישאר פעיל.",
     "confirmResetText": "פעולה זו תיצור סיסמה חדשה עבור {email}. המשתמש יצטרך את הסיסמה החדשה כדי להתחבר.",
     "passwordResetSuccessful": "הסיסמה אופסה בהצלחה",
-    "newPasswordFor": "סיסמה חדשה עבור {email}:"
+    "newPasswordFor": "סיסמה חדשה עבור {email}:",
+
+    "detailTabCellar": "מרתף",
+    "detailTabPier": "פייר",
+    "detailTabSearches": "חיפושים",
+    "detailLoading": "טוען...",
+    "detailEmptyCellar": "אין יינות במרתף",
+    "detailEmptyConversations": "אין שיחות עדיין",
+    "detailEmptySearches": "אין היסטוריית חיפושים",
+    "detailQuantity": "כמות",
+    "detailOpened": "נפתח",
+    "detailConsumed": "נצרך",
+    "detailMessages": "{count} הודעות",
+    "detailResults": "{count} תוצאות",
+    "detailImageSearch": "תמונה",
+    "detailTextSearch": "טקסט"
   },
   "nav": {
     "home": "בית",

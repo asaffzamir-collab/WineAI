@@ -663,7 +663,22 @@
     "confirmEraseText": "This will erase all data for {email} including cellar, wishlist, tastings, and taste profile. The account will remain active.",
     "confirmResetText": "This will generate a new password for {email}. The user will need the new password to log in.",
     "passwordResetSuccessful": "Password Reset Successful",
-    "newPasswordFor": "New password for {email}:"
+    "newPasswordFor": "New password for {email}:",
+
+    "detailTabCellar": "Cellar",
+    "detailTabPier": "Pier",
+    "detailTabSearches": "Searches",
+    "detailLoading": "Loading...",
+    "detailEmptyCellar": "No wines in cellar",
+    "detailEmptyConversations": "No conversations yet",
+    "detailEmptySearches": "No search history yet",
+    "detailQuantity": "qty",
+    "detailOpened": "Opened",
+    "detailConsumed": "Consumed",
+    "detailMessages": "{count} messages",
+    "detailResults": "{count} results",
+    "detailImageSearch": "Image",
+    "detailTextSearch": "Text"
   },
   "nav": {
     "home": "Home",

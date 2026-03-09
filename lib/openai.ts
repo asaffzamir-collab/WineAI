@@ -208,7 +208,7 @@ export async function searchWinesByText(query: string): Promise<WineData[]> {
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_text', tokensIn: Math.ceil(query.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_text', tokensIn: Math.ceil(query.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) {
       console.error('No content in OpenAI text search response');
       return [];
@@ -285,7 +285,7 @@ export async function searchWineByImage(base64Image: string, mimeType: string = 
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_image', tokensIn: 1000, tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_search_image', tokensIn: 1000, tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     console.log('OpenAI image response (first 300 chars):', content?.substring(0, 300));
     
     if (!content) {
@@ -514,7 +514,7 @@ User Profile: ${JSON.stringify(profileForPrompt)}`,
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_match', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'wine_match', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) {
       return {
         match_percentage: 50,
@@ -612,7 +612,7 @@ Return this structure for each wine type:
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'onboarding_profile', tokensIn: Math.ceil(JSON.stringify(onboardingAnswers).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'onboarding_profile', tokensIn: Math.ceil(JSON.stringify(onboardingAnswers).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const result = JSON.parse(content) as Record<string, Record<string, unknown>>;
@@ -703,7 +703,7 @@ Update their profile to reflect that they enjoy this wine's characteristics.`,
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'profile_update_wine', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'profile_update_wine', tokensIn: Math.ceil(JSON.stringify(wine).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const result = parseJsonResponse(content) as Record<string, unknown>;
@@ -764,7 +764,7 @@ Be precise and derive values from the text descriptions provided.`,
     });
 
     const content = response.choices?.[0]?.message?.content;
-    trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'spectrum_backfill', tokensIn: Math.ceil(JSON.stringify(profileData).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o', feature: 'spectrum_backfill', tokensIn: Math.ceil(JSON.stringify(profileData).length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return null;
 
     const parsed = parseJsonResponse(content) as { body: number; tannin: number; sweetness: number; acidity: number };

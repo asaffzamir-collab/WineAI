@@ -87,6 +87,46 @@ type ConfirmAction = {
 
 type SpecialFilter = 'active' | 'onboarded' | 'premium' | 'new7d' | 'new30d' | 'exceeded' | 'critical' | 'warning' | null;
 
+type DetailTab = 'cellar' | 'pier' | 'searches';
+
+interface CellarItem {
+  id: string;
+  wineName: string;
+  winery: string;
+  wineType: string;
+  country: string | null;
+  region: string | null;
+  imageUrl: string | null;
+  quantity: number;
+  openedAt: string | null;
+  consumedAt: string | null;
+  createdAt: string;
+}
+
+interface ConversationItem {
+  id: string;
+  title: string | null;
+  preview: string | null;
+  messageCount: number;
+  userMessageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface SearchItem {
+  id: string;
+  query: string;
+  searchType: 'text' | 'image';
+  resultCount: number;
+  createdAt: string;
+}
+
+interface UserDetail {
+  cellarItems: CellarItem[];
+  conversations: ConversationItem[];
+  searchHistory: SearchItem[];
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -253,6 +293,156 @@ function MetricCell({ icon: Icon, label, value }: { icon: React.ElementType; lab
       <div className="min-w-0">
         <p className="text-xs text-stone-500 dark:text-stone-400">{label}</p>
         <p className="text-sm font-semibold text-bordeaux-600 dark:text-ivory-200">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User Detail Tabs
+// ---------------------------------------------------------------------------
+
+function UserDetailTabs({ userId }: { userId: string }) {
+  const t = useTranslations('admin');
+  const locale = useLocale();
+  const [tab, setTab] = useState<DetailTab>('cellar');
+  const [detail, setDetail] = useState<UserDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/admin/users/${userId}/detail`)
+      .then((res) => res.json())
+      .then((data: UserDetail) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const tabs: { key: DetailTab; label: string; icon: React.ElementType; count: number }[] = [
+    { key: 'cellar', label: t('detailTabCellar'), icon: Wine, count: detail?.cellarItems.length ?? 0 },
+    { key: 'pier', label: t('detailTabPier'), icon: MessageSquare, count: detail?.conversations.length ?? 0 },
+    { key: 'searches', label: t('detailTabSearches'), icon: Search, count: detail?.searchHistory.length ?? 0 },
+  ];
+
+  const fmtDate = (d: string) => formatDateLocale(d, locale);
+
+  return (
+    <div className="mb-4 rounded-xl border border-ivory-200 dark:border-charcoal-700 overflow-hidden">
+      {/* Tab bar */}
+      <div className="flex border-b border-ivory-200 dark:border-charcoal-700 bg-ivory-100/50 dark:bg-charcoal-800/50">
+        {tabs.map(({ key, label, icon: Icon, count }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors ${
+              tab === key
+                ? 'border-b-2 border-bordeaux-500 text-bordeaux-600 dark:text-bordeaux-300 bg-white/50 dark:bg-charcoal-800'
+                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+            {!loading && (
+              <span className="rounded-full bg-stone-200 dark:bg-charcoal-700 px-1.5 py-0.5 text-[10px] font-bold leading-none">
+                {count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="max-h-64 overflow-y-auto p-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-bordeaux-400" />
+            <span className="ms-2 text-xs text-stone-400">{t('detailLoading')}</span>
+          </div>
+        ) : tab === 'cellar' ? (
+          detail?.cellarItems.length ? (
+            <div className="space-y-2">
+              {detail.cellarItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-lg bg-ivory-100 px-3 py-2 dark:bg-charcoal-800">
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt="" className="h-10 w-7 rounded object-cover shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-foreground truncate">{item.wineName}</p>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                      {item.winery} · {item.wineType}{item.country ? ` · ${item.country}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-0.5 text-[10px] text-stone-400">
+                    {item.quantity > 1 && <span>{t('detailQuantity')} {item.quantity}</span>}
+                    {item.openedAt && <span className="text-amber-500">{t('detailOpened')}</span>}
+                    {item.consumedAt && <span className="text-emerald-500">{t('detailConsumed')}</span>}
+                    <span>{fmtDate(item.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-stone-400 py-6">{t('detailEmptyCellar')}</p>
+          )
+        ) : tab === 'pier' ? (
+          detail?.conversations.length ? (
+            <div className="space-y-2">
+              {detail.conversations.map((conv) => (
+                <div key={conv.id} className="rounded-lg bg-ivory-100 px-3 py-2 dark:bg-charcoal-800">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground truncate">
+                        {conv.title || conv.preview || '—'}
+                      </p>
+                      {conv.title && conv.preview && (
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate mt-0.5">
+                          {conv.preview}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end gap-0.5 text-[10px] text-stone-400">
+                      <span>{t('detailMessages', { count: conv.messageCount })}</span>
+                      <span>{fmtDate(conv.updatedAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-stone-400 py-6">{t('detailEmptyConversations')}</p>
+          )
+        ) : (
+          detail?.searchHistory.length ? (
+            <div className="space-y-2">
+              {detail.searchHistory.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-lg bg-ivory-100 px-3 py-2 dark:bg-charcoal-800">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-foreground truncate">{item.query}</p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2 text-[10px] text-stone-400">
+                    <span className={`rounded-full px-1.5 py-0.5 font-medium ${
+                      item.searchType === 'image'
+                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                    }`}>
+                      {item.searchType === 'image' ? t('detailImageSearch') : t('detailTextSearch')}
+                    </span>
+                    <span>{t('detailResults', { count: item.resultCount })}</span>
+                    <span>{fmtDate(item.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-stone-400 py-6">{t('detailEmptySearches')}</p>
+          )
+        )}
       </div>
     </div>
   );
@@ -445,6 +635,9 @@ function UserCard({
                   ${user.apiCostThisMonth.toFixed(2)}
                 </span>
               </div>
+
+              {/* Detail Tabs */}
+              {isExpanded && <UserDetailTabs userId={user.id} />}
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2 border-t border-ivory-200 pt-3 dark:border-charcoal-700">

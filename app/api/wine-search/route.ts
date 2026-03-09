@@ -5,6 +5,7 @@ import { requireUsage } from '@/lib/require-usage';
 import { incrementUsage } from '@/lib/usage';
 import { notifyAdminUsageThreshold } from '@/lib/notify-admin';
 import { getTasteProfilesForUser } from '@/lib/get-taste-profiles';
+import { logSearch } from '@/lib/search-log';
 
 async function fillCachedImages(wines: WineData[]): Promise<void> {
   await Promise.all(
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
         incrementUsage(userId as string, 'wine_search').then(({ thresholdHit }) => {
           if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
         }).catch(() => {});
+        void logSearch({ userId: userId as string, query: `[image] ${wine.name}`, searchType: 'image', resultCount: 1 });
       }
       return NextResponse.json({
         wine, match: null,
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
         incrementUsage(userId as string, 'wine_search').then(({ thresholdHit }) => {
           if (thresholdHit) notifyAdminUsageThreshold(userId as string, 'wine_search', thresholdHit);
         }).catch(() => {});
+        void logSearch({ userId: userId as string, query: query as string, searchType: 'text', resultCount: wines.length });
       }
 
       // Compute quick deterministic scores (no GPT, instant)

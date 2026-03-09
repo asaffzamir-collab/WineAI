@@ -101,7 +101,7 @@ export async function regenerateGuideContent(
 
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content?.trim();
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'guide_regeneration', tokensIn: Math.ceil(buildPrompt(entries).length / 3), tokensOut: Math.ceil((text?.length || 0) / 3) });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'guide_regeneration', tokensIn: Math.ceil(buildPrompt(entries).length / 3), tokensOut: Math.ceil((text?.length || 0) / 3) });
     if (!text) return null;
 
     const parsed = JSON.parse(text) as GuideContent;

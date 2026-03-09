@@ -1,6 +1,6 @@
 /**
  * Lightweight API usage tracking for cost monitoring.
- * Fire-and-forget — never blocks the main request.
+ * Returns a promise so callers can await if needed.
  */
 
 import { createAdminClient } from '@/lib/supabase/server';
@@ -35,24 +35,25 @@ export interface TrackApiUsageParams {
   durationMs?: number;
 }
 
-export function trackApiUsage(params: TrackApiUsageParams): void {
+export async function trackApiUsage(params: TrackApiUsageParams): Promise<void> {
   const cost = estimateCost(params.service, params.model, params.tokensIn, params.tokensOut);
 
   try {
     const admin = createAdminClient();
-    Promise.resolve(
-      admin.from('api_usage_log').insert({
-        user_id: params.userId || null,
-        service: params.service,
-        model: params.model || null,
-        feature: params.feature,
-        tokens_in: params.tokensIn || null,
-        tokens_out: params.tokensOut || null,
-        estimated_cost_usd: cost || null,
-        duration_ms: params.durationMs || null,
-      }),
-    ).catch(() => {});
-  } catch {
-    // Swallow — tracking must never break the main request
+    const { error } = await admin.from('api_usage_log').insert({
+      user_id: params.userId || null,
+      service: params.service,
+      model: params.model || null,
+      feature: params.feature,
+      tokens_in: params.tokensIn || null,
+      tokens_out: params.tokensOut || null,
+      estimated_cost_usd: cost || null,
+      duration_ms: params.durationMs || null,
+    });
+    if (error) {
+      console.error('[trackApiUsage] insert failed:', error.message);
+    }
+  } catch (err) {
+    console.error('[trackApiUsage] error:', err instanceof Error ? err.message : err);
   }
 }

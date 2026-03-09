@@ -82,7 +82,7 @@ async function transliterateHebrew(text: string): Promise<string> {
     if (!res.ok) return text;
     const data = await res.json();
     const result = data?.choices?.[0]?.message?.content?.trim();
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'transliterate_hebrew', tokensIn: Math.ceil(text.length / 3), tokensOut: Math.ceil((result?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'transliterate_hebrew', tokensIn: Math.ceil(text.length / 3), tokensOut: Math.ceil((result?.length || 0) / 3), durationMs: Date.now() - startTime });
     return result || text;
   } catch {
     return text;
@@ -139,7 +139,7 @@ async function batchTransliterateHebrew(texts: string[]): Promise<string[]> {
     if (!res.ok) return texts;
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content?.trim();
-    trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'batch_transliterate', tokensIn: Math.ceil(numbered.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'openai', model: 'gpt-4o-mini', feature: 'batch_transliterate', tokensIn: Math.ceil(numbered.length / 3), tokensOut: Math.ceil((content?.length || 0) / 3), durationMs: Date.now() - startTime });
     if (!content) return texts;
 
     const lines = content.split('\n').map((l: string) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
@@ -307,7 +307,7 @@ async function searchViaSerper(query: string): Promise<WineImageResult | null> {
     }
 
     const data = await res.json();
-    trackApiUsage({ service: 'serper', feature: 'wine_image_search', durationMs: Date.now() - startTime });
+    await trackApiUsage({ service: 'serper', feature: 'wine_image_search', durationMs: Date.now() - startTime });
     const images: SerperImage[] = data?.images ?? [];
 
     for (const img of images) {
